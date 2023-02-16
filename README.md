@@ -1,4 +1,4 @@
-# Заметки команд PowerShell
+# PowerShell команды
 
 ### Help
 `Get-Command *Service*` поиск команды по имени \
