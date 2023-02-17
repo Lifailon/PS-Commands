@@ -571,19 +571,22 @@
 `Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
 `net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
 
-### WMI (Windows Management Instrumentation)
+### WMI/CIM (Windows Management Instrumentation/Common Information Model)	
 `Get-WmiObjec -ComputerName localhost -Namespace root -class "__NAMESPACE" | select name,__namespace` отобразить дочернии Namespace (логические иерархические группы) \
 `Get-WmiObject -List` отобразить все классы пространства имен "root\cimv2" (по умолчанию), свойства (описывают конфигурацию и текущее состояние управляемого ресурса) и их методы (какие действия позволяет выполнить над этим ресурсом) \
 `Get-WmiObject -List | Where-Object {$_.name -match "video"}` поиск класса по имени, его свойств и методов \
 `Get-WmiObject -ComputerName localhost -Class Win32_VideoController` отобразить содержимое свойств класса
 
 `gwmi -List | where name -match "service" | ft -auto` если в таблице присутствуют Methods, то можно взаимодействовать {StartService, StopService} \
-`gwmi -Class win32_service` отобразить список всех служб и всех их свойств \
-`gwmi win32_service -Filter "State = 'Running'"` отфильтровать запущенные службы \
+`gwmi -Class win32_service | select *` отобразить список всех служб и всех их свойств \
+`Get-CimInstance Win32_service` обращается на прямую к "root\cimv2" \
 `gwmi win32_service -Filter "name='Zabbix Agent'"` отфильтровать вывод по имени \
 `(gwmi win32_service -Filter "name='Zabbix Agent'").State` отобразить конкретное свойство \
-`gwmi win32_service | Get-Member -MemberType Method` отобразить все методы взаимодействия с описание применения, например Delete() \
-`(gwmi win32_service -Filter 'name="Zabbix Agent"').delete()` удалить службу \
+`gwmi win32_service -Filter "State = 'Running'"` отфильтровать запущенные службы \
+`gwmi win32_service -Filter "StartMode = 'Auto'"` отфильтровать службы по методу запуска \
+`gwmi -Query 'select * from win32_service where startmode="Auto"'` WQL-запрос (WMI Query Language) \
+`gwmi win32_service | Get-Member -MemberType Method` отобразить все методы взаимодействия с описание применения (Delete, StartService) \
+`(gwmi win32_service -Filter 'name="Zabbix Agent"').Delete()` удалить службу \
 `(gwmi win32_service -Filter 'name="MSSQL$MSSQLE"').StartService()` запустить службу \
 `gwmi Win32_OperatingSystem | Get-Member -MemberType Method` методы reboot и shutdown \
 `(gwmi Win32_OperatingSystem -EnableAllPrivileges).Reboot()` используется с ключем повышения привелегий \
@@ -677,3 +680,227 @@
 `Find-Package -Name *adobe* -Source PSGallery` поиск пакетов с указанием источника \
 `Install-Package -Name AdobeGPOTemplates # -ProviderName PSGallery` установка пакета \
 `Uninstall-Package AdobeGPOTemplates` удаление пакета
+
+## Active Directory
+
+### RSAT (Remote Server Administration Tools)
+`DISM.exe /Online /add-capability /CapabilityName:Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0 /CapabilityName:Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0` \
+`Add-WindowsCapability –online –Name Rsat.Dns.Tools~~~~0.0.1.0` \
+`Add-WindowsCapability -Online -Name Rsat.DHCP.Tools~~~~0.0.1.0` \
+`Add-WindowsCapability –online –Name Rsat.FileServices.Tools~~~~0.0.1.0` \
+`Add-WindowsCapability -Online -Name Rsat.WSUS.Tools~~~~0.0.1.0` \
+`Add-WindowsCapability -Online -Name Rsat.CertificateServices.Tools~~~~0.0.1.0` \
+`Add-WindowsCapability -Online -Name Rsat.RemoteDesktop.Services.Tools~~~~0.0.1.0` \
+`Get-WindowsCapability -Name RSAT* -Online | Select-Object -Property DisplayName, State` отобразить список установленных компанентов
+
+### LDAP (Lightweight Directory Access Protocol)
+`$ldapsearcher = New-Object System.DirectoryServices.DirectorySearcher` \
+`$d0 = $env:userdnsdomain` \
+`$d0 = $d0 -split "\."` \
+`$d1 = $d0[0]` \
+`$d2 = $d0[1]` \
+`$ldapsearcher.SearchRoot = "LDAP://OU=Domain Controllers,DC=$d1,DC=$d2"` \
+`$ldapsearcher.Filter = "(objectclass=computer)"` \
+`$dc = $ldapsearcher.FindAll().path`
+
+`$usr = $env:username` cписок групп текущего пользователя \
+`$ldapsearcher = New-Object System.DirectoryServices.DirectorySearcher` \
+`$ldapsearcher.Filter = "(&(objectCategory=User)(samAccountName=$usr))"` \
+`$usrfind = $ldapsearcher.FindOne()` \
+`$groups = $usrfind.properties.memberof -replace "(,OU=.+)"` \
+`$groups = $groups -replace "(CN=)"`
+
+### DHCP (Dynamic Host Configuration Protocol)
+`$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
+`HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
+`(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)` \
+`Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
+
+### DNS (Domain Name System)
+`$zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,` \
+`DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru` \
+`$zone_name = $zone.ZoneName` \
+`if ($zone_name -ne $null) {` \
+`icm -ComputerName $srv {Get-DnsServerResourceRecord -ZoneName $using:zone_name | sort RecordType | select RecordType,HostName, @{` \
+`Label="IPAddress"; Expression={$_.RecordData.IPv4Address.IPAddressToString}},TimeToLive,Timestamp` \
+`} | select RecordType,HostName,IPAddress,TimeToLive,Timestamp | Out-GridView -Title "DNS Server: $srv"` \
+`}`
+
+### LAPS (Local Admin Password Management)
+`Get-ADComputer -Filter * -SearchBase "DC=$d1,DC=$d2" | Get-AdmPwdPassword -ComputerName {$_.Name} | select ComputerName,Password,ExpirationTimestamp > C:\pass.txt` \
+`Get-ADComputer -Identity $srv | Get-AdmPwdPassword -ComputerName {$_.Name} | select ComputerName,Password,ExpirationTimestamp`
+
+### Get-ADComputer
+`Get-ADDomainController -Filter * | ft HostName, IPv4Address, operatingsystem,site,IsGlobalCatalog,IsReadOnly` список DC в домене \
+`nltest /DSGETDC:$env:userdnsdomain # узнать на каком DC аудентифицирован хост (Logon Server)` \
+`nltest /SC_RESET:$env:userdnsdomain\srv-dc2.$env:userdnsdomain` переключить компьютер на другой контроллер домена AD вручную (The command completed successfully) \
+`Get-ADComputer –Identity $env:computername -Properties PasswordLastSet` время последней смены пароля на сервере \
+`Test-ComputerSecureChannel –verbose` проверить доверительные отношения с доменом (соответствует ли локальный пароль компьютера паролю, хранящемуся в AD) \
+`Reset-ComputerMachinePassword -Credential domain\admin` принудительно обновить пароль \
+`Netdom ResetPWD /Server:dc-01 /UserD:domain\admin /PasswordD:*` сбросить хэш пароля компьютера в домене (перезагрузка не требуется) \
+`Search-ADAccount -AccountDisabled -ComputersOnly | select Name,LastLogonDate,Enabled` отобразить все отключенные компьютеры
+
+`Get-ADComputer -Filter * -Properties * | select name` список всех компьютеров в домене (Filter), вывести все свойства (Properties) \
+`Get-ADComputer -Identity $srv -Properties * | ft Name,LastLogonDate,PasswordLastSet,ms-Mcs-AdmPwd -Autosize` конкретного компьютера в AD (Identity) \
+`Get-ADComputer -SearchBase "OU=Domain Controllers,DC=$d1,DC=$d2" -Filter * -Properties * | ft Name, LastLogonDate, distinguishedName -Autosize` поиск в базе по DN (SearchBase)
+
+`(Get-ADComputer -Filter {enabled -eq "true"}).count` получить общее количество активных (незаблокированных) компьютеров \
+`(Get-ADComputer -Filter {enabled -eq "true" -and OperatingSystem -like "*Windows Server 2016*"}).count` кол-во активных копьютеров с ОС WS 2016
+
+`Get-ADComputer -Filter * -Properties * | select @{Label="Ping Status"; Expression={` \
+`$ping = ping -n 1 -w 50 $_.Name` \
+`if ($ping -match "TTL") {"Online"} else {"Offline"}` \
+`}},` \
+`@{Label="Status"; Expression={` \
+`if ($_.Enabled -eq "True") {$_.Enabled -replace "True","Active"} else {$_.Enabled -replace "False","Blocked"}` \
+`}}, Name, IPv4Address, OperatingSystem, @{Label="UserOwner"; Expression={$_.ManagedBy -replace "(CN=|,.+)"}` \
+`},Created | Out-GridView`
+
+### Get-ADUser
+`Get-ADUser -Identity support4 -Properties *` список всех атрибутов \
+`Get-ADUser -Identity support4 -Properties DistinguishedName, EmailAddress, Description` путь DN, email и описание \
+`Get-ADUser -Filter {(Enabled -eq "True") -and (mail -ne "null")} -Properties mail | ft Name,mail` список активных пользователей и есть почтовый ящик \
+`Get-ADUser -Filter {SamAccountName -like "*"} | Measure-Object` посчитать кол-во всех аккаунтов (Count) \
+`Get-ADUser -Filter * -Properties WhenCreated | sort WhenCreated | ft Name, whenCreated` дата создания \
+`Get-ADUser -Identity support4 -property LockedOut | select samaccountName,Name,Enabled,Lockedout` \
+`Enabled=True` учетная запись включена - да \
+`Lockedout=False` учетная запись заблокирована (например, политикой паролей) - нет \
+`Get-ADUser -Identity support4 | Unlock-ADAccount` разблокировать учетную запись \
+`Disable-ADAccount -Identity support4` отключить учетную запись \
+`Enable-ADAccount -Identity support4` включить учетную запись \
+`Search-ADAccount -LockedOut` найти все заблокированные учетные записи \
+`Search-ADAccount -AccountDisabled | select Name,LastLogonDate,Enabled` отобразить все отключенные учетные записи с временем последнего входа
+
+`Get-ADUser -Identity support4 -Properties PasswordLastSet,PasswordExpired,PasswordNeverExpires` \
+`PasswordLastSet` время последней смены пароля \
+`PasswordExpired=False` пароль истек - нет \
+`PasswordNeverExpires=True` срок действия пароля не истекает - да \
+`Set-ADAccountPassword support4 -Reset -NewPassword (ConvertTo-SecureString -AsPlainText "password" -Force -Verbose)` изменить пароль учетной записи \
+`Set-ADUser -Identity support4 -ChangePasswordAtLogon $True` смена пароля при следующем входе в систему
+
+`$day = (Get-Date).adddays(-90)` \
+`Get-ADUser -filter {(passwordlastset -le $day)} | ft` пользователи, которые не меняли свой пароль больше 90 дней
+
+`$day = (Get-Date).adddays(-30)` \
+`Get-ADUser -filter {(Created -ge $day)} -Property Created | select Name,Created` Новые пользователи за 30 дней
+
+`$day = (Get-Date).adddays(-360)`
+`Get-ADUser -Filter {(LastLogonTimestamp -le $day)} -Property LastLogonTimestamp | select Name,SamAccountName,@{n='LastLogonTimestamp';e={[DateTime]::FromFileTime($_.LastLogonTimestamp)}} | sort -Descending LastLogonTimestamp` пользователи, которые не логинились больше 360 дней. Репликация атрибута LastLogonTimestamp составляет от 9 до 14 дней. \
+`| Disable-ADAccount $_.SamAccountName` заблокировать \
+`-WhatIf` отобразить вывод без применения изменений
+
+### Get-ADGroupMember
+`(Get-ADUser -Identity support4 -Properties MemberOf).memberof` список групп в которых состоит пользователь \
+`Get-ADGroupMember -Identity "Domain Admins" | Select Name,SamAccountName` список пользователей в группе \
+`Add-ADGroupMember -Identity "Domain Admins" -Members support5` добавить в группу \
+`Remove-ADGroupMember -Identity "Domain Admins" -Members support5 -force` удалить из группы \
+`Get-ADGroup -filter * | where {!($_ | Get-ADGroupMember)} | Select Name` отобразить список пустых групп (-Not)
+
+### Replication
+`Get-Command -Module ActiveDirectory -Name *Replication*` список всех командлетов модуля \
+`Get-ADReplicationFailure -Target dc-01` список ошибок репликации с партнерами \
+`Get-ADReplicationFailure -Target $env:userdnsdomain -Scope Domain` \
+`Get-ADReplicationPartnerMetadata -Target dc-01 | select Partner,LastReplicationAttempt,LastReplicationSuccess,LastReplicationResult,LastChangeUsn` время последней и время успешной репликации с партнерами \
+`Get-ADReplicationUpToDatenessVectorTable -Target dc-01` Update Sequence Number (USN) увеличивается каждый раз, когда на контроллере домена происходит транзакция (операции создания, обновления или удаления объекта), при репликации DC обмениваются значениями USN, объект с более низким USN при репликации будет перезаписан высоким USN. \
+`Get-ADUser -server dc-01 -Identity support4 -Properties uSNChanged | select SamAccountName,uSNChanged` отобразить номер USN объета на конкретном DC
+
+`repadmin /replsummary` отображает все DC, время последней репликации по направлению (Source и Destination) и их состояние с учетом партнеров \
+`repadmin /showrepl dc-01` отображает всех партнеров DC по реплкации и их статус для всех разделов NC (Naming Contexts) разделов (DC=ForestDnsZones, DC=DomainDnsZones, CN=Schema, CN=Configuration) \
+`repadmin /retry` повторить попытку привязки к целевому DC, если была ошибка 1722 или 1753 (RPC недоступен) \
+`repadmin /replicate $srv2 $srv1 DC=$d1,DC=$d2` выполнить репликацию с $srv1 на $srv2 только указанный раздела \
+`repadmin /SyncAll /AdeP` запустить межсайтовую исходящую репликацию всех разделов от текущего сервера со всеми партнерами по репликации \
+`/A` выполнить для всех разделов NC \
+`/d` в сообщениях идентифицировать серверы по DN (вместо GUID DNS - глобальным уникальным идентификаторам) \
+`/e` межсайтовая синхронизация (по умолчанию синхронизирует только с DC текущего сайта) \
+`/P` извещать об изменениях с этого сервера (по умолчанию: опрашивать об изменениях) \
+`repadmin /Queue dc-01` отображает кол-во запросов входящей репликации (очередь), которое необходимо обработать (причиной может быть большое кол-во партнеров или формирование 1000 объектов скриптом) \
+`repadmin /showbackup *` узнать дату последнего Backup \
+`dcdiag /Test:replications /s:dc-01` отображает ошибки репликации \
+`dcdiag /Test:DNS /e /v /q` тест DNS \
+`/a` проверка всех серверов данного сайта \
+`/e` проверка всех серверов предприятия \
+`/q` выводить только сообщения об ошибках \
+`/v` выводить подробную информацию \
+`/fix` автоматически исправляет ошибки \
+`/test:` \
+`Connectivity` проверяет регистрацию DC в DNS, выполняет тестовые LDAP и RPC подключения \
+`NetLogons` проверка наличие прав на выполнение репликации \
+`Services` проверяет, запущены ли на контроллере домена необходимые службы \
+`Systemlog` проверяет наличие ошибок в журналах DC \
+`FRSEvent` проверяет наличие ошибок в службе репликации файлов (ошибки репликации SYSVOL) \
+`FSMOCheck` проверяет, что DC может подключиться к KDC, PDC, серверу глобального каталога \
+`KnowsOfRoleHolders` проверяет доступность контроллеров домена с ролями FSMO \
+`MachineAccount` проверяет корректность регистрации учетной записи DC в AD, корректность доверительных отношения с доменом
+
+## VMWare (PowerCLI)
+
+`Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
+`Get-Module -ListAvailable VMware* | Select Name,Version` \
+`Import-Module VMware.VimAutomation.Core` импортировать в сессию
+
+`Get-PowerCLIConfiguration` конфигурация подключения \
+`Set-PowerCLIConfiguration -Scope AllUsers -InvalidCertificateAction ignore -confirm:$false` eсли используется самоподписанный сертификат, изменить значение параметра InvalidCertificateAction с Unset на Ignore/Warn \
+`Set-PowerCLIConfiguration -Scope AllUsers -ParticipateInCeip $false` отключить уведомление сбора данных через VMware Customer Experience Improvement Program (CEIP)
+
+`Read-Host –AsSecureString | ConvertFrom-SecureString | Out-File "$home\Documents\vcsa_password.txt"` зашифровать пароль и сохранить в файл \
+`$esxi = "vcsa.domain.local"` \
+`$user = "administrator@vsphere.local"` \
+`$pass = Get-Content "$home\Documents\vcsa_password.txt" | ConvertTo-SecureString` прочитать пароль \
+`$pass = "password"` \
+`$Cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $user ,$pass` \
+`Connect-VIServer $esxi -User $Cred.Username -Password $Cred.GetNetworkCredential().password` подключиться, используя PSCredential ($Cred) \
+`Connect-VIServer $esxi -User $user -Password $pass` подключиться, используя логин и пароль
+
+`Get-Command –Module *vmware*` \
+`Get-Command –Module *vmware* -name *get*iscsi*` \
+`Get-IScsiHbaTarget` \
+`Get-Datacenter` \
+`Get-Cluster` \
+`Get-VMHost` \
+`Get-VMHost | select Name,Model,ProcessorType,MaxEVCMode,NumCpu,CpuTotalMhz,CpuUsageMhz,MemoryTotalGB,MemoryUsageGB` \
+`Get-VMHostDisk | select VMHost,ScsiLun,TotalSectors`
+
+`Get-Datastore` \
+`Get-Datastore TNAS-vmfs-4tb-01` \
+`Get-Datastore TNAS-vmfs-4tb-01 | get-vm` \
+`Get-Datastore -RelatedObject vm-01` \
+`(Get-Datastore TNAS-vmfs-4tb-01).ExtensionData.Info.GetType()` \
+`(Get-Datastore TNAS-vmfs-4tb-01).ExtensionData.Info.Vmfs.Extent`
+
+`Get-Command –Module *vmware* -name *disk*` \
+`Get-VM vm-01 | Get-Datastore` \
+`Get-VM vm-01 | Get-HardDisk` \
+`Get-VM | Get-HardDisk | select Parent,Name,CapacityGB,StorageFormat,FileName | ft` \
+`Copy-HardDisk` \
+`Get-VM | Get-Snapshot` \
+`Get-VM | where {$_.Powerstate -eq "PoweredOn"}` \
+`Get-VMHost esxi-05 | Get-VM | where {$_.Powerstate -eq "PoweredOff"} | Move-VM –Destination (Get-VMHost esxi-06)`
+
+`Get-VM | select Name,VMHost,PowerState,NumCpu,MemoryGB,` \
+`@{Name="UsedSpaceGB"; Expression={[int32]($_.UsedSpaceGB)}},@{Name="ProvisionedSpaceGB"; Expression={[int32]($_.ProvisionedSpaceGB)}},` \
+`CreateDate,CpuHotAddEnabled,MemoryHotAddEnabled,CpuHotRemoveEnabled,Notes`
+
+`Get-VMGuest vm-01 | Update-Tools` \
+`Get-VMGuest vm-01 | select OSFullName,IPAddress,HostName,State,Disks,Nics,ToolsVersion` \
+`Get-VMGuest * | select -ExpandProperty IPAddress` \
+`Restart-VMGuest -vm vm-01 -Confirm:$False` \
+`Start-VM -vm vm-01 -Confirm:$False` \
+`Shutdown-VMGuest -vm vm-01 -Confirm:$false`
+
+`New-VM –Name vm-01 -VMHost esxi-06 –ResourcePool Production –DiskGB 60 –DiskStorageFormat Thin –Datastore TNAS-vmfs-4tb-01` \
+`Get-VM vm-01 | Copy-VMGuestFile -Source "\\$srv\Install\Soft\Btest.exe" -Destination "C:\Install\" -LocalToGuest -GuestUser USER -GuestPassword PASS -force`
+
+`Get-VM -name vm-01 | Export-VApp -Destination C:\Install -Format OVF` Export template (.ovf, .vmdk, .mf) \
+`Get-VM -name vm-01 | Export-VApp -Destination C:\Install -Format OVA`
+
+`Get-VMHostNetworkAdapter | select VMHost,Name,Mac,IP,@{Label="Port Group"; Expression={$_.ExtensionData.Portgroup}} | ft` \
+`Get-VM | Get-NetworkAdapter | select Parent,Name,Id,Type,MacAddress,ConnectionState,WakeOnLanEnabled | ft`
+
+`Get-Command –Module *vmware* -name *event*` \
+`Get-VIEvent -MaxSamples 1000 | where {($_.FullFormattedMessage -match "power")} | select username,CreatedTime,FullFormattedMessage` \
+`Get-logtype | select Key,SourceEntityId,Filename,Creator,Info` \
+`(Get-Log vpxd:vpxd.log).Entries | select -Last 50`
+
+`Get-Command –Module *vmware* -name *syslog*` \
+`Set-VMHostSysLogServer -VMHost esxi-05 -SysLogServer "tcp://192.168.3.100" -SysLogServerPort 3515` \
+`Get-VMHostSysLogServer -VMHost esxi-05`
