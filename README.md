@@ -55,12 +55,26 @@
 `$srv[10..100]` срез
 
 ### PSCustomObject
+`$object = New-Object –TypeName PSCustomObject -Property @{User = $env:username; Server = $env:computername}` предназначен для хранения объектов с произвольной структурой, где порядок их свойств может поменяться. Чтобы этого избежать, необходимо использовать дополнительный атрибут [ordered] \
+`$object | Get-Member` \
+`$object | Add-Member –MemberType NoteProperty –Name IP –Value "192.168.1.1"` добавить свойство или -MemberType ScriptMethod \
+`$object.PsObject.Properties.Remove('User')` удалить свойство (столбец)
+
 `$obj = @()` \
 `$obj += [PSCustomObject]@{User = $env:username; Server = $env:computername}` медленный метод добавления, в каждой интерации перезаписывается массив и коллекция становится фиксированного размера (Collection was of a fixed size)
 
 `$Collections = New-Object System.Collections.Generic.List[System.Object]` \
 `$Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})`
 
+`Class CustomClass {` \
+`[string]$User` \
+`[string]$Server` \
+`}` \
+`$Class = New-Object -TypeName CustomClass` \
+`$Class.User = "support"` \
+`$Class.Server = "srv-01"`
+
+### CSV:
 `Get-Service | Select Name,DisplayName,Status,StartType | Export-csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
 `Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
 
