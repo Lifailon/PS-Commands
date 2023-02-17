@@ -681,7 +681,7 @@
 `Install-Package -Name AdobeGPOTemplates # -ProviderName PSGallery` установка пакета \
 `Uninstall-Package AdobeGPOTemplates` удаление пакета
 
-## Active Directory
+# Active Directory
 
 ### RSAT (Remote Server Administration Tools)
 `DISM.exe /Online /add-capability /CapabilityName:Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0 /CapabilityName:Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0` \
@@ -832,7 +832,7 @@
 `KnowsOfRoleHolders` проверяет доступность контроллеров домена с ролями FSMO \
 `MachineAccount` проверяет корректность регистрации учетной записи DC в AD, корректность доверительных отношения с доменом
 
-## VMWare (PowerCLI)
+# VMWare (PowerCLI)
 
 `Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
 `Get-Module -ListAvailable VMware* | Select Name,Version` \
