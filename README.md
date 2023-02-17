@@ -519,9 +519,18 @@
 ### Out-Gridview
 `Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
 
-### wshell
+### ComObject
 `$wshell = New-Object -ComObject Wscript.Shell` \
-`$Output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)` \
+`$wshell | Get-Member` \
+`$link = $wshell.CreateShortcut("$Home\Desktop\Яндекс.lnk")` создать ярлык \
+`$link.TargetPath = "https://yandex.ru"` куда ссылается (метод TargetPath объекта $link где хранится дочерний объект CreateShortcut) \
+`$link.Save()` сохранить \
+`$wshell.Exec("notepad.exe")` запустить приложение \
+`$wshell.AppActivate('Блокнот')` открыть запущенное приложение \
+`$wshell.SendKeys("HI")`
+
+`$wshell = New-Object -ComObject Wscript.Shell` \
+`$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)` \
 `if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}`
 
 `Type:` \
