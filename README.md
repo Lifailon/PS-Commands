@@ -452,6 +452,22 @@
 `Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
 `Get-LocalGroupMember "Administrators"` члены группы
 
+### Storage
+`Get-Command -Module Storage` \
+`Get-Disk` список логических дисков \
+`Get-Partition` отобразить разделы на всех дисках \
+`Get-Volume` список логичких разделов \
+`Get-PhysicalDisk` список физических дисков \
+`Initialize-Disk 1 –PartitionStyle MBR` инициализировать диск \
+`New-Partition -DriveLetter D –DiskNumber 1 -Size 500gb` создать раздел (выделить все место -UseMaximumSize) \
+`Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Disk-D` форматировать раздел \
+`Set-Partition -DriveLetter D -IsActive $True` сделать активным \
+`Remove-Partition -DriveLetter D –DiskNumber 1` удалить раздел \
+`Clear-Disk -Number 1 -RemoveData` очистить диск \
+`Repair-Volume –driveletter C –Scan` Check disk \
+`Repair-Volume –driveletter C –SpotFix` \
+`Repair-Volume –driverletter C -Scan –Cimsession $CIMSession`
+
 ### SMB
 `Get-SmbServerConfiguration` \
 `Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force` отключить протокол SMB v1 \
@@ -529,3 +545,135 @@
 `5` Пропустить \
 `6` Да \
 `7` Нет
+
+### WinRM (Windows Remote Management)
+`Enter-PSSession -ComputerName $srv` подключиться к PowerShell сессии через PSRemoting. Подключение возможно только по FQDN-имени \
+`Invoke-Command $srv -ScriptBlock {Get-ComputerInfo}` выполнение команды через PSRemoting \
+`$session = New-PSSession $srv` открыть сессию \
+`Get-PSSession` отобразить активные сессии \
+`icm -Session $session {$srv = $using:srv}` передать переменную текущей сессии ($using) в удаленную \
+`Disconnect-PSSession $session` закрыть сессию \
+`Remove-PSSession $session` удалить сессию
+
+### WinRM Configuration
+`winrm quickconfig -quiet` изменит запуск службы WinRM на автоматический, задаст стандартные настройки WinRM и добавить исключения для портов в fw \
+`Enable-PSRemoting –Force` \
+`Test-WsMan $srv` проверить работу WinRM на удаленном компьютере \
+`New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -DnsName "$env:computername" -FriendlyName "WinRM HTTPS Certificate" -NotAfter (Get-Date).AddYears(5)` создать самоподписанный сертификат и скопировать отпечаток (thumbprint) \
+`New-Item -Path WSMan:\Localhost\Listener -Transport HTTPS -Address * -CertificateThumbprint "CACA491A66D1706AC2FEB5E53D0E111C1C73DD65"` создать прослушиватель \
+`New-NetFirewallRule -DisplayName 'WinRM HTTPS Management' -Profile Domain,Private -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5986` открыть порт в fw \
+`winrm enumerate winrm/config/listener` текущая конфигурация прослушивателей WinRM (отображает отпечаток cert SSL для HTTPS 5986) \
+`dir WSMan:\localhost\client` отобразить конфигурацию \
+`winrm get winrm/config/service/auth` список всех конфигураций аутентификации WinRM (WSMan:\localhost\client\auth) \
+`Set-Item -path wsman:\localhost\service\auth\basic -value $true` разрешить локальную аутентификацию \
+`Set-PSSessionConfiguration -ShowSecurityDescriptorUI -Name Microsoft.PowerShell` добавить права доступа через дескриптор безопасности \
+`Set-Item WSMan:\localhost\client\allowunencrypted $true` работать без шифрования \
+`Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
+`net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
+
+### WMI (Windows Management Instrumentation)
+`Get-WmiObjec -ComputerName localhost -Namespace root -class "__NAMESPACE" | select name,__namespace` отобразить дочернии Namespace (логические иерархические группы) \
+`Get-WmiObject -List` отобразить все классы пространства имен "root\cimv2" (по умолчанию), свойства (описывают конфигурацию и текущее состояние управляемого ресурса) и их методы (какие действия позволяет выполнить над этим ресурсом) \
+`Get-WmiObject -List | Where-Object {$_.name -match "video"}` поиск класса по имени, его свойств и методов \
+`Get-WmiObject -ComputerName localhost -Class Win32_VideoController` отобразить содержимое свойств класса
+
+`gwmi -List | where name -match "service" | ft -auto` если в таблице присутствуют Methods, то можно взаимодействовать {StartService, StopService} \
+`gwmi -Class win32_service` отобразить список всех служб и всех их свойств \
+`gwmi win32_service -Filter "State = 'Running'"` отфильтровать запущенные службы \
+`gwmi win32_service -Filter "name='Zabbix Agent'"` отфильтровать вывод по имени \
+`(gwmi win32_service -Filter "name='Zabbix Agent'").State` отобразить конкретное свойство \
+`gwmi win32_service | Get-Member -MemberType Method` отобразить все методы взаимодействия с описание применения, например Delete() \
+`(gwmi win32_service -Filter 'name="Zabbix Agent"').delete()` удалить службу \
+`(gwmi win32_service -Filter 'name="MSSQL$MSSQLE"').StartService()` запустить службу \
+`gwmi Win32_OperatingSystem | Get-Member -MemberType Method` методы reboot и shutdown \
+`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Reboot()` используется с ключем повышения привелегий \
+`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Win32Shutdown(0)` завершение сеанса пользователя \
+`gwmi -list -Namespace root\CIMV2\Terminalservices` \
+`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections` \
+`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP
+
+### Regedit
+`Get-PSDrive` список всех доступных дисков и веток реестра \
+`cd HKLM:\` HKEY_LOCAL_MACHINE \
+`cd HKCU:\` HKEY_CURRENT_USER \
+`Get-Item` получить информацию о ветке реестра \
+`New-Item` создать новый раздел реестра \
+`Remove-Item` удалить ветку реестра \
+`Get-ItemProperty` получить значение ключей/параметров реестра (это свойства ветки реестра, аналогично свойствам файла) \
+`Set-ItemProperty` изменить название или значение параметра реестра \
+`New-ItemProperty` создать параметр реестра \
+`Remove-ItemProperty` удалить параметр
+
+`Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Select DisplayName` список установленных программ \
+`Get-Item HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002` посмотреть содержимое Items \
+`(Get-ItemProperty HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002)."New Signature"` отобразить значение (Value) свойства (Property) Items \
+`$reg_path = "HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002"` \
+`$sig_name = "auto"` \
+`Set-ItemProperty -Path $reg_path -Name "New Signature" -Value $sig_name` изменить или добавить в корне ветки (Path) свойство (Name) со значением (Value) \
+`Set-ItemProperty -Path $reg_path -Name "Reply-Forward Signature" -Value $sig_name`
+
+### NLA (Network Level Authentication)
+`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").UserAuthenticationRequired` \
+`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(1)` включить NLA \
+`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer` отобразить значение (2) \
+`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication` отобразить значение (1) \
+`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer -Value 0` изменить значение \
+`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication -Value 0` \
+`REG ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters /v AllowEncryptionOracle /t REG_DWORD /d 2` отключить на клиентском компьютере проверку версии CredSSP, если на целевом комьютере-сервере не установлены обновления KB4512509 от мая 2018 года
+
+### Invoke-WebRequest
+`$pars = iwr -Uri "https://losst.pro/"` \
+`$pars | Get-Member` отобразить все методы \
+`$pars.Content` содержимое страницы (Out-File url.html) \
+`$pars.statuscode -eq 200` код ответа, запрос выполнен успешно \
+`$pars.Headers` информация о сервере \
+`$pars.Links | fl innerText, href` ссылки \
+`$pars.Images.src` ссылки на изображения
+
+### Scheduled
+`$Trigger = New-ScheduledTaskTrigger -At 01:00am -Daily` \
+`$User = "NT AUTHORITY\SYSTEM"` \
+`$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "c:\scripts\backup_ad.ps1"` \
+`Register-ScheduledTask -TaskName "Backup AD" -Trigger $Trigger -User $User -Action $Action -RunLevel Highest –Force`
+
+### PS2EXE
+`Install-Module ps2exe` установка модуля из PSGallery \
+`Get-Module -ListAvailable` список всех модулей \
+`-noConsole` использовать GUI, без окна консоли powershell \
+`-noOutput` выполнение в фоне \
+`-noError` без вывода ошибок \
+`-requireAdmin` при запуске запросить права администратора \
+`-credentialGUI` вывод диалогового окна для ввода учетных данных \
+`C:\Install\RDSA.exe -extract:"C:\Install\RDSA.ps1"` \
+`Invoke-ps2exe -inputFile "$env:USERPROFILE\Desktop\WinEvent-Viewer-1.1.ps1" -outputFile "$env:USERPROFILE\Desktop\WEV-1.1.exe" -iconFile "$env:USERPROFILE\Desktop\log_48px.ico" -title "WinEvent-Viewer" -noConsole -noOutput -noError`
+
+### NSSM
+`$powershell_Path = (Get-Command powershell).Source` \
+`$NSSM_Path = (Get-Command "C:\WinPerf-Agent\NSSM-2.24.exe").Source` \
+`$Script_Path = "C:\WinPerf-Agent\WinPerf-Agent-1.1.ps1"` \
+`$Service_Name = "WinPerf-Agent"` \
+`& $NSSM_Path install $Service_Name $powershell_Path -ExecutionPolicy Bypass -NoProfile -f $Script_Path` создать Service \
+`& $NSSM_Path start $Service_Name` запустить \
+`& $NSSM_Path status $Service_Name` статус \
+`$Service_Name | Restart-Service` перезапустить \
+`$Service_Name | Get-Service` статус \
+`$Service_Name | Stop-Service` остановить \
+`& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
+`& $NSSM_Path remove $Service_Name` удалить
+
+### QRCode
+`Install-Module -Name QRCodeGenerator`
+`New-QRCodeWifiAccess -SSID "Network-Name" -Password "password" -Width 10 -OutPath "$home\desktop\WI-FI.png"` \
+`netsh.exe wlan show profiles name="network_name" key=clear` # отобразить пароль WI-FI сети
+
+### PackageManagement
+`[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
+`Find-PackageProvider` поиск провайдеров \
+`Install-PackageProvider PSGallery -force` установить источник \
+`Install-PackageProvider Chocolatey -force` \
+`Install-PackageProvider NuGet -force` \
+`Get-PackageSource` источники установки пакетов \
+`Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
+`Find-Package -Name *adobe* -Source PSGallery` поиск пакетов с указанием источника \
+`Install-Package -Name AdobeGPOTemplates # -ProviderName PSGallery` установка пакета \
+`Uninstall-Package AdobeGPOTemplates` удаление пакета
