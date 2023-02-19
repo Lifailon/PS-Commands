@@ -530,6 +530,14 @@
 `Get-ChildItem -Path "\\$srv\xl-share" -Recurse -Force | Clear-NTFSAccess` удалить все разрешения, без удаления унаследованных разрешений \
 `Get-ChildItem -Path "\\$srv\xl-share" -Recurse -Force | Enable-NTFSAccessInheritance` включить NTFS наследование для всех объектов в каталоге
 
+### iSCSI
+`New-IscsiVirtualDisk -Path D:\iSCSIVirtualDisks\iSCSI2.vhdx -Size 20GB` создать динамический vhdx-диск (для фиксированного размера -UseFixed) \
+`New-IscsiServerTarget -TargetName iscsi-target-2 -InitiatorIds "IQN:iqn.1991-05.com.microsoft:srv3.contoso.com"` создать Target \
+`Get-IscsiServerTarget | fl TargetName, LunMappings` \
+`Connect-IscsiTarget -NodeAddress "iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target" -IsPersistent $true` подключиться инициатором к таргету \
+`Get-IscsiTarget | fl` \
+`Disconnect-IscsiTarget -NodeAddress ″iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target″ -Confirm:$false` отключиться
+
 ### Out-Gridview
 `Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
 
@@ -662,6 +670,18 @@
 `$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "c:\scripts\backup_ad.ps1"` \
 `Register-ScheduledTask -TaskName "Backup AD" -Trigger $Trigger -User $User -Action $Action -RunLevel Highest –Force`
 
+### PackageManagement
+`[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
+`Find-PackageProvider` поиск провайдеров \
+`Install-PackageProvider PSGallery -force` установить источник \
+`Install-PackageProvider Chocolatey -force` \
+`Install-PackageProvider NuGet -force` \
+`Get-PackageSource` источники установки пакетов \
+`Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
+`Find-Package -Name *adobe* -Source PSGallery` поиск пакетов с указанием источника \
+`Install-Package -Name AdobeGPOTemplates # -ProviderName PSGallery` установка пакета \
+`Uninstall-Package AdobeGPOTemplates` удаление пакета
+
 ### PS2EXE
 `Install-Module ps2exe` установка модуля из PSGallery \
 `Get-Module -ListAvailable` список всех модулей \
@@ -692,18 +712,6 @@
 `New-QRCodeWifiAccess -SSID "Network-Name" -Password "password" -Width 10 -OutPath "$home\desktop\WI-FI.png"` \
 `netsh.exe wlan show profiles name="network_name" key=clear` # отобразить пароль WI-FI сети
 
-### PackageManagement
-`[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
-`Find-PackageProvider` поиск провайдеров \
-`Install-PackageProvider PSGallery -force` установить источник \
-`Install-PackageProvider Chocolatey -force` \
-`Install-PackageProvider NuGet -force` \
-`Get-PackageSource` источники установки пакетов \
-`Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
-`Find-Package -Name *adobe* -Source PSGallery` поиск пакетов с указанием источника \
-`Install-Package -Name AdobeGPOTemplates # -ProviderName PSGallery` установка пакета \
-`Uninstall-Package AdobeGPOTemplates` удаление пакета
-
 # Active Directory
 
 ### RSAT (Remote Server Administration Tools)
@@ -732,22 +740,6 @@
 `$usrfind = $ldapsearcher.FindOne()` \
 `$groups = $usrfind.properties.memberof -replace "(,OU=.+)"` \
 `$groups = $groups -replace "(CN=)"`
-
-### DHCP (Dynamic Host Configuration Protocol)
-`$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
-`HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
-`(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)` \
-`Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
-
-### DNS (Domain Name System)
-`$zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,` \
-`DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru` \
-`$zone_name = $zone.ZoneName` \
-`if ($zone_name -ne $null) {` \
-`icm -ComputerName $srv {Get-DnsServerResourceRecord -ZoneName $using:zone_name | sort RecordType | select RecordType,HostName, @{` \
-`Label="IPAddress"; Expression={$_.RecordData.IPv4Address.IPAddressToString}},TimeToLive,Timestamp` \
-`} | select RecordType,HostName,IPAddress,TimeToLive,Timestamp | Out-GridView -Title "DNS Server: $srv"` \
-`}`
 
 ### LAPS (Local Admin Password Management)
 `Get-ADComputer -Filter * -SearchBase "DC=$d1,DC=$d2" | Get-AdmPwdPassword -ComputerName {$_.Name} | select ComputerName,Password,ExpirationTimestamp > C:\pass.txt` \
@@ -854,6 +846,81 @@
 `FSMOCheck` проверяет, что DC может подключиться к KDC, PDC, серверу глобального каталога \
 `KnowsOfRoleHolders` проверяет доступность контроллеров домена с ролями FSMO \
 `MachineAccount` проверяет корректность регистрации учетной записи DC в AD, корректность доверительных отношения с доменом
+
+### DHCP (Dynamic Host Configuration Protocol)
+`$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
+`HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
+`(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)` \
+`Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
+
+### DNS (Domain Name System)
+`$zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,` \
+`DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru` \
+`$zone_name = $zone.ZoneName` \
+`if ($zone_name -ne $null) {` \
+`icm -ComputerName $srv {Get-DnsServerResourceRecord -ZoneName $using:zone_name | sort RecordType | select RecordType,HostName, @{` \
+`Label="IPAddress"; Expression={$_.RecordData.IPv4Address.IPAddressToString}},TimeToLive,Timestamp` \
+`} | select RecordType,HostName,IPAddress,TimeToLive,Timestamp | Out-GridView -Title "DNS Server: $srv"` \
+`}`
+
+# DFSR
+`dfsutil /root:\\domain.sys\public /export:C:\export-dfs.txt` экспорт конфигурации namespace root \
+`dfsutil /AddFtRoot /Server:\\$srv /Share:public` на новой машине предварительно создать корень на основе домена \
+`dfsutil /root:\\domain.sys\public /import:C:\export-dfs.txt /<verify /set` Import (перед импортом данных в существующий корень DFS, утилита создает резервную копию конфигурации корня в текущем каталоге, из которого запускается утилита dfsutil) \
+`/verify` выводит изменения, которые будут внесены в процессе импорта, без применения \
+`/set` меняет целевое пространство имен путем полной перезаписи и замены на конфигурацию пространства имен из импортируемого файла \
+`/merge` импортирует конфигурацию пространства имен в дополнение к существующей конфигурации для слияния, параметры из файла конфигурации будут иметь больший приоритет, чем существующие параметры пространства имен
+
+`Export-DfsrClone` экспортирует клонированную базу данных репликации DFS и параметры конфигурации тома \
+`Get-DfsrCloneState` получает состояние операции клонирования базы данных \
+`Import-DfsrClone` импортирует клонированную базу данных репликации DFS и параметры конфигурации тома
+
+`net use x: \\$srv1\public\*` примонтировать диск \
+`Get-DfsrFileHash x:\* | Out-File C:\$srv1.txt` забрать hash всех файлов диска в файл (файлы с одинаковыми хешами всегда являются точными копиями друг друга) \
+`net use x: /d` отмонтировать \
+`net use x: \\$srv2\public\*` \
+`Get-DfsrFileHash x:\* | Out-File C:\$srv2.txt` \
+`net use x: /d` \
+`Compare-Object -ReferenceObject (Get-Content C:\$srv1.txt) -DifferenceObject (Get-Content C:\$srv2.txt) -IncludeEqual` сравнить содержимое файлов
+
+`Get-DfsrBacklog -DestinationComputerName "fs-06" -SourceComputerName "fs-05" -GroupName "folder-rep" -FolderName "folder" -Verbose` получает список ожидающих обновлений файлов между двумя партнерами репликации DFS \
+`Get-DfsrConnection` отображает группы репликации, участников и статус \
+`Get-DfsReplicatedFolder` отображает имя и полный путь к папкам реликации в системе DFS \
+`Get-DfsrState -ComputerName fs-06 -Verbose` состояние репликации DFS для члена группы \
+`Get-DfsReplicationGroup` отображает группы репликации и их статус \
+`Add-DfsrConnection` создает соединение между членами группы репликации \
+`Add-DfsrMember` добавляет компьютеры в группу репликации \
+`ConvertFrom-DfsrGuid` преобразует идентификаторы GUID в понятные имена в заданной группы репликации \
+`Get-DfsrConnectionSchedule` получает расписание соединений между членами группы репликации \
+`Get-DfsrGroupSchedule` извлекает расписание группы репликации \
+`Get-DfsrIdRecord` получает записи ID для реплицированных файлов или папок из базы данных репликации DFS \
+`Get-DfsrMember` получает компьютеры в группе репликации \
+`Get-DfsrMembership` получает параметры членства для членов групп репликации \
+`Get-DfsrPreservedFiles` получает список файлов и папок, ранее сохраненных репликацией DFS \
+`Get-DfsrServiceConfiguration` получает параметры службы репликации DFS для членов группы \
+`Grant-DfsrDelegation` предоставляет разрешения участникам безопасности для группы репликации \
+`Revoke-DfsrDelegation` отменяет разрешения участников безопасности для группы репликации \
+`New-DfsReplicationGroup` создает группу репликации \
+`New-DfsReplicatedFolder` создает реплицированную папку в группе репликации \
+`Remove-DfsrConnection` удаляет соединение между членами группы репликации \
+`Remove-DfsReplicatedFolder` удаляет реплицированную папку из группы репликации \
+`Remove-DfsReplicationGroup` удаляет группу репликации \
+`Remove-DfsrMember` удаляет компьютеры из группы репликации \
+`Restore-DfsrPreservedFiles` восстанавливает файлы и папки, ранее сохраненные репликацией DFS \
+`Set-DfsrConnection` изменяет параметры соединения между членами группы репликации \
+`Set-DfsrConnectionSchedule` изменяет параметры расписания соединений между членами группы репликации \
+`Set-DfsReplicatedFolder` изменяет настройки реплицированной папки \
+`Set-DfsReplicationGroup` изменяет группу репликации \
+`Set-DfsrGroupSchedule` изменяет расписание группы репликации \
+`Set-DfsrMember` изменяет информацию о компьютере-участнике в группе репликации \
+`Set-DfsrMembership` настраивает параметры членства для членов группы репликации \
+`Set-DfsrServiceConfiguration` изменяет параметры службы репликации DFS \
+`Sync-DfsReplicationGroup` синхронизирует репликацию между компьютерами независимо от расписания \
+`Suspend-DfsReplicationGroup` приостанавливает репликацию между компьютерами независимо от расписания \
+`Update-DfsrConfigurationFromAD` инициирует обновление службы репликации DFS \
+`Write-DfsrHealthReport` создает отчет о работоспособности репликации DFS \
+`Write-DfsrPropagationReport` создает отчеты для тестовых файлов распространения в группе репликации \
+`Start-DfsrPropagationTest` создает тестовый файл распространения в реплицированной папке
 
 # VMWare (PowerCLI)
 
