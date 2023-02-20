@@ -350,6 +350,11 @@
 `@{Name='RemoteAddress';Expression={($_ | Get-NetFirewallAddressFilter).RemoteAddress}},`
 `Enabled,Profile`
 
+### Firewall-Manager
+`Install-Module Firewall-Manager` \
+`Export-FirewallRules -Name * -CSVFile $home\documents\fw.csv` -Inbound -Outbound -Enabled -Disabled -Allow -Block (фильтр правил для экспорта) \
+`Import-FirewallRules -CSVFile $home\documents\fw.csv`
+
 ### Performance
 `(Get-Counter -ListSet *).CounterSetName` вывести список всех доступных счетчиков производительности в системе \
 `(Get-Counter -ListSet *memory*).Counter` все счетчики, включая дочернии, поиск по wildcard-имени \
@@ -724,6 +729,12 @@
 `Add-WindowsCapability -Online -Name Rsat.RemoteDesktop.Services.Tools~~~~0.0.1.0` \
 `Get-WindowsCapability -Name RSAT* -Online | Select-Object -Property DisplayName, State` отобразить список установленных компанентов
 
+`$Session = New-PSSession -ComputerName $srv` \
+`Export-PSsession -Session $Session -Module ActiveDirectory -OutputModule ActiveDirectory` экспортировать модуль из удаленной сесси (например, с DC) \
+`Remove-PSSession -Session $Session` \
+`Import-Module ActiveDirectory` \
+`Get-Command -Module ActiveDirectory`
+
 ### LDAP (Lightweight Directory Access Protocol)
 `$ldapsearcher = New-Object System.DirectoryServices.DirectorySearcher` \
 `$d0 = $env:userdnsdomain` \
@@ -862,6 +873,16 @@
 `Label="IPAddress"; Expression={$_.RecordData.IPv4Address.IPAddressToString}},TimeToLive,Timestamp` \
 `} | select RecordType,HostName,IPAddress,TimeToLive,Timestamp | Out-GridView -Title "DNS Server: $srv"` \
 `}`
+
+### RDS
+`Get-Command -Module RemoteDesktop` \
+`Get-RDServer -ConnectionBroker $broker` список всех серверов в фермеы, указывается полное доменное имя при обращение к серверу с ролью RDCB \
+`Get-RDRemoteDesktop -ConnectionBroker $broker` список коллекций \
+`(Get-RDLicenseConfiguration -ConnectionBroker $broker | select *).LicenseServer` список серверов с ролью RDL \
+`Get-RDUserSession -ConnectionBroker $broker` список всех активных пользователей \
+`Get-RDAvailableApp -ConnectionBroker $broker -CollectionName C03` список установленного ПО на серверах в коллекции \
+`(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty` use redirection server name:i:1
+`Get-RDConnectionBrokerHighAvailability`
 
 # DFSR
 `dfsutil /root:\\domain.sys\public /export:C:\export-dfs.txt` экспорт конфигурации namespace root \
