@@ -215,7 +215,7 @@
 `$foreach.Reset()` обнуляет итерацию, перебор начнется заново, что приводит к бесконечному циклу \
 `$foreach.MoveNext()` переход к следующему элементу в цикле
 
-### ForEach-Object
+### ForEach-Object (%)
 `100..110 | %{ping -n 1 -w 50 192.168.3.$_ > $null` \
 `if ($LastExitCode -eq 0) {Write-Host "192.168.3.$_" -ForegroundColor green` \
 `} else {` \
@@ -268,7 +268,7 @@
 `<=` есть изменения в $group1 \
 `=>` есть изменения в $group2 \
 
-### Where-Object
+### Where-Object (?)
 `Get-Process | Where-Object {$_.ProcessName -match "zabbix"}` фильтрация/поиск процессов по имени свойства объекта \
 `Get-Process | where CPU -gt 10 | Sort-Object -Descending CPU` вывести объекты, где значения CPU больше 10 \
 `Get-Process | where WS -gt 200MB` отобразить процессы где WS выше 200МБ \
@@ -276,6 +276,7 @@
 `Get-Service -ComputerName $srv | Where {$_.Name -match "WinRM"} | Restart-Service` перезапустить службу на удаленном компьютере \
 `(Get-Service).DisplayName` вывести значения свойства массива \
 `netstat -an | where {$_ -match 443}` \
+`netstat -an | ? {$_ -match 443}` \
 `(netstat -an) -match 443`
 
 ### Sort-Object
@@ -629,7 +630,8 @@
 `(gwmi Win32_OperatingSystem -EnableAllPrivileges).Win32Shutdown(0)` завершение сеанса пользователя \
 `gwmi -list -Namespace root\CIMV2\Terminalservices` \
 `(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections` \
-`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP
+`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP \
+`(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах
 
 ### Regedit
 `Get-PSDrive` список всех доступных дисков и веток реестра \
@@ -670,10 +672,21 @@
 `$pars.Images.src` ссылки на изображения
 
 ### Scheduled
-`$Trigger = New-ScheduledTaskTrigger -At 01:00am -Daily` \
+`$Trigger = New-ScheduledTaskTrigger -At 01:00am -Daily` 1:00 ночи \
+`$Trigger = New-ScheduledTaskTrigger –AtLogon` запуск при входе пользователя в систему \
+`$Trigger = New-ScheduledTaskTrigger -AtStartup` при запуске системы \
 `$User = "NT AUTHORITY\SYSTEM"` \
-`$Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "c:\scripts\backup_ad.ps1"` \
-`Register-ScheduledTask -TaskName "Backup AD" -Trigger $Trigger -User $User -Action $Action -RunLevel Highest –Force`
+`$Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "$home\Documents\DNS-Change-Tray-1.3.ps1"` \
+`$Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-NoProfile -NoLogo -NonInteractive -ExecutionPolicy Unrestricted -WindowStyle Hidden -File $home\Documents\DNS-Change-Tray-1.3.ps1"` \
+`Register-ScheduledTask -TaskName "DNS-Change-Tray-Startup" -Trigger $Trigger -User $User -Action $Action -RunLevel Highest –Force`
+
+`Get-ScheduledTask | ? state -ne Disabled` список всех активных заданий \
+`Start-ScheduledTask DNS-Change-Tray-Startup` запустить задание немедленно \
+`Get-ScheduledTask DNS-Change-Tray-Startup | Disable-ScheduledTask` отключить задание \
+`Get-ScheduledTask DNS-Change-Tray-Startup | Enable-ScheduledTask` включить задание \
+`Unregister-ScheduledTask DNS-Change-Tray-Startup` удалить задание \
+`Export-ScheduledTask DNS-Change-Tray-Startup | Out-File $home\Desktop\Task-Export-Startup.xml` экспортировать задание в xml \
+`Register-ScheduledTask -Xml (Get-Content $home\Desktop\Task-Export-Startup.xml | Out-String) -TaskName "DNS-Change-Tray-Startup"`
 
 ### PackageManagement
 `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
@@ -861,7 +874,8 @@
 ### DHCP (Dynamic Host Configuration Protocol)
 `$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
 `HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
-`(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)` \
+`(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)`
+
 `Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
 
 ### DNS (Domain Name System)
@@ -869,10 +883,16 @@
 `DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru` \
 `$zone_name = $zone.ZoneName` \
 `if ($zone_name -ne $null) {` \
-`icm -ComputerName $srv {Get-DnsServerResourceRecord -ZoneName $using:zone_name | sort RecordType | select RecordType,HostName, @{` \
+`icm $srv {Get-DnsServerResourceRecord -ZoneName $using:zone_name | sort RecordType | select RecordType,HostName, @{` \
 `Label="IPAddress"; Expression={$_.RecordData.IPv4Address.IPAddressToString}},TimeToLive,Timestamp` \
 `} | select RecordType,HostName,IPAddress,TimeToLive,Timestamp | Out-GridView -Title "DNS Server: $srv"` \
 `}`
+
+`Sync-DnsServerZone –passthru` синхронизировать зоны с другими DC в домене \
+`Remove-DnsServerZone -Name domain.local` удалить зону \
+`Get-DnsServerResourceRecord -ZoneName domain.local -RRType A` вывести все А-записи в указанной зоне \
+`Add-DnsServerResourceRecordA -Name new-host-name -IPv4Address 192.168.1.100 -ZoneName domain.local -TimeToLive 01:00:00 -CreatePtr` создать А-запись и PTR для нее \
+`Remove-DnsServerResourceRecord -ZoneName domain.local -RRType A -Name new-host-name –Force` удалить А-запись
 
 ### RDS
 `Get-Command -Module RemoteDesktop` \
@@ -880,6 +900,7 @@
 `Get-RDRemoteDesktop -ConnectionBroker $broker` список коллекций \
 `(Get-RDLicenseConfiguration -ConnectionBroker $broker | select *).LicenseServer` список серверов с ролью RDL \
 `Get-RDUserSession -ConnectionBroker $broker` список всех активных пользователей \
+`Disconnect-RDUser -HostServer $srv -UnifiedSessionID $id -Force` отключить сессию пользователя \
 `Get-RDAvailableApp -ConnectionBroker $broker -CollectionName C03` список установленного ПО на серверах в коллекции \
 `(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty` use redirection server name:i:1
 `Get-RDConnectionBrokerHighAvailability`
