@@ -769,7 +769,7 @@
 `Get-ADComputer -Filter * -SearchBase "DC=$d1,DC=$d2" | Get-AdmPwdPassword -ComputerName {$_.Name} | select ComputerName,Password,ExpirationTimestamp > C:\pass.txt` \
 `Get-ADComputer -Identity $srv | Get-AdmPwdPassword -ComputerName {$_.Name} | select ComputerName,Password,ExpirationTimestamp`
 
-### Get-ADComputer
+### ADComputer
 `Get-ADDomainController -Filter * | ft HostName, IPv4Address, operatingsystem,site,IsGlobalCatalog,IsReadOnly` список DC в домене \
 `nltest /DSGETDC:$env:userdnsdomain # узнать на каком DC аудентифицирован хост (Logon Server)` \
 `nltest /SC_RESET:$env:userdnsdomain\srv-dc2.$env:userdnsdomain` переключить компьютер на другой контроллер домена AD вручную (The command completed successfully) \
@@ -795,7 +795,7 @@
 `}}, Name, IPv4Address, OperatingSystem, @{Label="UserOwner"; Expression={$_.ManagedBy -replace "(CN=|,.+)"}` \
 `},Created | Out-GridView`
 
-### Get-ADUser
+### ADUser
 `Get-ADUser -Identity support4 -Properties *` список всех атрибутов \
 `Get-ADUser -Identity support4 -Properties DistinguishedName, EmailAddress, Description` путь DN, email и описание \
 `Get-ADUser -Filter {(Enabled -eq "True") -and (mail -ne "null")} -Properties mail | ft Name,mail` список активных пользователей и есть почтовый ящик \
@@ -828,14 +828,14 @@
 `| Disable-ADAccount $_.SamAccountName` заблокировать \
 `-WhatIf` отобразить вывод без применения изменений
 
-### Get-ADGroupMember
+### ADGroupMember
 `(Get-ADUser -Identity support4 -Properties MemberOf).memberof` список групп в которых состоит пользователь \
 `Get-ADGroupMember -Identity "Domain Admins" | Select Name,SamAccountName` список пользователей в группе \
 `Add-ADGroupMember -Identity "Domain Admins" -Members support5` добавить в группу \
 `Remove-ADGroupMember -Identity "Domain Admins" -Members support5 -force` удалить из группы \
 `Get-ADGroup -filter * | where {!($_ | Get-ADGroupMember)} | Select Name` отобразить список пустых групп (-Not)
 
-### Replication
+### ADReplication
 `Get-Command -Module ActiveDirectory -Name *Replication*` список всех командлетов модуля \
 `Get-ADReplicationFailure -Target dc-01` список ошибок репликации с партнерами \
 `Get-ADReplicationFailure -Target $env:userdnsdomain -Scope Domain` \
