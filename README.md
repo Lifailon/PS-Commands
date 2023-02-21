@@ -871,14 +871,14 @@
 `KnowsOfRoleHolders` проверяет доступность контроллеров домена с ролями FSMO \
 `MachineAccount` проверяет корректность регистрации учетной записи DC в AD, корректность доверительных отношения с доменом
 
-### DHCP (Dynamic Host Configuration Protocol)
+### DHCP
 `$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
 `HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
 `(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)`
 
 `Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
 
-### DNS (Domain Name System)
+### DNS
 `$zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,` \
 `DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru` \
 `$zone_name = $zone.ZoneName` \
