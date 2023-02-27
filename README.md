@@ -2,8 +2,8 @@
 
 - [ComObject](#ComObject)
 - [WMI](#WMI)
-- [Active Directory](#Active-Directory)
-- [DFSR](#DFSR)
+- [Active Directory](#ActiveDirectory)
+- [DFSR](#ServerManager)
 - [PowerCLI](#PowerCLI)
 
 ### Help
@@ -736,7 +736,7 @@
 `Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication -Value 0` \
 `REG ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters /v AllowEncryptionOracle /t REG_DWORD /d 2` отключить на клиентском компьютере проверку версии CredSSP, если на целевом комьютере-сервере не установлены обновления KB4512509 от мая 2018 года
 
-# Active-Directory
+# ActiveDirectory
 
 ### RSAT (Remote Server Administration Tools)
 `DISM.exe /Online /add-capability /CapabilityName:Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0 /CapabilityName:Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0` \
@@ -877,7 +877,7 @@
 `KnowsOfRoleHolders` проверяет доступность контроллеров домена с ролями FSMO \
 `MachineAccount` проверяет корректность регистрации учетной записи DC в AD, корректность доверительных отношения с доменом
 
-### ServerManager
+# ServerManager
 `Get-Command *WindowsFeature*` source module ServerManager \
 `Get-WindowsFeature -ComputerName "localhost"` \
 `Get-WindowsFeature | where Installed -eq $True` список установленных ролей и компонентов \
@@ -921,7 +921,7 @@
 `(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty` use redirection server name:i:1
 `Get-RDConnectionBrokerHighAvailability`
 
-# DFSR
+### DFSR
 `dfsutil /root:\\domain.sys\public /export:C:\export-dfs.txt` экспорт конфигурации namespace root \
 `dfsutil /AddFtRoot /Server:\\$srv /Share:public` на новой машине предварительно создать корень на основе домена \
 `dfsutil /root:\\domain.sys\public /import:C:\export-dfs.txt /<verify /set` Import (перед импортом данных в существующий корень DFS, утилита создает резервную копию конфигурации корня в текущем каталоге, из которого запускается утилита dfsutil) \
