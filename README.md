@@ -483,78 +483,6 @@
 `Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
 `Get-LocalGroupMember "Administrators"` члены группы
 
-### Storage
-`Get-Command -Module Storage` \
-`Get-Disk` список логических дисков \
-`Get-Partition` отобразить разделы на всех дисках \
-`Get-Volume` список логичких разделов \
-`Get-PhysicalDisk` список физических дисков \
-`Initialize-Disk 1 –PartitionStyle MBR` инициализировать диск \
-`New-Partition -DriveLetter D –DiskNumber 1 -Size 500gb` создать раздел (выделить все место -UseMaximumSize) \
-`Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Disk-D` форматировать раздел \
-`Set-Partition -DriveLetter D -IsActive $True` сделать активным \
-`Remove-Partition -DriveLetter D –DiskNumber 1` удалить раздел \
-`Clear-Disk -Number 1 -RemoveData` очистить диск \
-`Repair-Volume –driveletter C –Scan` Check disk \
-`Repair-Volume –driveletter C –SpotFix` \
-`Repair-Volume –driverletter C -Scan –Cimsession $CIMSession`
-
-# SMB
-`Get-SmbServerConfiguration` \
-`Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force` отключить протокол SMB v1 \
-`Get-WindowsFeature | Where-Object {$_.name -eq "FS-SMB1"} | ft Name,Installstate` модуль ServerManager, проверить установлен ли компонент SMB1 \
-`Install-WindowsFeature FS-SMB1` установить SMB1 \
-`Uninstall-WindowsFeature –Name FS-SMB1 –Remove` удалить SMB1 клиента (понадобится перезагрузка) \
-`Get-WindowsOptionalFeature -Online` модуль DISM, для работы с компонентами Windows \
-`Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -Remove` удалить SMB1 \
-`Set-SmbServerConfiguration –AuditSmb1Access $true` включить аудит SMB1 \
-`Get-SmbConnection` список активных сессий и используемая версия SMB (Dialect) \
-`Get-SmbOpenFile | select ClientUserName,ClientComputerName,Path,SessionID` список открытых файлов \
-`Get-SmbShare` список сетевых папок \
-`New-SmbShare -Name xl-share -Path E:\test` создать новую общую сетевую папку (расшарить) \
-`-EncryptData $True` включить шифрование SMB \
-`-Description` имя в сетевом окружении \
-`-ReadAccess "domain\username"` доступ на чтение \
-`-ChangeAccess` доступ на запись \
-`-FullAccess` полный доступ \
-`-NoAccess ALL` нет прав \
-`-FolderEnumerationMode [AccessBased | Unrestricted]` позволяет скрыть в сетевой папке объекты, на которых у пользователя нет доступа с помощью Access-Based Enumeration (ABE) \
-`Get-SmbShare xl-share | Set-SmbShare -FolderEnumerationMode AccessBased` ключить ABE для всех расшаренных папок \
-`Remove-SmbShare xl-share -force` удалить сетевой доступ (шару) \
-`Get-SmbShareAccess xl-share` вывести список доступов безопасности к шаре \
-`Revoke-SmbShareAccess xl-share -AccountName Everyone –Force` удалить группу из списка доступов \
-`Grant-SmbShareAccess -Name xl-share -AccountName "domain\XL-Share" -AccessRight Change –force` изменить/добавить разрешения на запись (Full,Read) \
-`Grant-SmbShareAccess -Name xl-share -AccountName "все" -AccessRight Change –force` \
-`Block-SmbShareAccess -Name xl-share -AccountName "domain\noAccess" -Force` принудительный запрет \
-`New-SmbMapping -LocalPath X: -RemotePath \\$srv\xl-share -UserName support4 -Password password –Persistent $true` подключить сетевой диск \
-`-Persistent` восстановление соединения после отключения компьютера или сети \
-`-SaveCredential` позволяет сохранить учетные данные пользователя для подключения в диспетчер учетных данных Windows Credential Manager \
-`Stop-Process -Name "explorer" | Start-Process -FilePath "C:\Windows\explorer.exe"` перезапустить процесс для отображения в проводнике \
-`Get-SmbMapping` список подключенных сетевых дисков \
-`Remove-SmbMapping X: -force` отмонтировать сетевой диск \
-`$CIMSession = New-CIMSession –Computername $srv` создать сеанс CIM (аудентификация на SMB) \
-`Get-SmbOpenFile -CIMSession $CIMSession | select ClientUserName,ClientComputerName,Path | Out-GridView -PassThru | Close-SmbOpenFile -CIMSession $CIMSession -Confirm:$false –Force` закрыть файлы (открыть к ним сетевой доступ)
-
-### Get-Acl
-`(Get-Acl \\$srv\xl-share).access` доступ ACL на уровне NTFS \
-`Get-Acl C:\Drivers | Set-Acl C:\Distr` скопировать NTFS разрешения с одной папки и применить их на другую
-
-### NTFSSecurity
-`Install-Module -Name NTFSSecurity -force` \
-`Get-Item "\\$srv\xl-share" | Get-NTFSAccess` \
-`Add-NTFSAccess -Path "\\$srv\xl-share" -Account "domain\xl-share" -AccessRights Fullcontrol -PassThru` добавить \
-`Remove-NTFSAccess -Path "\\$srv\xl-share" -Account "domain\xl-share" -AccessRights FullControl -PassThru` удалить \
-`Get-ChildItem -Path "\\$srv\xl-share" -Recurse -Force | Clear-NTFSAccess` удалить все разрешения, без удаления унаследованных разрешений \
-`Get-ChildItem -Path "\\$srv\xl-share" -Recurse -Force | Enable-NTFSAccessInheritance` включить NTFS наследование для всех объектов в каталоге
-
-### iSCSI
-`New-IscsiVirtualDisk -Path D:\iSCSIVirtualDisks\iSCSI2.vhdx -Size 20GB` создать динамический vhdx-диск (для фиксированного размера -UseFixed) \
-`New-IscsiServerTarget -TargetName iscsi-target-2 -InitiatorIds "IQN:iqn.1991-05.com.microsoft:srv3.contoso.com"` создать Target \
-`Get-IscsiServerTarget | fl TargetName, LunMappings` \
-`Connect-IscsiTarget -NodeAddress "iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target" -IsPersistent $true` подключиться инициатором к таргету \
-`Get-IscsiTarget | fl` \
-`Disconnect-IscsiTarget -NodeAddress ″iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target″ -Confirm:$false` отключиться
-
 ### Out-Gridview
 `Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
 
@@ -665,6 +593,78 @@
 `$Service_Name | Stop-Service` остановить \
 `& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
 `& $NSSM_Path remove $Service_Name` удалить
+
+### Storage
+`Get-Command -Module Storage` \
+`Get-Disk` список логических дисков \
+`Get-Partition` отобразить разделы на всех дисках \
+`Get-Volume` список логичких разделов \
+`Get-PhysicalDisk` список физических дисков \
+`Initialize-Disk 1 –PartitionStyle MBR` инициализировать диск \
+`New-Partition -DriveLetter D –DiskNumber 1 -Size 500gb` создать раздел (выделить все место -UseMaximumSize) \
+`Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Disk-D` форматировать раздел \
+`Set-Partition -DriveLetter D -IsActive $True` сделать активным \
+`Remove-Partition -DriveLetter D –DiskNumber 1` удалить раздел \
+`Clear-Disk -Number 1 -RemoveData` очистить диск \
+`Repair-Volume –driveletter C –Scan` Check disk \
+`Repair-Volume –driveletter C –SpotFix` \
+`Repair-Volume –driverletter C -Scan –Cimsession $CIMSession`
+
+# SMB
+`Get-SmbServerConfiguration` \
+`Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force` отключить протокол SMB v1 \
+`Get-WindowsFeature | Where-Object {$_.name -eq "FS-SMB1"} | ft Name,Installstate` модуль ServerManager, проверить установлен ли компонент SMB1 \
+`Install-WindowsFeature FS-SMB1` установить SMB1 \
+`Uninstall-WindowsFeature –Name FS-SMB1 –Remove` удалить SMB1 клиента (понадобится перезагрузка) \
+`Get-WindowsOptionalFeature -Online` модуль DISM, для работы с компонентами Windows \
+`Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -Remove` удалить SMB1 \
+`Set-SmbServerConfiguration –AuditSmb1Access $true` включить аудит SMB1 \
+`Get-SmbConnection` список активных сессий и используемая версия SMB (Dialect) \
+`Get-SmbOpenFile | select ClientUserName,ClientComputerName,Path,SessionID` список открытых файлов \
+`Get-SmbShare` список сетевых папок \
+`New-SmbShare -Name xl-share -Path E:\test` создать новую общую сетевую папку (расшарить) \
+`-EncryptData $True` включить шифрование SMB \
+`-Description` имя в сетевом окружении \
+`-ReadAccess "domain\username"` доступ на чтение \
+`-ChangeAccess` доступ на запись \
+`-FullAccess` полный доступ \
+`-NoAccess ALL` нет прав \
+`-FolderEnumerationMode [AccessBased | Unrestricted]` позволяет скрыть в сетевой папке объекты, на которых у пользователя нет доступа с помощью Access-Based Enumeration (ABE) \
+`Get-SmbShare xl-share | Set-SmbShare -FolderEnumerationMode AccessBased` ключить ABE для всех расшаренных папок \
+`Remove-SmbShare xl-share -force` удалить сетевой доступ (шару) \
+`Get-SmbShareAccess xl-share` вывести список доступов безопасности к шаре \
+`Revoke-SmbShareAccess xl-share -AccountName Everyone –Force` удалить группу из списка доступов \
+`Grant-SmbShareAccess -Name xl-share -AccountName "domain\XL-Share" -AccessRight Change –force` изменить/добавить разрешения на запись (Full,Read) \
+`Grant-SmbShareAccess -Name xl-share -AccountName "все" -AccessRight Change –force` \
+`Block-SmbShareAccess -Name xl-share -AccountName "domain\noAccess" -Force` принудительный запрет \
+`New-SmbMapping -LocalPath X: -RemotePath \\$srv\xl-share -UserName support4 -Password password –Persistent $true` подключить сетевой диск \
+`-Persistent` восстановление соединения после отключения компьютера или сети \
+`-SaveCredential` позволяет сохранить учетные данные пользователя для подключения в диспетчер учетных данных Windows Credential Manager \
+`Stop-Process -Name "explorer" | Start-Process -FilePath "C:\Windows\explorer.exe"` перезапустить процесс для отображения в проводнике \
+`Get-SmbMapping` список подключенных сетевых дисков \
+`Remove-SmbMapping X: -force` отмонтировать сетевой диск \
+`$CIMSession = New-CIMSession –Computername $srv` создать сеанс CIM (аудентификация на SMB) \
+`Get-SmbOpenFile -CIMSession $CIMSession | select ClientUserName,ClientComputerName,Path | Out-GridView -PassThru | Close-SmbOpenFile -CIMSession $CIMSession -Confirm:$false –Force` закрыть файлы (открыть к ним сетевой доступ)
+
+### Get-Acl
+`(Get-Acl \\$srv\xl-share).access` доступ ACL на уровне NTFS \
+`Get-Acl C:\Drivers | Set-Acl C:\Distr` скопировать NTFS разрешения с одной папки и применить их на другую
+
+### NTFSSecurity
+`Install-Module -Name NTFSSecurity -force` \
+`Get-Item "\\$srv\xl-share" | Get-NTFSAccess` \
+`Add-NTFSAccess -Path "\\$srv\xl-share" -Account "domain\xl-share" -AccessRights Fullcontrol -PassThru` добавить \
+`Remove-NTFSAccess -Path "\\$srv\xl-share" -Account "domain\xl-share" -AccessRights FullControl -PassThru` удалить \
+`Get-ChildItem -Path "\\$srv\xl-share" -Recurse -Force | Clear-NTFSAccess` удалить все разрешения, без удаления унаследованных разрешений \
+`Get-ChildItem -Path "\\$srv\xl-share" -Recurse -Force | Enable-NTFSAccessInheritance` включить NTFS наследование для всех объектов в каталоге
+
+### iSCSI
+`New-IscsiVirtualDisk -Path D:\iSCSIVirtualDisks\iSCSI2.vhdx -Size 20GB` создать динамический vhdx-диск (для фиксированного размера -UseFixed) \
+`New-IscsiServerTarget -TargetName iscsi-target-2 -InitiatorIds "IQN:iqn.1991-05.com.microsoft:srv3.contoso.com"` создать Target \
+`Get-IscsiServerTarget | fl TargetName, LunMappings` \
+`Connect-IscsiTarget -NodeAddress "iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target" -IsPersistent $true` подключиться инициатором к таргету \
+`Get-IscsiTarget | fl` \
+`Disconnect-IscsiTarget -NodeAddress ″iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target″ -Confirm:$false` отключиться
 
 # ComObject
 `$wshell = New-Object -ComObject Wscript.Shell` \
