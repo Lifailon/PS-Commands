@@ -594,22 +594,6 @@
 `& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
 `& $NSSM_Path remove $Service_Name` удалить
 
-### Storage
-`Get-Command -Module Storage` \
-`Get-Disk` список логических дисков \
-`Get-Partition` отобразить разделы на всех дисках \
-`Get-Volume` список логичких разделов \
-`Get-PhysicalDisk` список физических дисков \
-`Initialize-Disk 1 –PartitionStyle MBR` инициализировать диск \
-`New-Partition -DriveLetter D –DiskNumber 1 -Size 500gb` создать раздел (выделить все место -UseMaximumSize) \
-`Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Disk-D` форматировать раздел \
-`Set-Partition -DriveLetter D -IsActive $True` сделать активным \
-`Remove-Partition -DriveLetter D –DiskNumber 1` удалить раздел \
-`Clear-Disk -Number 1 -RemoveData` очистить диск \
-`Repair-Volume –driveletter C –Scan` Check disk \
-`Repair-Volume –driveletter C –SpotFix` \
-`Repair-Volume –driverletter C -Scan –Cimsession $CIMSession`
-
 # SMB
 `Get-SmbServerConfiguration` \
 `Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force` отключить протокол SMB v1 \
@@ -657,6 +641,22 @@
 `Remove-NTFSAccess -Path "\\$srv\xl-share" -Account "domain\xl-share" -AccessRights FullControl -PassThru` удалить \
 `Get-ChildItem -Path "\\$srv\xl-share" -Recurse -Force | Clear-NTFSAccess` удалить все разрешения, без удаления унаследованных разрешений \
 `Get-ChildItem -Path "\\$srv\xl-share" -Recurse -Force | Enable-NTFSAccessInheritance` включить NTFS наследование для всех объектов в каталоге
+
+### Storage
+`Get-Command -Module Storage` \
+`Get-Disk` список логических дисков \
+`Get-Partition` отобразить разделы на всех дисках \
+`Get-Volume` список логичких разделов \
+`Get-PhysicalDisk` список физических дисков \
+`Initialize-Disk 1 –PartitionStyle MBR` инициализировать диск \
+`New-Partition -DriveLetter D –DiskNumber 1 -Size 500gb` создать раздел (выделить все место -UseMaximumSize) \
+`Format-Volume -DriveLetter D -FileSystem NTFS -NewFileSystemLabel Disk-D` форматировать раздел \
+`Set-Partition -DriveLetter D -IsActive $True` сделать активным \
+`Remove-Partition -DriveLetter D –DiskNumber 1` удалить раздел \
+`Clear-Disk -Number 1 -RemoveData` очистить диск \
+`Repair-Volume –driveletter C –Scan` Check disk \
+`Repair-Volume –driveletter C –SpotFix` \
+`Repair-Volume –driverletter C -Scan –Cimsession $CIMSession`
 
 ### iSCSI
 `New-IscsiVirtualDisk -Path D:\iSCSIVirtualDisks\iSCSI2.vhdx -Size 20GB` создать динамический vhdx-диск (для фиксированного размера -UseFixed) \
