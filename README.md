@@ -1,5 +1,11 @@
 # PowerShell Commands
 
+- [ComObject](#ComObject)
+- [WMI](#WMI)
+- [Active Directory](#Active Directory)
+- [DFSR](#DFSR)
+- [PowerCLI](#PowerCLI)
+
 ### Help
 `Get-Command *Service*` поиск команды по имени \
 `Get-Help Get-Service` синтаксис \
@@ -35,12 +41,12 @@
 ### Netstat
 `Get-NetTCPConnection -State Established,Listen | where LocalAddress -match "192.168"`
 
-### Hash
-`Get-Filehash -Algorithm SHA256 "$env:USERPROFILE\Documents\RSA.conf.txt"`
-
 ### Clipboard
 `Set-Clipboard $srv` скопировать в буфер обмена \
 `Get-Clipboard` вставить
+
+### Hash
+`Get-Filehash -Algorithm SHA256 "$env:USERPROFILE\Documents\RSA.conf.txt"`
 
 ### Array
 `$srv = @("server-01", "server-02")`  создать массив \
@@ -258,6 +264,10 @@
 
 ### Format-Table/Format-List
 `Get-Process | ft ProcessName, StartTime -Autosize` автоматическая группировка размера столбцов
+
+### Measure-Object
+`Get-Process | Measure | select Count` кол-во объектов \
+`Get-Process | Measure -Line -Word -Character` кол-во строк, слов и Char объектов
 
 ### Compare-Object
 `Compare-Object -ReferenceObject (Get-Content -Path .\file1.txt) -DifferenceObject (Get-Content -Path .\file2.txt)` сравнение двух файлов \
@@ -547,42 +557,6 @@
 ### Out-Gridview
 `Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
 
-### ComObject
-`$wshell = New-Object -ComObject Wscript.Shell` \
-`$wshell | Get-Member` \
-`$link = $wshell.CreateShortcut("$Home\Desktop\Яндекс.lnk")` создать ярлык \
-`$link.TargetPath = "https://yandex.ru"` куда ссылается (метод TargetPath объекта $link где хранится дочерний объект CreateShortcut) \
-`$link.Save()` сохранить \
-`$wshell.Exec("notepad.exe")` запустить приложение \
-`$wshell.AppActivate('Блокнот')` открыть запущенное приложение \
-`$wshell.SendKeys("HI")`
-
-`$wshell = New-Object -ComObject Wscript.Shell` \
-`$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)` \
-`if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}`
-
-`Type:` \
-`0` ОК \
-`1` ОК и Отмена \
-`2` Стоп, Повтор, Пропустить \
-`3` Да, Нет, Отмена \
-`4` Да и Нет \
-`5` Повтор и Отмена \
-`16` Stop \
-`32` Question \
-`48` Exclamation \
-`64` Information
-
-`Output:` \
-`-1` Timeout \
-`1` ОК \
-`2` Отмена \
-`3` Стоп \
-`4` Повтор \
-`5` Пропустить \
-`6` Да \
-`7` Нет
-
 ### WinRM (Windows Remote Management)
 `Enter-PSSession -ComputerName $srv` подключиться к PowerShell сессии через PSRemoting. Подключение возможно только по FQDN-имени \
 `Invoke-Command $srv -ScriptBlock {Get-ComputerInfo}` выполнение команды через PSRemoting \
@@ -608,31 +582,6 @@
 `Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
 `net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
 
-### WMI/CIM (Windows Management Instrumentation/Common Information Model)	
-`Get-WmiObjec -ComputerName localhost -Namespace root -class "__NAMESPACE" | select name,__namespace` отобразить дочернии Namespace (логические иерархические группы) \
-`Get-WmiObject -List` отобразить все классы пространства имен "root\cimv2" (по умолчанию), свойства (описывают конфигурацию и текущее состояние управляемого ресурса) и их методы (какие действия позволяет выполнить над этим ресурсом) \
-`Get-WmiObject -List | Where-Object {$_.name -match "video"}` поиск класса по имени, его свойств и методов \
-`Get-WmiObject -ComputerName localhost -Class Win32_VideoController` отобразить содержимое свойств класса
-
-`gwmi -List | where name -match "service" | ft -auto` если в таблице присутствуют Methods, то можно взаимодействовать {StartService, StopService} \
-`gwmi -Class win32_service | select *` отобразить список всех служб и всех их свойств \
-`Get-CimInstance Win32_service` обращается на прямую к "root\cimv2" \
-`gwmi win32_service -Filter "name='Zabbix Agent'"` отфильтровать вывод по имени \
-`(gwmi win32_service -Filter "name='Zabbix Agent'").State` отобразить конкретное свойство \
-`gwmi win32_service -Filter "State = 'Running'"` отфильтровать запущенные службы \
-`gwmi win32_service -Filter "StartMode = 'Auto'"` отфильтровать службы по методу запуска \
-`gwmi -Query 'select * from win32_service where startmode="Auto"'` WQL-запрос (WMI Query Language) \
-`gwmi win32_service | Get-Member -MemberType Method` отобразить все методы взаимодействия с описание применения (Delete, StartService) \
-`(gwmi win32_service -Filter 'name="Zabbix Agent"').Delete()` удалить службу \
-`(gwmi win32_service -Filter 'name="MSSQL$MSSQLE"').StartService()` запустить службу \
-`gwmi Win32_OperatingSystem | Get-Member -MemberType Method` методы reboot и shutdown \
-`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Reboot()` используется с ключем повышения привелегий \
-`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Win32Shutdown(0)` завершение сеанса пользователя \
-`gwmi -list -Namespace root\CIMV2\Terminalservices` \
-`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections` \
-`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP \
-`(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах
-
 ### Regedit
 `Get-PSDrive` список всех доступных дисков и веток реестра \
 `cd HKLM:\` HKEY_LOCAL_MACHINE \
@@ -653,24 +602,6 @@
 `Set-ItemProperty -Path $reg_path -Name "New Signature" -Value $sig_name` изменить или добавить в корне ветки (Path) свойство (Name) со значением (Value) \
 `Set-ItemProperty -Path $reg_path -Name "Reply-Forward Signature" -Value $sig_name`
 
-### NLA (Network Level Authentication)
-`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").UserAuthenticationRequired` \
-`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(1)` включить NLA \
-`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer` отобразить значение (2) \
-`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication` отобразить значение (1) \
-`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer -Value 0` изменить значение \
-`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication -Value 0` \
-`REG ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters /v AllowEncryptionOracle /t REG_DWORD /d 2` отключить на клиентском компьютере проверку версии CredSSP, если на целевом комьютере-сервере не установлены обновления KB4512509 от мая 2018 года
-
-### Invoke-WebRequest
-`$pars = iwr -Uri "https://losst.pro/"` \
-`$pars | Get-Member` отобразить все методы \
-`$pars.Content` содержимое страницы (Out-File url.html) \
-`$pars.statuscode -eq 200` код ответа, запрос выполнен успешно \
-`$pars.Headers` информация о сервере \
-`$pars.Links | fl innerText, href` ссылки \
-`$pars.Images.src` ссылки на изображения
-
 ### Scheduled
 `$Trigger = New-ScheduledTaskTrigger -At 01:00am -Daily` 1:00 ночи \
 `$Trigger = New-ScheduledTaskTrigger –AtLogon` запуск при входе пользователя в систему \
@@ -687,6 +618,15 @@
 `Unregister-ScheduledTask DNS-Change-Tray-Startup` удалить задание \
 `Export-ScheduledTask DNS-Change-Tray-Startup | Out-File $home\Desktop\Task-Export-Startup.xml` экспортировать задание в xml \
 `Register-ScheduledTask -Xml (Get-Content $home\Desktop\Task-Export-Startup.xml | Out-String) -TaskName "DNS-Change-Tray-Startup"`
+
+### Invoke-WebRequest
+`$pars = iwr -Uri "https://losst.pro/"` \
+`$pars | Get-Member` отобразить все методы \
+`$pars.Content` содержимое страницы (Out-File url.html) \
+`$pars.statuscode -eq 200` код ответа, запрос выполнен успешно \
+`$pars.Headers` информация о сервере \
+`$pars.Links | fl innerText, href` ссылки \
+`$pars.Images.src` ссылки на изображения
 
 ### PackageManagement
 `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
@@ -725,10 +665,76 @@
 `& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
 `& $NSSM_Path remove $Service_Name` удалить
 
-### QRCode
-`Install-Module -Name QRCodeGenerator`
-`New-QRCodeWifiAccess -SSID "Network-Name" -Password "password" -Width 10 -OutPath "$home\desktop\WI-FI.png"` \
-`netsh.exe wlan show profiles name="network_name" key=clear` # отобразить пароль WI-FI сети
+### ComObject
+`$wshell = New-Object -ComObject Wscript.Shell` \
+`$wshell | Get-Member` \
+`$link = $wshell.CreateShortcut("$Home\Desktop\Яндекс.lnk")` создать ярлык \
+`$link.TargetPath = "https://yandex.ru"` куда ссылается (метод TargetPath объекта $link где хранится дочерний объект CreateShortcut) \
+`$link.Save()` сохранить \
+`$wshell.Exec("notepad.exe")` запустить приложение \
+`$wshell.AppActivate('Блокнот')` открыть запущенное приложение \
+`$wshell.SendKeys("HI")`
+
+`$wshell = New-Object -ComObject Wscript.Shell` \
+`$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)` \
+`if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}`
+
+`Type:` \
+`0` ОК \
+`1` ОК и Отмена \
+`2` Стоп, Повтор, Пропустить \
+`3` Да, Нет, Отмена \
+`4` Да и Нет \
+`5` Повтор и Отмена \
+`16` Stop \
+`32` Question \
+`48` Exclamation \
+`64` Information
+
+`Output:` \
+`-1` Timeout \
+`1` ОК \
+`2` Отмена \
+`3` Стоп \
+`4` Повтор \
+`5` Пропустить \
+`6` Да \
+`7` Нет
+
+# WMI
+### WMI/CIM (Windows Management Instrumentation/Common Information Model)	
+`Get-WmiObjec -ComputerName localhost -Namespace root -class "__NAMESPACE" | select name,__namespace` отобразить дочернии Namespace (логические иерархические группы) \
+`Get-WmiObject -List` отобразить все классы пространства имен "root\cimv2" (по умолчанию), свойства (описывают конфигурацию и текущее состояние управляемого ресурса) и их методы (какие действия позволяет выполнить над этим ресурсом) \
+`Get-WmiObject -List | Where-Object {$_.name -match "video"}` поиск класса по имени, его свойств и методов \
+`Get-WmiObject -ComputerName localhost -Class Win32_VideoController` отобразить содержимое свойств класса
+
+`gwmi -List | where name -match "service" | ft -auto` если в таблице присутствуют Methods, то можно взаимодействовать {StartService, StopService} \
+`gwmi -Class win32_service | select *` отобразить список всех служб и всех их свойств \
+`Get-CimInstance Win32_service` обращается на прямую к "root\cimv2" \
+`gwmi win32_service -Filter "name='Zabbix Agent'"` отфильтровать вывод по имени \
+`(gwmi win32_service -Filter "name='Zabbix Agent'").State` отобразить конкретное свойство \
+`gwmi win32_service -Filter "State = 'Running'"` отфильтровать запущенные службы \
+`gwmi win32_service -Filter "StartMode = 'Auto'"` отфильтровать службы по методу запуска \
+`gwmi -Query 'select * from win32_service where startmode="Auto"'` WQL-запрос (WMI Query Language) \
+`gwmi win32_service | Get-Member -MemberType Method` отобразить все методы взаимодействия с описание применения (Delete, StartService) \
+`(gwmi win32_service -Filter 'name="Zabbix Agent"').Delete()` удалить службу \
+`(gwmi win32_service -Filter 'name="MSSQL$MSSQLE"').StartService()` запустить службу \
+`gwmi Win32_OperatingSystem | Get-Member -MemberType Method` методы reboot и shutdown \
+`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Reboot()` используется с ключем повышения привелегий \
+`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Win32Shutdown(0)` завершение сеанса пользователя \
+`gwmi -list -Namespace root\CIMV2\Terminalservices` \
+`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections` \
+`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP \
+`(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах
+
+### NLA (Network Level Authentication)
+`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").UserAuthenticationRequired` \
+`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(1)` включить NLA \
+`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer` отобразить значение (2) \
+`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication` отобразить значение (1) \
+`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer -Value 0` изменить значение \
+`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication -Value 0` \
+`REG ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters /v AllowEncryptionOracle /t REG_DWORD /d 2` отключить на клиентском компьютере проверку версии CredSSP, если на целевом комьютере-сервере не установлены обновления KB4512509 от мая 2018 года
 
 # Active Directory
 
@@ -871,12 +877,15 @@
 `KnowsOfRoleHolders` проверяет доступность контроллеров домена с ролями FSMO \
 `MachineAccount` проверяет корректность регистрации учетной записи DC в AD, корректность доверительных отношения с доменом
 
-### DHCP
-`$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
-`HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
-`(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)`
-
-`Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
+### ServerManager
+`Get-Command *WindowsFeature*` source module ServerManager \
+`Get-WindowsFeature -ComputerName "localhost"` \
+`Get-WindowsFeature | where Installed -eq $True` список установленных ролей и компонентов \
+`Get-WindowsFeature | where FeatureType -eq "Role"` отсортировать по списку ролей \
+`Install-WindowsFeature -Name DNS` установить роль \
+`Get-Command *DNS*` \
+`Get-DnsServerSetting -ALL` \
+`Uninstall-WindowsFeature -Name DNS`
 
 ### DNS
 `$zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,` \
@@ -893,6 +902,13 @@
 `Get-DnsServerResourceRecord -ZoneName domain.local -RRType A` вывести все А-записи в указанной зоне \
 `Add-DnsServerResourceRecordA -Name new-host-name -IPv4Address 192.168.1.100 -ZoneName domain.local -TimeToLive 01:00:00 -CreatePtr` создать А-запись и PTR для нее \
 `Remove-DnsServerResourceRecord -ZoneName domain.local -RRType A -Name new-host-name –Force` удалить А-запись
+
+### DHCP
+`$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
+`HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
+`(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)`
+
+`Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
 
 ### RDS
 `Get-Command -Module RemoteDesktop` \
@@ -964,11 +980,12 @@
 `Write-DfsrPropagationReport` создает отчеты для тестовых файлов распространения в группе репликации \
 `Start-DfsrPropagationTest` создает тестовый файл распространения в реплицированной папке
 
-# VMWare (PowerCLI)
+# PowerCLI
 
 `Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
 `Get-Module -ListAvailable VMware* | Select Name,Version` \
-`Import-Module VMware.VimAutomation.Core` импортировать в сессию
+`Import-Module VMware.VimAutomation.Core` импортировать в сессию \
+`Get-PSProvider | format-list Name,PSSnapIn,ModuleName` список оснасток Windows PowerShell
 
 `Get-PowerCLIConfiguration` конфигурация подключения \
 `Set-PowerCLIConfiguration -Scope AllUsers -InvalidCertificateAction ignore -confirm:$false` eсли используется самоподписанный сертификат, изменить значение параметра InvalidCertificateAction с Unset на Ignore/Warn \
