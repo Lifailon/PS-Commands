@@ -666,7 +666,7 @@
 `& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
 `& $NSSM_Path remove $Service_Name` удалить
 
-### ComObject
+# ComObject
 `$wshell = New-Object -ComObject Wscript.Shell` \
 `$wshell | Get-Member` \
 `$link = $wshell.CreateShortcut("$Home\Desktop\Яндекс.lnk")` создать ярлык \
