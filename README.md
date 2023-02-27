@@ -2,8 +2,8 @@
 
 - [ComObject](#ComObject)
 - [WMI](#WMI)
-- [Active Directory](#ActiveDirectory)
-- [DFSR](#ServerManager)
+- [ActiveDirectory](#ActiveDirectory)
+- [ServerManager](#ServerManager)
 - [PowerCLI](#PowerCLI)
 
 ### Help
