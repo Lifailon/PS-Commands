@@ -1,5 +1,6 @@
 # PowerShell Commands
 
+- [SMB](#SMB)
 - [ComObject](#ComObject)
 - [WMI](#WMI)
 - [ActiveDirectory](#ActiveDirectory)
@@ -80,7 +81,7 @@
 `$Class.User = "support"` \
 `$Class.Server = "srv-01"`
 
-### CSV:
+### CSV
 `Get-Service | Select Name,DisplayName,Status,StartType | Export-csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
 `Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
 
@@ -142,7 +143,7 @@
 `[string]::IsNullOrEmpty($text)` проверяет наличие строки, если строка пуста $true, если нет $false \
 `[string]::IsNullOrWhiteSpace($text2)` проверяет на наличие только символов пробел, табуляция или символ новой строки
 
-### Get-Date
+### Date
 `(Get-Date).AddHours(-3)` \
 `$Date = (Get-Date -Format "dd/MM/yyyy hh:mm:ss")` \
 `$Date = Get-Date -f "dd/MM/yyyy"` получаем тип данных [string] \
@@ -300,7 +301,7 @@
 ### ConvertTo-HTML
 `Get-Process | select Name, CPU | ConvertTo-HTML -As list > "$env:userprofile\desktop\proc-list.html"` вывод в формате List (Format-List) или Table (Format-Table)
 
-### Get-EventLog
+### EventLog
 `Get-EventLog -List` отобразить все корневые журналы логов и их размер \
 `Clear-EventLog Application` очистить логи указанного журнала \
 `Get-EventLog -LogName Security -InstanceId 4624` найти логи по ID в журнале Security
@@ -310,7 +311,7 @@
 `}` \
 `Get-Log 10 -1` # передача параметров функции (если значения идут по порядку, то можно не указывать названия переменных)
 
-### Get-WinEvent
+### WinEvent
 `Get-WinEvent -ListLog * | where logname -match SMB | sort -Descending RecordCount` отобразить все доступные журналы логов \
 `Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity" | where` \
 `Get-WinEvent -LogName Security -MaxEvents 100` отобразить последние 100 событий \
@@ -498,7 +499,7 @@
 `Repair-Volume –driveletter C –SpotFix` \
 `Repair-Volume –driverletter C -Scan –Cimsession $CIMSession`
 
-### SMB
+# SMB
 `Get-SmbServerConfiguration` \
 `Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force` отключить протокол SMB v1 \
 `Get-WindowsFeature | Where-Object {$_.name -eq "FS-SMB1"} | ft Name,Installstate` модуль ServerManager, проверить установлен ли компонент SMB1 \
