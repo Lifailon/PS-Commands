@@ -2,7 +2,7 @@
 
 - [ComObject](#ComObject)
 - [WMI](#WMI)
-- [Active Directory](#Active Directory)
+- [Active Directory](#Active-Directory)
 - [DFSR](#DFSR)
 - [PowerCLI](#PowerCLI)
 
@@ -736,7 +736,7 @@
 `Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication -Value 0` \
 `REG ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters /v AllowEncryptionOracle /t REG_DWORD /d 2` отключить на клиентском компьютере проверку версии CredSSP, если на целевом комьютере-сервере не установлены обновления KB4512509 от мая 2018 года
 
-# Active Directory
+# Active-Directory
 
 ### RSAT (Remote Server Administration Tools)
 `DISM.exe /Online /add-capability /CapabilityName:Rsat.ActiveDirectory.DS-LDS.Tools~~~~0.0.1.0 /CapabilityName:Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0` \
