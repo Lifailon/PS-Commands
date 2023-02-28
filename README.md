@@ -1,12 +1,12 @@
 # PowerShell Commands
 
 - [WinRM](#WinRM)
-- [PackageManagement](#PackageManagement)
 - [SMB](#SMB)
 - [ComObject](#ComObject)
 - [WMI](#WMI)
 - [ActiveDirectory](#ActiveDirectory)
 - [ServerManager](#ServerManager)
+- [PackageManagement](#PackageManagement)
 - [PowerCLI](#PowerCLI)
 
 ### Help
@@ -560,52 +560,6 @@
 `Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
 `net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
 
-# PackageManagement
-
-`[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
-`Find-PackageProvider` поиск провайдеров \
-`Install-PackageProvider PSGallery -force` установить источник \
-`Install-PackageProvider Chocolatey -force` \
-`Install-PackageProvider NuGet -force` \
-`Get-PackageSource` источники установки пакетов \
-`Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
-`Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
-`Install-Package -Name Veeam.PowerCLI-Interactions` -ProviderName PSGallery # установка пакета \
-`Get-Command *Veeam*`
-
-### Veeam
-`Set-ExecutionPolicy AllSigned # or Set-ExecutionPolicy Bypass -Scope Process` \
-`Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
-`choco install veeam-backup-and-replication-console` \
-`Get-Command -Module Veeam.Backup.PowerShell` Get-VBRCommand \
-`Get-Module Veeam.Backup.PowerShell` \
-`Get-Help Veeam.Backup.PowerShell`
-
-### PS2EXE
-`Install-Module ps2exe` установка модуля из PSGallery \
-`Get-Module -ListAvailable` список всех модулей \
-`-noConsole` использовать GUI, без окна консоли powershell \
-`-noOutput` выполнение в фоне \
-`-noError` без вывода ошибок \
-`-requireAdmin` при запуске запросить права администратора \
-`-credentialGUI` вывод диалогового окна для ввода учетных данных \
-`C:\Install\RDSA.exe -extract:"C:\Install\RDSA.ps1"` \
-`Invoke-ps2exe -inputFile "$env:USERPROFILE\Desktop\WinEvent-Viewer-1.1.ps1" -outputFile "$env:USERPROFILE\Desktop\WEV-1.1.exe" -iconFile "$env:USERPROFILE\Desktop\log_48px.ico" -title "WinEvent-Viewer" -noConsole -noOutput -noError`
-
-### NSSM
-`$powershell_Path = (Get-Command powershell).Source` \
-`$NSSM_Path = (Get-Command "C:\WinPerf-Agent\NSSM-2.24.exe").Source` \
-`$Script_Path = "C:\WinPerf-Agent\WinPerf-Agent-1.1.ps1"` \
-`$Service_Name = "WinPerf-Agent"` \
-`& $NSSM_Path install $Service_Name $powershell_Path -ExecutionPolicy Bypass -NoProfile -f $Script_Path` создать Service \
-`& $NSSM_Path start $Service_Name` запустить \
-`& $NSSM_Path status $Service_Name` статус \
-`$Service_Name | Restart-Service` перезапустить \
-`$Service_Name | Get-Service` статус \
-`$Service_Name | Stop-Service` остановить \
-`& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
-`& $NSSM_Path remove $Service_Name` удалить
-
 # SMB
 
 `Get-SmbServerConfiguration` \
@@ -996,6 +950,52 @@
 `Write-DfsrHealthReport` создает отчет о работоспособности репликации DFS \
 `Write-DfsrPropagationReport` создает отчеты для тестовых файлов распространения в группе репликации \
 `Start-DfsrPropagationTest` создает тестовый файл распространения в реплицированной папке
+
+# PackageManagement
+
+`[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
+`Find-PackageProvider` поиск провайдеров \
+`Install-PackageProvider PSGallery -force` установить источник \
+`Install-PackageProvider Chocolatey -force` \
+`Install-PackageProvider NuGet -force` \
+`Get-PackageSource` источники установки пакетов \
+`Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
+`Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
+`Install-Package -Name Veeam.PowerCLI-Interactions` -ProviderName PSGallery # установка пакета \
+`Get-Command *Veeam*`
+
+### Veeam
+`Set-ExecutionPolicy AllSigned # or Set-ExecutionPolicy Bypass -Scope Process` \
+`Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
+`choco install veeam-backup-and-replication-console` \
+`Get-Command -Module Veeam.Backup.PowerShell` Get-VBRCommand \
+`Get-Module Veeam.Backup.PowerShell` \
+`Get-Help Veeam.Backup.PowerShell`
+
+### PS2EXE
+`Install-Module ps2exe` установка модуля из PSGallery \
+`Get-Module -ListAvailable` список всех модулей \
+`-noConsole` использовать GUI, без окна консоли powershell \
+`-noOutput` выполнение в фоне \
+`-noError` без вывода ошибок \
+`-requireAdmin` при запуске запросить права администратора \
+`-credentialGUI` вывод диалогового окна для ввода учетных данных \
+`C:\Install\RDSA.exe -extract:"C:\Install\RDSA.ps1"` \
+`Invoke-ps2exe -inputFile "$env:USERPROFILE\Desktop\WinEvent-Viewer-1.1.ps1" -outputFile "$env:USERPROFILE\Desktop\WEV-1.1.exe" -iconFile "$env:USERPROFILE\Desktop\log_48px.ico" -title "WinEvent-Viewer" -noConsole -noOutput -noError`
+
+### NSSM
+`$powershell_Path = (Get-Command powershell).Source` \
+`$NSSM_Path = (Get-Command "C:\WinPerf-Agent\NSSM-2.24.exe").Source` \
+`$Script_Path = "C:\WinPerf-Agent\WinPerf-Agent-1.1.ps1"` \
+`$Service_Name = "WinPerf-Agent"` \
+`& $NSSM_Path install $Service_Name $powershell_Path -ExecutionPolicy Bypass -NoProfile -f $Script_Path` создать Service \
+`& $NSSM_Path start $Service_Name` запустить \
+`& $NSSM_Path status $Service_Name` статус \
+`$Service_Name | Restart-Service` перезапустить \
+`$Service_Name | Get-Service` статус \
+`$Service_Name | Stop-Service` остановить \
+`& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
+`& $NSSM_Path remove $Service_Name` удалить
 
 # PowerCLI
 
