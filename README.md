@@ -1,5 +1,7 @@
 # PowerShell Commands
 
+- [WinRM](#WinRM)
+- [PackageManagement](#PackageManagement)
 - [SMB](#SMB)
 - [ComObject](#ComObject)
 - [WMI](#WMI)
@@ -15,32 +17,6 @@
 `Get-Verb` действия, утвержденные для использования в командах \
 `Set-ExecutionPolicy Unrestricted` \
 `Get-ExecutionPolicy`
-
-### ping
-`Test-Connection -Count 1 $srv1, $srv2` отправить icmp-пакет двум хостам \
-`Test-Connection $srv -ErrorAction SilentlyContinue` не выводить ошибок, если хост не отвечает \
-`Test-Connection -Source $srv1 -ComputerName $srv2` пинг с удаленного компьютера
-
-### nslookup
-`Resolve-DnsName ya.ru -Type MX` ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)
-
-### port
-`tnc $srv -p 5985` \
-`tnc $srv -CommonTCPPort WINRM # HTTP,RDP,SMB` \
-`tnc ya.ru –TraceRoute -Hops 2 # TTL=2` \
-`tnc ya.ru -DiagnoseRouting` # маршрутизация до хоста, куда (DestinationPrefix: 0.0.0.0/0) через (NextHop: 192.168.1.254)
-
-### ipconfig
-`Get-NetIPConfiguration` \
-`Get-NetAdapter` \
-`Get-NetAdapterAdvancedProperty` \
-`Get-NetAdapterStatistics`
-
-### Route
-`Get-NetRoute`
-
-### Netstat
-`Get-NetTCPConnection -State Established,Listen | where LocalAddress -match "192.168"`
 
 ### Clipboard
 `Set-Clipboard $srv` скопировать в буфер обмена \
@@ -486,31 +462,6 @@
 ### Out-Gridview
 `Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
 
-### WinRM (Windows Remote Management)
-`Enter-PSSession -ComputerName $srv` подключиться к PowerShell сессии через PSRemoting. Подключение возможно только по FQDN-имени \
-`Invoke-Command $srv -ScriptBlock {Get-ComputerInfo}` выполнение команды через PSRemoting \
-`$session = New-PSSession $srv` открыть сессию \
-`Get-PSSession` отобразить активные сессии \
-`icm -Session $session {$srv = $using:srv}` передать переменную текущей сессии ($using) в удаленную \
-`Disconnect-PSSession $session` закрыть сессию \
-`Remove-PSSession $session` удалить сессию
-
-### WinRM Configuration
-`winrm quickconfig -quiet` изменит запуск службы WinRM на автоматический, задаст стандартные настройки WinRM и добавить исключения для портов в fw \
-`Enable-PSRemoting –Force` \
-`Test-WsMan $srv` проверить работу WinRM на удаленном компьютере \
-`New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -DnsName "$env:computername" -FriendlyName "WinRM HTTPS Certificate" -NotAfter (Get-Date).AddYears(5)` создать самоподписанный сертификат и скопировать отпечаток (thumbprint) \
-`New-Item -Path WSMan:\Localhost\Listener -Transport HTTPS -Address * -CertificateThumbprint "CACA491A66D1706AC2FEB5E53D0E111C1C73DD65"` создать прослушиватель \
-`New-NetFirewallRule -DisplayName 'WinRM HTTPS Management' -Profile Domain,Private -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5986` открыть порт в fw \
-`winrm enumerate winrm/config/listener` текущая конфигурация прослушивателей WinRM (отображает отпечаток cert SSL для HTTPS 5986) \
-`dir WSMan:\localhost\client` отобразить конфигурацию \
-`winrm get winrm/config/service/auth` список всех конфигураций аутентификации WinRM (WSMan:\localhost\client\auth) \
-`Set-Item -path wsman:\localhost\service\auth\basic -value $true` разрешить локальную аутентификацию \
-`Set-PSSessionConfiguration -ShowSecurityDescriptorUI -Name Microsoft.PowerShell` добавить права доступа через дескриптор безопасности \
-`Set-Item WSMan:\localhost\client\allowunencrypted $true` работать без шифрования \
-`Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
-`net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
-
 ### Regedit
 `Get-PSDrive` список всех доступных дисков и веток реестра \
 `cd HKLM:\` HKEY_LOCAL_MACHINE \
@@ -548,6 +499,32 @@
 `Export-ScheduledTask DNS-Change-Tray-Startup | Out-File $home\Desktop\Task-Export-Startup.xml` экспортировать задание в xml \
 `Register-ScheduledTask -Xml (Get-Content $home\Desktop\Task-Export-Startup.xml | Out-String) -TaskName "DNS-Change-Tray-Startup"`
 
+### ping
+`Test-Connection -Count 1 $srv1, $srv2` отправить icmp-пакет двум хостам \
+`Test-Connection $srv -ErrorAction SilentlyContinue` не выводить ошибок, если хост не отвечает \
+`Test-Connection -Source $srv1 -ComputerName $srv2` пинг с удаленного компьютера
+
+### nslookup
+`Resolve-DnsName ya.ru -Type MX` ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)
+
+### port
+`tnc $srv -p 5985` \
+`tnc $srv -CommonTCPPort WINRM # HTTP,RDP,SMB` \
+`tnc ya.ru –TraceRoute -Hops 2 # TTL=2` \
+`tnc ya.ru -DiagnoseRouting` # маршрутизация до хоста, куда (DestinationPrefix: 0.0.0.0/0) через (NextHop: 192.168.1.254)
+
+### ipconfig
+`Get-NetIPConfiguration` \
+`Get-NetAdapter` \
+`Get-NetAdapterAdvancedProperty` \
+`Get-NetAdapterStatistics`
+
+### route
+`Get-NetRoute`
+
+### netstat
+`Get-NetTCPConnection -State Established,Listen | where LocalAddress -match "192.168"`
+
 ### Invoke-WebRequest
 `$pars = iwr -Uri "https://losst.pro/"` \
 `$pars | Get-Member` отобразить все методы \
@@ -557,7 +534,34 @@
 `$pars.Links | fl innerText, href` ссылки \
 `$pars.Images.src` ссылки на изображения
 
-### PackageManagement
+# WinRM
+
+`Enter-PSSession -ComputerName $srv` подключиться к PowerShell сессии через PSRemoting. Подключение возможно только по FQDN-имени \
+`Invoke-Command $srv -ScriptBlock {Get-ComputerInfo}` выполнение команды через PSRemoting \
+`$session = New-PSSession $srv` открыть сессию \
+`Get-PSSession` отобразить активные сессии \
+`icm -Session $session {$srv = $using:srv}` передать переменную текущей сессии ($using) в удаленную \
+`Disconnect-PSSession $session` закрыть сессию \
+`Remove-PSSession $session` удалить сессию
+
+### Windows Remote Management Configuration
+`winrm quickconfig -quiet` изменит запуск службы WinRM на автоматический, задаст стандартные настройки WinRM и добавить исключения для портов в fw \
+`Enable-PSRemoting –Force` \
+`Test-WsMan $srv` проверить работу WinRM на удаленном компьютере \
+`New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -DnsName "$env:computername" -FriendlyName "WinRM HTTPS Certificate" -NotAfter (Get-Date).AddYears(5)` создать самоподписанный сертификат и скопировать отпечаток (thumbprint) \
+`New-Item -Path WSMan:\Localhost\Listener -Transport HTTPS -Address * -CertificateThumbprint "CACA491A66D1706AC2FEB5E53D0E111C1C73DD65"` создать прослушиватель \
+`New-NetFirewallRule -DisplayName 'WinRM HTTPS Management' -Profile Domain,Private -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5986` открыть порт в fw \
+`winrm enumerate winrm/config/listener` текущая конфигурация прослушивателей WinRM (отображает отпечаток cert SSL для HTTPS 5986) \
+`dir WSMan:\localhost\client` отобразить конфигурацию \
+`winrm get winrm/config/service/auth` список всех конфигураций аутентификации WinRM (WSMan:\localhost\client\auth) \
+`Set-Item -path wsman:\localhost\service\auth\basic -value $true` разрешить локальную аутентификацию \
+`Set-PSSessionConfiguration -ShowSecurityDescriptorUI -Name Microsoft.PowerShell` добавить права доступа через дескриптор безопасности \
+`Set-Item WSMan:\localhost\client\allowunencrypted $true` работать без шифрования \
+`Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
+`net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
+
+# PackageManagement
+
 `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
 `Find-PackageProvider` поиск провайдеров \
 `Install-PackageProvider PSGallery -force` установить источник \
@@ -565,9 +569,17 @@
 `Install-PackageProvider NuGet -force` \
 `Get-PackageSource` источники установки пакетов \
 `Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
-`Find-Package -Name *adobe* -Source PSGallery` поиск пакетов с указанием источника \
-`Install-Package -Name AdobeGPOTemplates # -ProviderName PSGallery` установка пакета \
-`Uninstall-Package AdobeGPOTemplates` удаление пакета
+`Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
+`Install-Package -Name Veeam.PowerCLI-Interactions` -ProviderName PSGallery # установка пакета \
+`Get-Command *Veeam*`
+
+### Veeam
+`Set-ExecutionPolicy AllSigned # or Set-ExecutionPolicy Bypass -Scope Process` \
+`Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
+`choco install veeam-backup-and-replication-console` \
+`Get-Command -Module Veeam.Backup.PowerShell` Get-VBRCommand \
+`Get-Module Veeam.Backup.PowerShell` \
+`Get-Help Veeam.Backup.PowerShell`
 
 ### PS2EXE
 `Install-Module ps2exe` установка модуля из PSGallery \
@@ -595,6 +607,7 @@
 `& $NSSM_Path remove $Service_Name` удалить
 
 # SMB
+
 `Get-SmbServerConfiguration` \
 `Set-SmbServerConfiguration -EnableSMB1Protocol $false -Force` отключить протокол SMB v1 \
 `Get-WindowsFeature | Where-Object {$_.name -eq "FS-SMB1"} | ft Name,Installstate` модуль ServerManager, проверить установлен ли компонент SMB1 \
@@ -667,6 +680,7 @@
 `Disconnect-IscsiTarget -NodeAddress ″iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target″ -Confirm:$false` отключиться
 
 # ComObject
+
 `$wshell = New-Object -ComObject Wscript.Shell` \
 `$wshell | Get-Member` \
 `$link = $wshell.CreateShortcut("$Home\Desktop\Яндекс.lnk")` создать ярлык \
@@ -703,6 +717,7 @@
 `7` Нет
 
 # WMI
+
 ### WMI/CIM (Windows Management Instrumentation/Common Information Model)	
 `Get-WmiObjec -ComputerName localhost -Namespace root -class "__NAMESPACE" | select name,__namespace` отобразить дочернии Namespace (логические иерархические группы) \
 `Get-WmiObject -List` отобразить все классы пространства имен "root\cimv2" (по умолчанию), свойства (описывают конфигурацию и текущее состояние управляемого ресурса) и их методы (какие действия позволяет выполнить над этим ресурсом) \
@@ -879,6 +894,7 @@
 `MachineAccount` проверяет корректность регистрации учетной записи DC в AD, корректность доверительных отношения с доменом
 
 # ServerManager
+
 `Get-Command *WindowsFeature*` source module ServerManager \
 `Get-WindowsFeature -ComputerName "localhost"` \
 `Get-WindowsFeature | where Installed -eq $True` список установленных ролей и компонентов \
