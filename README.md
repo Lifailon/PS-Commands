@@ -1,5 +1,4 @@
-<!-- title only -->
-<h1 align="center"> Title </h1>
+<h1 align="center"> PowerShell </h1>
 
 - [Items](#Items)
 - [WinRM](#WinRM)
