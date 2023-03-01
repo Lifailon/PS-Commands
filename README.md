@@ -1,5 +1,6 @@
 # PowerShell Commands
 
+- [Items](#Items)
 - [WinRM](#WinRM)
 - [SMB](#SMB)
 - [ComObject](#ComObject)
@@ -8,6 +9,7 @@
 - [ServerManager](#ServerManager)
 - [PackageManagement](#PackageManagement)
 - [PowerCLI](#PowerCLI)
+- [Veeam](#Veeam)
 
 ### Help
 `Get-Command *Service*` поиск команды по имени \
@@ -126,6 +128,20 @@
 `[DateTime]$gDate = Get-Date "$Date"` преобразовать в тип [DateTime] \
 `[int32]$days=($fDate-$gDate).Days` получить разницу в днях \
 `"5/7/07" -as [DateTime]` преобразовать входные данные в тип данных [DateTime]
+
+### Time
+`(Measure-Command {ping ya.ru}).TotalSeconds` узнать только время выполнения \
+`(Get-History)[-1] | select @{Name="RunTime"; Expression={$_.EndExecutionTime - $_.StartExecutionTime}},ExecutionStatus,CommandLine` посчитать время работы последней [-1] (select -Last 1) выполненной команды и узнать ее статус \
+`$start_time = Get-Date` зафиксировать время до выполнения команды \
+`$end_time = Get-Date` зафиксировать время по завершению \
+`$time = $end_time - $start_time` высчитать время работы скрипта \
+`$min = $time.minutes` \
+`$sec = $time.seconds` \
+`Write-Host "$min минут $sec секунд"` \
+`$timer = [System.Diagnostics.Stopwatch]::StartNew()` запустить таймер \
+`$timer.IsRunning` статус работы таймера \
+`$timer.Elapsed.TotalSeconds` отобразить время с момента запуска (в секундах) \
+`$timer.Stop()` остановить таймер
 
 ### Regex (регулярные выражения)
 `-replace "1","2"` замена элементов в индексах массива (везде где присутствует 1, заменить на 2), для удаления используется только первое значение \
@@ -253,7 +269,7 @@
 `Compare-Object -ReferenceObject $group1 -DifferenceObject $group2 -IncludeEqual`
 `==` нет изменений \
 `<=` есть изменения в $group1 \
-`=>` есть изменения в $group2 \
+`=>` есть изменения в $group2
 
 ### Where-Object (?)
 `Get-Process | Where-Object {$_.ProcessName -match "zabbix"}` фильтрация/поиск процессов по имени свойства объекта \
@@ -263,7 +279,7 @@
 `Get-Service -ComputerName $srv | Where {$_.Name -match "WinRM"} | Restart-Service` перезапустить службу на удаленном компьютере \
 `(Get-Service).DisplayName` вывести значения свойства массива \
 `netstat -an | where {$_ -match 443}` \
-`netstat -an | ? {$_ -match 443}` \
+`netstat -an | ?{$_ -match 443}` \
 `(netstat -an) -match 443`
 
 ### Sort-Object
@@ -277,149 +293,11 @@
 ### ConvertTo-HTML
 `Get-Process | select Name, CPU | ConvertTo-HTML -As list > "$env:userprofile\desktop\proc-list.html"` вывод в формате List (Format-List) или Table (Format-Table)
 
-### EventLog
-`Get-EventLog -List` отобразить все корневые журналы логов и их размер \
-`Clear-EventLog Application` очистить логи указанного журнала \
-`Get-EventLog -LogName Security -InstanceId 4624` найти логи по ID в журнале Security
+### Out-Gridview
+`Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
 
-`function Get-Log ($count=30,$hour=-3) {` # указать значения параметров по умолчанию \
-`Get-EventLog -LogName Application -Newest $count | where-Object TimeWritten -ge (Get-Date).AddHours($hour)` # отобразить 30 новых событий за последние 3 часа \
-`}` \
-`Get-Log 10 -1` # передача параметров функции (если значения идут по порядку, то можно не указывать названия переменных)
+# Items
 
-### WinEvent
-`Get-WinEvent -ListLog * | where logname -match SMB | sort -Descending RecordCount` отобразить все доступные журналы логов \
-`Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity" | where` \
-`Get-WinEvent -LogName Security -MaxEvents 100` отобразить последние 100 событий \
-`Get-WinEvent -FilterHashtable @{LogName="Security";ID=4624}` найти логи по ID в журнале Security
-
-`$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational" -FilterXPath '<QueryList><Query Id="0"><Select>*[System[EventID=1149]]</Select></Query></QueryList>'` \
-`[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}` \
-`$EventData = Foreach ($event in $xml.Event) {` \
-`New-Object PSObject -Property @{` \
-`"Время подключения" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')` \
-`"Имя пользователя" = $event.UserData.EventXML.Param1` \
-`"Адрес клиента" = $event.UserData.EventXML.Param3` \
-`}}` \
-`$EventData | Out-Gridview -Title "История RDP подключений на сервере $srv"`
-
-`$obj = @() \
-`$fw = Get-WinEvent 'Microsoft-Windows-Windows Firewall With Advanced Security/Firewall'` \
-`foreach ($temp_fw in $fw) {` \
-`if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}` \
-`$port = $temp_fw.Properties[7] | select -ExpandProperty value` \
-`$name = $temp_fw.Properties[1] | select -ExpandProperty value` \
-`$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}` \
-`}`
-
-### Time
-`(Measure-Command {ping ya.ru}).TotalSeconds` узнать только время выполнения \
-`(Get-History)[-1] | select @{Name="RunTime"; Expression={$_.EndExecutionTime - $_.StartExecutionTime}},ExecutionStatus,CommandLine` посчитать время работы последней [-1] (select -Last 1) выполненной команды и узнать ее статус \
-`$start_time = Get-Date` зафиксировать время до выполнения команды \
-`$end_time = Get-Date` зафиксировать время по завершению \
-`$time = $end_time - $start_time` высчитать время работы скрипта \
-`$min = $time.minutes` \
-`$sec = $time.seconds` \
-`Write-Host "$min минут $sec секунд"` \
-`$timer = [System.Diagnostics.Stopwatch]::StartNew()` запустить таймер \
-`$timer.IsRunning` статус работы таймера \
-`$timer.Elapsed.TotalSeconds` отобразить время с момента запуска (в секундах) \
-`$timer.Stop()` остановить таймер
-
-### Firewall
-`New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135` открыть in-порт \
-`Get-NetFirewallRule | Where-Object {$_.DisplayName -match "135"}` найти правило по имени \
-`Get-NetFirewallPortFilter | where LocalPort -like 80` найти действующие правило по номеру порта
-
-`Get-NetFirewallRule -Enabled True -Direction Inbound | select -Property DisplayName,`
-`@{Name='Protocol';Expression={($_ | Get-NetFirewallPortFilter).Protocol}},`
-`@{Name='LocalPort';Expression={($_ | Get-NetFirewallPortFilter).LocalPort}},`
-`@{Name='RemotePort';Expression={($_ | Get-NetFirewallPortFilter).RemotePort}},`
-`@{Name='RemoteAddress';Expression={($_ | Get-NetFirewallAddressFilter).RemoteAddress}},`
-`Enabled,Profile`
-
-### Firewall-Manager
-`Install-Module Firewall-Manager` \
-`Export-FirewallRules -Name * -CSVFile $home\documents\fw.csv` -Inbound -Outbound -Enabled -Disabled -Allow -Block (фильтр правил для экспорта) \
-`Import-FirewallRules -CSVFile $home\documents\fw.csv`
-
-### Performance
-`(Get-Counter -ListSet *).CounterSetName` вывести список всех доступных счетчиков производительности в системе \
-`(Get-Counter -ListSet *memory*).Counter` все счетчики, включая дочернии, поиск по wildcard-имени \
-`Get-Counter "\Memory\Available MBytes"` объем свободной оперативной памяти \
-`Get-Counter -cn $srv "\LogicalDisk(*)\% Free Space"` % свободного места на всех разделах дисков \
-`(Get-Counter "\Process(*)\ID Process").CounterSamples` \
-`Get-Counter "\Processor(_Total)\% Processor Time" –ComputerName $srv -MaxSamples 5 -SampleInterval 2` 5 проверок каждые 2 секунды \
-`Get-Counter "\Процессор(_Total)\% загруженности процессора" -Continuous` непрерывно \
-`(Get-Counter "\Процессор(*)\% загруженности процессора").CounterSamples`
-
-### ThreadJob
-`Install-Module -Name ThreadJob` установить модуль \
-`Get-Module ThreadJob -list` \
-`(Start-ThreadJob {ping ya.ru}) | Out-Null` создать фоновую задачу \
-`while ($True){` \
-`$status = @((Get-Job).State)[-1]` # отобразить статус последней [-1] фоновой задачи \
-`if ($status -like "Completed"){` # если Completed \
-`Get-Job | Receive-Job` # отобразить вывод, после каждого запроса результат удаляется (Get-Job).HasMoreData -eq $False \
-`Get-Job | Remove-Job -Force` # удалить все задачи \
-`break` # остановить цикл \
-`}}` \
-`Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep)
-
-### Event
-`Register-EngineEvent` регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job) \
-`Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {` \
-`$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)` \
-`}` \
-`-SupportEvent` не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job \
-`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
-
-`Register-ObjectEvent` регистрирует подписку на события объектов .NET \
-`$System_Obj | Get-Member -MemberType Event` отобразить список всех событий объекта \
-`Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {` \
-`Write-Host $System_Obj.Text` \
-`}` \
-`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
-`Unregister-Event -SourceIdentifier SrvListClick` удаляет регистрацию подписки на событие по имени события (или все *) \
-`Remove-Job -Name SrvListClick` удаляет задание \
-`-InputObject` объект или переменная, хранящая объект \
-`-EventName` событие (например, Click,MouseClick) \
-`-SourceIdentifier` название регистрируемого события \
-`-Action` действие при возникновении события
-
-### Out-File
-`Read-Host –AsSecureString | ConvertFrom-SecureString | Out-File "$env:userprofile\desktop\password.txt"` писать в файл. Преобразовать пароль в формат SecureString с использованием шифрования Windows Data Protection API (DPAPI)
-
-### Get-Content (gc/cat/type)
-`$password = gc "$env:userprofile\desktop\password.txt" | ConvertTo-SecureString` читать хэш пароля из файла с помощью ключей, хранящихся в профиле текущего пользователя, который невозможно прочитать на другом копьютере
-
-### AES Key
-`$AESKey = New-Object Byte[] 32` \
-`[Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($AESKey)` \
-`$AESKey | Out-File "C:\password.key"` \
-`$Cred.Password | ConvertFrom-SecureString -Key (Get-Content "C:\password.key") | Set-Content "C:\password.txt"` сохранить пароль в файл используя внешний ключ \
-`$pass = Get-Content "C:\password.txt" | ConvertTo-SecureString -Key (Get-Content "\\Server\Share\password.key")` расшифровать пароль на втором компьютере
-
-### Credential
-`$Cred = Get-Credential` сохраняет креды в переменные $Cred.Username и $Cred.Password \
-`$Cred.GetNetworkCredential().password` извлечь пароль \
-`cmdkey /generic:"TERMSRV/$srv" /user:"$username" /pass:"$password"` добавить указанные креды аудентификации на на терминальный сервер для подключения без пароля \
-`mstsc /admin /v:$srv` авторизоваться \
-`cmdkey /delete:"TERMSRV/$srv"` удалить добавленные креды аудентификации из системы \
-`rundll32.exe keymgr.dll,KRShowKeyMgr` хранилище Stored User Names and Password \
-`Get-Service VaultSvc` служба для работы Credential Manager \
-`Install-Module CredentialManager` установить модуль управления Credential Manager к хранилищу PasswordVault из PowerShell \
-`[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]'Tls11,Tls12'` для устаноки модуля \
-`Get-StoredCredential` получить учетные данные из хранилища Windows Vault \
-`Get-StrongPassword` генератор пароля \
-`New-StoredCredential -UserName test -Password "123456"` добавить учетную запись \
-`Remove-StoredCredential` удалить учетную запись \
-`$Cred = Get-StoredCredential | where {$_.username -match "admin"}` \
-`$pass = $cred.password` \
-`$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass)` \
-`[System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)`
-
-### Items
 `Test-Path $path` проверить доступность пути \
 `Get-Location` отобразить текущие месторасположение (Alias: pwd/gl) \
 `Set-Location $path` перемещение по каталогам (Alias: cd/sl) \
@@ -459,8 +337,133 @@
 `Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
 `Get-LocalGroupMember "Administrators"` члены группы
 
-### Out-Gridview
-`Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
+### Credential
+`$Cred = Get-Credential` сохраняет креды в переменные $Cred.Username и $Cred.Password \
+`$Cred.GetNetworkCredential().password` извлечь пароль \
+`cmdkey /generic:"TERMSRV/$srv" /user:"$username" /pass:"$password"` добавить указанные креды аудентификации на на терминальный сервер для подключения без пароля \
+`mstsc /admin /v:$srv` авторизоваться \
+`cmdkey /delete:"TERMSRV/$srv"` удалить добавленные креды аудентификации из системы \
+`rundll32.exe keymgr.dll,KRShowKeyMgr` хранилище Stored User Names and Password \
+`Get-Service VaultSvc` служба для работы Credential Manager \
+`Install-Module CredentialManager` установить модуль управления Credential Manager к хранилищу PasswordVault из PowerShell \
+`[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]'Tls11,Tls12'` для устаноки модуля \
+`Get-StoredCredential` получить учетные данные из хранилища Windows Vault \
+`Get-StrongPassword` генератор пароля \
+`New-StoredCredential -UserName test -Password "123456"` добавить учетную запись \
+`Remove-StoredCredential` удалить учетную запись \
+`$Cred = Get-StoredCredential | where {$_.username -match "admin"}` \
+`$pass = $cred.password` \
+`$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass)` \
+`[System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)`
+
+### Out-File
+`Read-Host –AsSecureString | ConvertFrom-SecureString | Out-File "$env:userprofile\desktop\password.txt"` писать в файл. Преобразовать пароль в формат SecureString с использованием шифрования Windows Data Protection API (DPAPI)
+
+### Get-Content (gc/cat/type)
+`$password = gc "$env:userprofile\desktop\password.txt" | ConvertTo-SecureString` читать хэш пароля из файла с помощью ключей, хранящихся в профиле текущего пользователя, который невозможно прочитать на другом копьютере
+
+### AES Key
+`$AESKey = New-Object Byte[] 32` \
+`[Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($AESKey)` \
+`$AESKey | Out-File "C:\password.key"` \
+`$Cred.Password | ConvertFrom-SecureString -Key (Get-Content "C:\password.key") | Set-Content "C:\password.txt"` сохранить пароль в файл используя внешний ключ \
+`$pass = Get-Content "C:\password.txt" | ConvertTo-SecureString -Key (Get-Content "\\Server\Share\password.key")` расшифровать пароль на втором компьютере
+
+### Import-Clixml
+`$CredFile = ".\cred.xml"` \
+`try {` \
+`$Cred = Import-Clixml -path $credFile` \
+`}` \
+`catch {` \
+`$Cred = Get-Credential -Message "Enter credential"` \
+`if ($Cred -ne $null) {` \
+`$Cred | Export-CliXml -Path $credFile` \
+`}` \
+`else {return}` \
+`}`
+
+### EventLog
+`Get-EventLog -List` отобразить все корневые журналы логов и их размер \
+`Clear-EventLog Application` очистить логи указанного журнала \
+`Get-EventLog -LogName Security -InstanceId 4624` найти логи по ID в журнале Security
+
+`function Get-Log ($count=30,$hour=-3) {` # указать значения параметров по умолчанию \
+`Get-EventLog -LogName Application -Newest $count | where-Object TimeWritten -ge (Get-Date).AddHours($hour)` # отобразить 30 новых событий за последние 3 часа \
+`}` \
+`Get-Log 10 -1` # передача параметров функции (если значения идут по порядку, то можно не указывать названия переменных)
+
+### WinEvent
+`Get-WinEvent -ListLog * | where logname -match SMB | sort -Descending RecordCount` отобразить все доступные журналы логов \
+`Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity" | where` \
+`Get-WinEvent -LogName Security -MaxEvents 100` отобразить последние 100 событий \
+`Get-WinEvent -FilterHashtable @{LogName="Security";ID=4624}` найти логи по ID в журнале Security
+
+`$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational" -FilterXPath '<QueryList><Query Id="0"><Select>*[System[EventID=1149]]</Select></Query></QueryList>'` \
+`[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}` \
+`$EventData = Foreach ($event in $xml.Event) {` \
+`New-Object PSObject -Property @{` \
+`"Время подключения" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')` \
+`"Имя пользователя" = $event.UserData.EventXML.Param1` \
+`"Адрес клиента" = $event.UserData.EventXML.Param3` \
+`}}` \
+`$EventData | Out-Gridview -Title "История RDP подключений на сервере $srv"`
+
+`$obj = @() \
+`$fw = Get-WinEvent 'Microsoft-Windows-Windows Firewall With Advanced Security/Firewall'` \
+`foreach ($temp_fw in $fw) {` \
+`if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}` \
+`$port = $temp_fw.Properties[7] | select -ExpandProperty value` \
+`$name = $temp_fw.Properties[1] | select -ExpandProperty value` \
+`$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}` \
+`}`
+
+### Event
+`Register-EngineEvent` регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job) \
+`Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {` \
+`$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)` \
+`}` \
+`-SupportEvent` не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job \
+`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
+
+`Register-ObjectEvent` регистрирует подписку на события объектов .NET \
+`$System_Obj | Get-Member -MemberType Event` отобразить список всех событий объекта \
+`Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {` \
+`Write-Host $System_Obj.Text` \
+`}` \
+`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
+`Unregister-Event -SourceIdentifier SrvListClick` удаляет регистрацию подписки на событие по имени события (или все *) \
+`Remove-Job -Name SrvListClick` удаляет задание \
+`-InputObject` объект или переменная, хранящая объект \
+`-EventName` событие (например, Click,MouseClick) \
+`-SourceIdentifier` название регистрируемого события \
+`-Action` действие при возникновении события
+
+### Firewall
+`New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135` открыть in-порт \
+`Get-NetFirewallRule | Where-Object {$_.DisplayName -match "135"}` найти правило по имени \
+`Get-NetFirewallPortFilter | where LocalPort -like 80` найти действующие правило по номеру порта
+
+`Get-NetFirewallRule -Enabled True -Direction Inbound | select -Property DisplayName,`
+`@{Name='Protocol';Expression={($_ | Get-NetFirewallPortFilter).Protocol}},`
+`@{Name='LocalPort';Expression={($_ | Get-NetFirewallPortFilter).LocalPort}},`
+`@{Name='RemotePort';Expression={($_ | Get-NetFirewallPortFilter).RemotePort}},`
+`@{Name='RemoteAddress';Expression={($_ | Get-NetFirewallAddressFilter).RemoteAddress}},`
+`Enabled,Profile`
+
+### Firewall-Manager
+`Install-Module Firewall-Manager` \
+`Export-FirewallRules -Name * -CSVFile $home\documents\fw.csv` -Inbound -Outbound -Enabled -Disabled -Allow -Block (фильтр правил для экспорта) \
+`Import-FirewallRules -CSVFile $home\documents\fw.csv`
+
+### Performance
+`(Get-Counter -ListSet *).CounterSetName` вывести список всех доступных счетчиков производительности в системе \
+`(Get-Counter -ListSet *memory*).Counter` все счетчики, включая дочернии, поиск по wildcard-имени \
+`Get-Counter "\Memory\Available MBytes"` объем свободной оперативной памяти \
+`Get-Counter -cn $srv "\LogicalDisk(*)\% Free Space"` % свободного места на всех разделах дисков \
+`(Get-Counter "\Process(*)\ID Process").CounterSamples` \
+`Get-Counter "\Processor(_Total)\% Processor Time" –ComputerName $srv -MaxSamples 5 -SampleInterval 2` 5 проверок каждые 2 секунды \
+`Get-Counter "\Процессор(_Total)\% загруженности процессора" -Continuous` непрерывно \
+`(Get-Counter "\Процессор(*)\% загруженности процессора").CounterSamples`
 
 ### Regedit
 `Get-PSDrive` список всех доступных дисков и веток реестра \
@@ -964,13 +967,18 @@
 `Install-Package -Name Veeam.PowerCLI-Interactions` -ProviderName PSGallery # установка пакета \
 `Get-Command *Veeam*`
 
-### Veeam
-`Set-ExecutionPolicy AllSigned # or Set-ExecutionPolicy Bypass -Scope Process` \
-`Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
-`choco install veeam-backup-and-replication-console` \
-`Get-Command -Module Veeam.Backup.PowerShell` Get-VBRCommand \
-`Get-Module Veeam.Backup.PowerShell` \
-`Get-Help Veeam.Backup.PowerShell`
+### ThreadJob
+`Install-Module -Name ThreadJob` установить модуль \
+`Get-Module ThreadJob -list` \
+`(Start-ThreadJob {ping ya.ru}) | Out-Null` создать фоновую задачу \
+`while ($True){` \
+`$status = @((Get-Job).State)[-1]` # отобразить статус последней [-1] фоновой задачи \
+`if ($status -like "Completed"){` # если Completed \
+`Get-Job | Receive-Job` # отобразить вывод, после каждого запроса результат удаляется (Get-Job).HasMoreData -eq $False \
+`Get-Job | Remove-Job -Force` # удалить все задачи \
+`break` # остановить цикл \
+`}}` \
+`Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep)
 
 ### PS2EXE
 `Install-Module ps2exe` установка модуля из PSGallery \
@@ -1070,3 +1078,21 @@
 `Get-Command –Module *vmware* -name *syslog*` \
 `Set-VMHostSysLogServer -VMHost esxi-05 -SysLogServer "tcp://192.168.3.100" -SysLogServerPort 3515` \
 `Get-VMHostSysLogServer -VMHost esxi-05`
+
+# Veeam
+
+`Set-ExecutionPolicy AllSigned` or Set-ExecutionPolicy Bypass -Scope Process \
+`Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
+`choco install veeam-backup-and-replication-console` \
+`Get-Module Veeam.Backup.PowerShell` \
+`Get-Command -Module Veeam.Backup.PowerShell` or Get-VBRCommand \
+`Connect-VBRServer -Server $srv -Credential $cred` or -user and -password \
+`Get-VBRJob` \
+`Get-VBRCommand *get*backup*` \
+`Get-VBRComputerBackupJob` \
+`Get-VBRBackup` \
+`Get-VBRBackupRepository` \
+`Get-VBRBackupSession` \
+`Get-VBRBackupServerCertificate` \
+`Get-VBRRestorePoint` \
+`https://veeam-11:9419/swagger/ui/index.html` RAST API
