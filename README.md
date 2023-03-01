@@ -1,4 +1,5 @@
-<p style="text-align: center;">PowerShell Commands</p>
+<!-- title only -->
+<h1 align="center"> Title </h1>
 
 - [Items](#Items)
 - [WinRM](#WinRM)
