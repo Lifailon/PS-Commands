@@ -1,4 +1,4 @@
-# <p style="text-align: center;">PowerShell Commands</p>
+<p style="text-align: center;">PowerShell Commands</p>
 
 - [Items](#Items)
 - [WinRM](#WinRM)
