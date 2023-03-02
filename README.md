@@ -8,6 +8,7 @@
 - [ActiveDirectory](#ActiveDirectory)
 - [ServerManager](#ServerManager)
 - [PackageManagement](#PackageManagement)
+- [SQLite](#SQLite)
 - [PowerCLI](#PowerCLI)
 - [Veeam](#Veeam)
 
@@ -58,10 +59,6 @@
 `$Class = New-Object -TypeName CustomClass` \
 `$Class.User = "support"` \
 `$Class.Server = "srv-01"`
-
-### CSV
-`Get-Service | Select Name,DisplayName,Status,StartType | Export-csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
-`Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
 
 ### Pipeline
 `$obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force` добавление объкта вывода NoteProperty \
@@ -127,7 +124,8 @@
 `$Date = Get-Date -f "dd/MM/yyyy"` получаем тип данных [string] \
 `[DateTime]$gDate = Get-Date "$Date"` преобразовать в тип [DateTime] \
 `[int32]$days=($fDate-$gDate).Days` получить разницу в днях \
-`"5/7/07" -as [DateTime]` преобразовать входные данные в тип данных [DateTime]
+`"5/7/07" -as [DateTime]` преобразовать входные данные в тип данных [DateTime] \
+`New-TimeSpan -Start $VBRRP.CreationTimeUTC -End $VBRRP.CompletionTimeUTC` получить разницу во времени
 
 ### Time
 `(Measure-Command {ping ya.ru}).TotalSeconds` узнать только время выполнения \
@@ -290,9 +288,6 @@
 `Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
 `Get-Process | Sort-Object -Descending CPU | select -Last 10` вывести последних 10 объектов
 
-### ConvertTo-HTML
-`Get-Process | select Name, CPU | ConvertTo-HTML -As list > "$env:userprofile\desktop\proc-list.html"` вывод в формате List (Format-List) или Table (Format-Table)
-
 ### Out-Gridview
 `Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
 
@@ -369,7 +364,7 @@
 `$Cred.Password | ConvertFrom-SecureString -Key (Get-Content "C:\password.key") | Set-Content "C:\password.txt"` сохранить пароль в файл используя внешний ключ \
 `$pass = Get-Content "C:\password.txt" | ConvertTo-SecureString -Key (Get-Content "\\Server\Share\password.key")` расшифровать пароль на втором компьютере
 
-### Import-Clixml
+### XML
 `$CredFile = ".\cred.xml"` \
 `try {` \
 `$Cred = Import-Clixml -path $credFile` \
@@ -381,6 +376,13 @@
 `}` \
 `else {return}` \
 `}`
+
+### CSV
+`Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
+`Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
+
+### ConvertTo-HTML/JSON/XML
+`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
 
 ### EventLog
 `Get-EventLog -List` отобразить все корневые журналы логов и их размер \
@@ -967,21 +969,8 @@
 `Install-Package -Name Veeam.PowerCLI-Interactions` -ProviderName PSGallery # установка пакета \
 `Get-Command *Veeam*`
 
-### ThreadJob
-`Install-Module -Name ThreadJob` установить модуль \
-`Get-Module ThreadJob -list` \
-`(Start-ThreadJob {ping ya.ru}) | Out-Null` создать фоновую задачу \
-`while ($True){` \
-`$status = @((Get-Job).State)[-1]` # отобразить статус последней [-1] фоновой задачи \
-`if ($status -like "Completed"){` # если Completed \
-`Get-Job | Receive-Job` # отобразить вывод, после каждого запроса результат удаляется (Get-Job).HasMoreData -eq $False \
-`Get-Job | Remove-Job -Force` # удалить все задачи \
-`break` # остановить цикл \
-`}}` \
-`Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep)
-
 ### PS2EXE
-`Install-Module ps2exe` установка модуля из PSGallery \
+`Install-Module ps2exe -Repository PSGallery` \
 `Get-Module -ListAvailable` список всех модулей \
 `-noConsole` использовать GUI, без окна консоли powershell \
 `-noOutput` выполнение в фоне \
@@ -1004,6 +993,44 @@
 `$Service_Name | Stop-Service` остановить \
 `& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
 `& $NSSM_Path remove $Service_Name` удалить
+
+### ThreadJob
+`Install-Module -Name ThreadJob` \
+`Get-Module ThreadJob -list` \
+`(Start-ThreadJob {ping ya.ru}) | Out-Null` создать фоновую задачу \
+`while ($True){` \
+`$status = @((Get-Job).State)[-1]` # отобразить статус последней [-1] фоновой задачи \
+`if ($status -like "Completed"){` # если Completed \
+`Get-Job | Receive-Job` # отобразить вывод, после каждого запроса результат удаляется (Get-Job).HasMoreData -eq $False \
+`Get-Job | Remove-Job -Force` # удалить все задачи \
+`break` # остановить цикл \
+`}}` \
+`Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep)
+
+# SQLite
+
+`Install-Module -name MySQLite -Repository PSGallery` \
+`$path = "$home\desktop\Get-Service.db"` \
+`Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force` \
+`(Get-MySQLiteDB $path).Tables` \
+`New-MySQLiteDB -Path $path` создать базу \
+`Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список всех таблиц в базе \
+`Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);"` создать таблицу \
+`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');" # добавить данные в таблицу` \
+`Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service"` содержимое таблицы \
+`Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
+
+`$Service = Get-Service | select Name,DisplayName,Status` \
+`foreach ($S in $Service) {` \
+`$1 = $S.Name; $2 = $S.DisplayName; $3 = $S.Status;` \
+`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$1', '$2', '$3');"` \
+`}`
+
+`Install-Module PSSQLite` \
+`$Connection = New-SQLiteConnection -DataSource $path` \
+`$Connection.ChangePassword("password")` \
+`$Connection.Close()` \
+`Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"`
 
 # PowerCLI
 
@@ -1095,4 +1122,5 @@
 `Get-VBRBackupSession` \
 `Get-VBRBackupServerCertificate` \
 `Get-VBRRestorePoint` \
+`Get-VBRViProxy` \
 `https://veeam-11:9419/swagger/ui/index.html` RAST API
