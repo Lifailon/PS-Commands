@@ -131,7 +131,7 @@
 
 ### Sort-Object
 `Get-Process | Sort-Object -Descending CPU | ft` обратная (-Descending) сортировка по CPU \
-`$path[-1..-10]` # обратная сборка массива без сортировки
+`$path[-1..-10]` обратная сборка массива без сортировки
 
 ### Last/First
 `Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
@@ -156,7 +156,7 @@
 `if ((($1 -eq 1) -and ($2 -eq 2)) -or ($1 -ne 3)) {"$true"} else {"$false"}` два условия: (если $1 = 1 и $2 = 2) или $1 не равно 3. Если хотя бы одно из выражений равно True, то все условие относится к True и наоборот \
 `-and` логическое И \
 `-or` логическое ИЛИ \
-`!(Test-Path $path)` # логическое НЕТ (-not), если путь недоступен, вернет True
+`!(Test-Path $path)` логическое НЕТ (-not), если путь недоступен, вернет True
 
 ### Специальные символы
 `\d` число от 0 до 9 (20-07-2022 эквивалент: "\d\d-\d\d-\d\d\d\d") \
@@ -523,9 +523,9 @@
 
 ### port
 `tnc $srv -p 5985` \
-`tnc $srv -CommonTCPPort WINRM # HTTP,RDP,SMB` \
-`tnc ya.ru –TraceRoute -Hops 2 # TTL=2` \
-`tnc ya.ru -DiagnoseRouting` # маршрутизация до хоста, куда (DestinationPrefix: 0.0.0.0/0) через (NextHop: 192.168.1.254)
+`tnc $srv -CommonTCPPort WINRM` HTTP,RDP,SMB \
+`tnc ya.ru –TraceRoute -Hops 2` TTL=2 \
+`tnc ya.ru -DiagnoseRouting` маршрутизация до хоста, куда (DestinationPrefix: 0.0.0.0/0) через (NextHop: 192.168.1.254)
 
 ### ipconfig
 `Get-NetIPConfiguration` \
@@ -765,7 +765,7 @@
 
 ### ADComputer
 `Get-ADDomainController -Filter * | ft HostName, IPv4Address, operatingsystem,site,IsGlobalCatalog,IsReadOnly` список DC в домене \
-`nltest /DSGETDC:$env:userdnsdomain # узнать на каком DC аудентифицирован хост (Logon Server)` \
+`nltest /DSGETDC:$env:userdnsdomain` узнать на каком DC аудентифицирован хост (Logon Server) \
 `nltest /SC_RESET:$env:userdnsdomain\srv-dc2.$env:userdnsdomain` переключить компьютер на другой контроллер домена AD вручную (The command completed successfully) \
 `Get-ADComputer –Identity $env:computername -Properties PasswordLastSet` время последней смены пароля на сервере \
 `Test-ComputerSecureChannel –verbose` проверить доверительные отношения с доменом (соответствует ли локальный пароль компьютера паролю, хранящемуся в AD) \
@@ -979,7 +979,7 @@
 `Get-PackageSource` источники установки пакетов \
 `Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
 `Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
-`Install-Package -Name Veeam.PowerCLI-Interactions` -ProviderName PSGallery # установка пакета \
+`Install-Package -Name Veeam.PowerCLI-Interactions -ProviderName PSGallery` установка пакета \
 `Get-Command *Veeam*`
 
 ### PS2EXE
@@ -1012,11 +1012,11 @@
 `Get-Module ThreadJob -list` \
 `(Start-ThreadJob {ping ya.ru}) | Out-Null` создать фоновую задачу \
 `while ($True){` \
-`$status = @((Get-Job).State)[-1]` # отобразить статус последней [-1] фоновой задачи \
-`if ($status -like "Completed"){` # если Completed \
-`Get-Job | Receive-Job` # отобразить вывод, после каждого запроса результат удаляется (Get-Job).HasMoreData -eq $False \
-`Get-Job | Remove-Job -Force` # удалить все задачи \
-`break` # остановить цикл \
+`$status = @((Get-Job).State)[-1]` отобразить статус последней [-1] фоновой задачи \
+`if ($status -like "Completed"){` если Completed \
+`Get-Job | Receive-Job` отобразить вывод, после каждого запроса результат удаляется (Get-Job).HasMoreData -eq $False \
+`Get-Job | Remove-Job -Force` удалить все задачи \
+`break` остановить цикл \
 `}}` \
 `Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep)
 
@@ -1029,7 +1029,7 @@
 `New-MySQLiteDB -Path $path` создать базу \
 `Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список всех таблиц в базе \
 `Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);"` создать таблицу \
-`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');" # добавить данные в таблицу` \
+`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');"` добавить данные в таблицу \
 `Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service"` содержимое таблицы \
 `Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
 
