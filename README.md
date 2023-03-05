@@ -1,8 +1,12 @@
 ![Image alt](https://github.com/Lifailon/PowerShell-Commands/blob/rsa/PowerShell-Commands.png)
 
+- [Object](#Object)
+- [Regex](#Regex)
 - [Items](#Items)
-- [WinRM](#WinRM)
+- [Application](#Application)
+- [Network](#Network)
 - [SMB](#SMB)
+- [WinRM](#WinRM)
 - [ComObject](#ComObject)
 - [WMI](#WMI)
 - [ActiveDirectory](#ActiveDirectory)
@@ -21,12 +25,7 @@
 `Set-ExecutionPolicy Unrestricted` \
 `Get-ExecutionPolicy`
 
-### Clipboard
-`Set-Clipboard $srv` скопировать в буфер обмена \
-`Get-Clipboard` вставить
-
-### Hash
-`Get-Filehash -Algorithm SHA256 "$env:USERPROFILE\Documents\RSA.conf.txt"`
+# Object
 
 ### Array
 `$srv = @("server-01", "server-02")`  создать массив \
@@ -88,6 +87,103 @@
 `([DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()).Name` \
 `[Environment]::GetFolderPath('ApplicationData')`
 
+### Select-Object
+`Get-Process | Select-Object -Property *` отобразить все доступные объекты вывода \
+`Get-Process | select -Unique "Name"` удалить повторяющиеся значения в массиве \
+`Get-Process | select -ExpandProperty ProcessName` преобразовать из объекта-коллекции в массив (вывести содержимое без наименовая столбца) \
+`(Get-Process).ProcessName`
+
+### Expression
+`ps | Sort-Object -Descending CPU | select -first 10 ProcessName,` # сортировка по CPU, вывести первых 10 значений (-first) \
+`@{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}},` # затрачено процессорного времени в минутах \
+`@{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}},` # делим байты на КБ \
+`@{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}}` # вычесть из текущего времени - время запуска, и удалить milisec
+
+### Select-String
+`ipconfig /all | Select-String dns` поиск текста
+
+### Format-Table/Format-List
+`Get-Process | ft ProcessName, StartTime -Autosize` автоматическая группировка размера столбцов
+
+### Measure-Object
+`Get-Process | Measure | select Count` кол-во объектов \
+`Get-Process | Measure -Line -Word -Character` кол-во строк, слов и Char объектов
+
+### Compare-Object
+`Compare-Object -ReferenceObject (Get-Content -Path .\file1.txt) -DifferenceObject (Get-Content -Path .\file2.txt)` сравнение двух файлов \
+`$group1 = Get-ADGroupMember -Identity "Domain Admins"` \
+`$group2 = Get-ADGroupMember -Identity "Enterprise Admins"` \
+`Compare-Object -ReferenceObject $group1 -DifferenceObject $group2 -IncludeEqual`
+`==` нет изменений \
+`<=` есть изменения в $group1 \
+`=>` есть изменения в $group2
+
+### Where-Object (?)
+`Get-Process | Where-Object {$_.ProcessName -match "zabbix"}` фильтрация/поиск процессов по имени свойства объекта \
+`Get-Process | where CPU -gt 10 | Sort-Object -Descending CPU` вывести объекты, где значения CPU больше 10 \
+`Get-Process | where WS -gt 200MB` отобразить процессы где WS выше 200МБ \
+`Get-Service | where Name -match "zabbix"` поиск службы \
+`Get-Service -ComputerName $srv | Where {$_.Name -match "WinRM"} | Restart-Service` перезапустить службу на удаленном компьютере \
+`(Get-Service).DisplayName` вывести значения свойства массива \
+`netstat -an | where {$_ -match 443}` \
+`netstat -an | ?{$_ -match 443}` \
+`(netstat -an) -match 443`
+
+### Sort-Object
+`Get-Process | Sort-Object -Descending CPU | ft` обратная (-Descending) сортировка по CPU \
+`$path[-1..-10]` # обратная сборка массива без сортировки
+
+### Last/First
+`Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
+`Get-Process | Sort-Object -Descending CPU | select -Last 10` вывести последних 10 объектов
+
+# Regex
+
+`-replace "1","2"` замена элементов в индексах массива (везде где присутствует 1, заменить на 2), для удаления используется только первое значение \
+`-split " "` преобразовать строку в массив, разделителем указан пробел, которой удаляется ($url.Split("/")[-1]) \
+`-join " "` преобразовать массив (коллекцию) в единую строку (string), добавить разделителем пробел \
+`$iplist -contains "192.168.1.1"` проверить, что в массиве есть целое значение, выводит True или False \
+`"192.168.1.1" -in $iplist` проверить на наличие указанного значения в массиве \
+`-like *txt*` поиск по маскам wildcard, выводит значение на экран \
+`-match txt` поиска по шаблонам, проверка на соответствие содержимого текста \
+`-match "zabbix|rpc"` условия, для поиска по нескольким словам \
+`-NotMatch` проверка на отсутствие вхождения \
+`$ip = "192.168.10.1"` \
+`$ip -match "(\.\d{1,3})\.\d{1,2}"` True \
+`$Matches` отобразить все подходящие переменные последнего поиска, которые входят и не входят в группы ()
+
+### Группировка
+`if ((($1 -eq 1) -and ($2 -eq 2)) -or ($1 -ne 3)) {"$true"} else {"$false"}` два условия: (если $1 = 1 и $2 = 2) или $1 не равно 3. Если хотя бы одно из выражений равно True, то все условие относится к True и наоборот \
+`-and` логическое И \
+`-or` логическое ИЛИ \
+`!(Test-Path $path)` # логическое НЕТ (-not), если путь недоступен, вернет True
+
+### Специальные символы
+`\d` число от 0 до 9 (20-07-2022 эквивалент: "\d\d-\d\d-\d\d\d\d") \
+`\w` буква от "a" до "z" и от "A" до "Z" или число от 0 до 9 \
+`\s` пробел, эквивалент: " " \
+`\n` новая строка \
+`\b` маска, определяет начало и конец целого словосочетания для поиска \
+`.` обозначает любой символ, кроме новой строки \
+`\` экранирует любой специальны символ (метасимвол). Используется, если нужно указать конкретный символ, вместо специального ({ } [ ] / \ + * . $ ^ | ?) \
+`+` повторяется 1 и более раз (\s+) \
+`{1,25}` квантификатор, указывает количество повторений символа слева на право (от 1 до 25 раз) \
+`[]` поиск совпадения любой буквы, например, [A-z0-9] от A до z и цифры от 0 до 9 ("192.168.1.1" -match "192.1[6-7][0-9]")
+
+### Якори
+`^` или `\A` определяет начало строки. $url -replace '^','https:' # добавить в начало; \
+`$` или `\Z` обозначают конец строки. $ip -replace "\d{1,3}$","0" \
+`(?=text)` поиск слова слева. Пишем слева на право от искомого (ищет только целые словосочетания) "Server:\s(.{1,30})\s(?=$username)" \
+`(?<=text)` поиск слова справа. $in_time -replace ".+(?<=Last)" # удалить все до слова Last \
+`(?!text)` не совпадает со словом слева \
+`(?<!text)` не совпадает со словом справа
+
+### Группы захвата
+`$date = '12.31.2021'` \
+`$date -replace '^(\d{2}).(\d{2})','$2.$1'` поменять местами \
+`$1` содержимое первой группы в скобках \
+`$2` содержимое второй группы
+
 ### GetType
 `$srv.GetType()` узнать тип данных \
 `$srv -is [string]` проверка на соответствие типа данных \
@@ -141,52 +237,6 @@
 `$timer.Elapsed.TotalSeconds` отобразить время с момента запуска (в секундах) \
 `$timer.Stop()` остановить таймер
 
-### Regex (регулярные выражения)
-`-replace "1","2"` замена элементов в индексах массива (везде где присутствует 1, заменить на 2), для удаления используется только первое значение \
-`-split " "` преобразовать строку в массив, разделителем указан пробел, которой удаляется ($url.Split("/")[-1]) \
-`-join " "` преобразовать массив (коллекцию) в единую строку (string), добавить разделителем пробел \
-`$iplist -contains "192.168.1.1"` проверить, что в массиве есть целое значение, выводит True или False \
-`"192.168.1.1" -in $iplist` проверить на наличие указанного значения в массиве \
-`-like *txt*` поиск по маскам wildcard, выводит значение на экран \
-`-match txt` поиска по шаблонам, проверка на соответствие содержимого текста \
-`-match "zabbix|rpc"` условия, для поиска по нескольким словам \
-`-NotMatch` проверка на отсутствие вхождения \
-`$ip = "192.168.10.1"` \
-`$ip -match "(\.\d{1,3})\.\d{1,2}"` True \
-`$Matches` отобразить все подходящие переменные последнего поиска, которые входят и не входят в группы ()
-
-### Группировка
-`if ((($1 -eq 1) -and ($2 -eq 2)) -or ($1 -ne 3)) {"$true"} else {"$false"}` два условия: (если $1 = 1 и $2 = 2) или $1 не равно 3. Если хотя бы одно из выражений равно True, то все условие относится к True и наоборот \
-`-and` логическое И \
-`-or` логическое ИЛИ \
-`!(Test-Path $path)` # логическое НЕТ (-not), если путь недоступен, вернет True
-
-### Специальные символы
-`\d` число от 0 до 9 (20-07-2022 эквивалент: "\d\d-\d\d-\d\d\d\d") \
-`\w` буква от "a" до "z" и от "A" до "Z" или число от 0 до 9 \
-`\s` пробел, эквивалент: " " \
-`\n` новая строка \
-`\b` маска, определяет начало и конец целого словосочетания для поиска \
-`.` обозначает любой символ, кроме новой строки \
-`\` экранирует любой специальны символ (метасимвол). Используется, если нужно указать конкретный символ, вместо специального ({ } [ ] / \ + * . $ ^ | ?) \
-`+` повторяется 1 и более раз (\s+) \
-`{1,25}` квантификатор, указывает количество повторений символа слева на право (от 1 до 25 раз) \
-`[]` поиск совпадения любой буквы, например, [A-z0-9] от A до z и цифры от 0 до 9 ("192.168.1.1" -match "192.1[6-7][0-9]")
-
-### Якори
-`^` или `\A` определяет начало строки. $url -replace '^','https:' # добавить в начало; \
-`$` или `\Z` обозначают конец строки. $ip -replace "\d{1,3}$","0" \
-`(?=text)` поиск слова слева. Пишем слева на право от искомого (ищет только целые словосочетания) "Server:\s(.{1,30})\s(?=$username)" \
-`(?<=text)` поиск слова справа. $in_time -replace ".+(?<=Last)" # удалить все до слова Last \
-`(?!text)` не совпадает со словом слева \
-`(?<!text)` не совпадает со словом справа
-
-### Группы захвата
-`$date = '12.31.2021'` \
-`$date -replace '^(\d{2}).(\d{2})','$2.$1'` поменять местами \
-`$1` содержимое первой группы в скобках \
-`$2` содержимое второй группы
-
 ### Условный оператор
 `$rh = Read-Host` \
 `if ($rh -eq 1) {ipconfig} elseif ($rh -eq 2) {getmac} else {hostname}` \
@@ -239,58 +289,6 @@
 `} else {Write-Host "Сайт недоступен"; sleep 1}` \
 `}`
 
-### Select-String
-`ipconfig /all | Select-String dns` поиск текста
-
-### Select-Object
-`Get-Process | Select-Object -Property *` отобразить все доступные объекты вывода \
-`Get-Process | select -Unique "Name"` удалить повторяющиеся значения в массиве \
-`Get-Process | select -ExpandProperty ProcessName` преобразовать из объекта-коллекции в массив (вывести содержимое без наименовая столбца) \
-`(Get-Process).ProcessName`
-
-`ps | Sort-Object -Descending CPU | select -first 10 ProcessName,` # сортировка по CPU, вывести первых 10 значений (-first) \
-`@{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}},` # затрачено процессорного времени в минутах \
-`@{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}},` # делим байты на КБ \
-`@{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}}` # вычесть из текущего времени - время запуска, и удалить milisec
-
-### Format-Table/Format-List
-`Get-Process | ft ProcessName, StartTime -Autosize` автоматическая группировка размера столбцов
-
-### Measure-Object
-`Get-Process | Measure | select Count` кол-во объектов \
-`Get-Process | Measure -Line -Word -Character` кол-во строк, слов и Char объектов
-
-### Compare-Object
-`Compare-Object -ReferenceObject (Get-Content -Path .\file1.txt) -DifferenceObject (Get-Content -Path .\file2.txt)` сравнение двух файлов \
-`$group1 = Get-ADGroupMember -Identity "Domain Admins"` \
-`$group2 = Get-ADGroupMember -Identity "Enterprise Admins"` \
-`Compare-Object -ReferenceObject $group1 -DifferenceObject $group2 -IncludeEqual`
-`==` нет изменений \
-`<=` есть изменения в $group1 \
-`=>` есть изменения в $group2
-
-### Where-Object (?)
-`Get-Process | Where-Object {$_.ProcessName -match "zabbix"}` фильтрация/поиск процессов по имени свойства объекта \
-`Get-Process | where CPU -gt 10 | Sort-Object -Descending CPU` вывести объекты, где значения CPU больше 10 \
-`Get-Process | where WS -gt 200MB` отобразить процессы где WS выше 200МБ \
-`Get-Service | where Name -match "zabbix"` поиск службы \
-`Get-Service -ComputerName $srv | Where {$_.Name -match "WinRM"} | Restart-Service` перезапустить службу на удаленном компьютере \
-`(Get-Service).DisplayName` вывести значения свойства массива \
-`netstat -an | where {$_ -match 443}` \
-`netstat -an | ?{$_ -match 443}` \
-`(netstat -an) -match 443`
-
-### Sort-Object
-`Get-Process | Sort-Object -Descending CPU | ft` обратная (-Descending) сортировка по CPU \
-`$path[-1..-10]` # обратная сборка массива без сортировки
-
-### Last/First
-`Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
-`Get-Process | Sort-Object -Descending CPU | select -Last 10` вывести последних 10 объектов
-
-### Out-Gridview
-`Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
-
 # Items
 
 `Test-Path $path` проверить доступность пути \
@@ -324,13 +322,12 @@
 `}` \
 `}`
 
-### Local User and Group
-`Get-LocalUser` список пользователей \
-`Get-LocalGroup` список групп \
-`New-LocalUser "1C" -Password $Password -FullName "1C Domain"` создать пользователя \
-`Set-LocalUser -Password $Password 1c` изменить пароль \
-`Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
-`Get-LocalGroupMember "Administrators"` члены группы
+### Filehash
+`Get-Filehash -Algorithm SHA256 "$env:USERPROFILE\Documents\RSA.conf.txt"`
+
+### Clipboard
+`Set-Clipboard $srv` скопировать в буфер обмена \
+`Get-Clipboard` вставить
 
 ### Credential
 `$Cred = Get-Credential` сохраняет креды в переменные $Cred.Username и $Cred.Password \
@@ -350,6 +347,9 @@
 `$pass = $cred.password` \
 `$BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass)` \
 `[System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)`
+
+### Out-Gridview
+`Get-Service -cn $srv | Out-GridView -Title "Service $srv" -OutputMode Single –PassThru | Restart-Service` перезапустить выбранную службу
 
 ### Out-File
 `Read-Host –AsSecureString | ConvertFrom-SecureString | Out-File "$env:userprofile\desktop\password.txt"` писать в файл. Преобразовать пароль в формат SecureString с использованием шифрования Windows Data Protection API (DPAPI)
@@ -383,6 +383,16 @@
 
 ### ConvertTo-HTML/JSON/XML
 `Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
+
+# Application
+
+### Local User and Group
+`Get-LocalUser` список пользователей \
+`Get-LocalGroup` список групп \
+`New-LocalUser "1C" -Password $Password -FullName "1C Domain"` создать пользователя \
+`Set-LocalUser -Password $Password 1c` изменить пароль \
+`Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
+`Get-LocalGroupMember "Administrators"` члены группы
 
 ### EventLog
 `Get-EventLog -List` отобразить все корневые журналы логов и их размер \
@@ -504,13 +514,12 @@
 `Export-ScheduledTask DNS-Change-Tray-Startup | Out-File $home\Desktop\Task-Export-Startup.xml` экспортировать задание в xml \
 `Register-ScheduledTask -Xml (Get-Content $home\Desktop\Task-Export-Startup.xml | Out-String) -TaskName "DNS-Change-Tray-Startup"`
 
+# Network
+
 ### ping
 `Test-Connection -Count 1 $srv1, $srv2` отправить icmp-пакет двум хостам \
 `Test-Connection $srv -ErrorAction SilentlyContinue` не выводить ошибок, если хост не отвечает \
 `Test-Connection -Source $srv1 -ComputerName $srv2` пинг с удаленного компьютера
-
-### nslookup
-`Resolve-DnsName ya.ru -Type MX` ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)
 
 ### port
 `tnc $srv -p 5985` \
@@ -523,6 +532,9 @@
 `Get-NetAdapter` \
 `Get-NetAdapterAdvancedProperty` \
 `Get-NetAdapterStatistics`
+
+### nslookup
+`Resolve-DnsName ya.ru -Type MX` ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)
 
 ### route
 `Get-NetRoute`
@@ -537,7 +549,8 @@
 `$pars.statuscode -eq 200` код ответа, запрос выполнен успешно \
 `$pars.Headers` информация о сервере \
 `$pars.Links | fl innerText, href` ссылки \
-`$pars.Images.src` ссылки на изображения
+`$pars.Images.src` ссылки на изображения \
+`iwr $url -OutFile $path` скачать файл
 
 # WinRM
 
@@ -552,7 +565,7 @@
 ### Windows Remote Management Configuration
 `winrm quickconfig -quiet` изменит запуск службы WinRM на автоматический, задаст стандартные настройки WinRM и добавить исключения для портов в fw \
 `Enable-PSRemoting –Force` \
-`Test-WsMan $srv` проверить работу WinRM на удаленном компьютере \
+`Test-WSMan $srv -ErrorAction Ignore` проверить работу WinRM на удаленном компьютере (игнорировать вывыод ошибок) \
 `New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -DnsName "$env:computername" -FriendlyName "WinRM HTTPS Certificate" -NotAfter (Get-Date).AddYears(5)` создать самоподписанный сертификат и скопировать отпечаток (thumbprint) \
 `New-Item -Path WSMan:\Localhost\Listener -Transport HTTPS -Address * -CertificateThumbprint "CACA491A66D1706AC2FEB5E53D0E111C1C73DD65"` создать прослушиватель \
 `New-NetFirewallRule -DisplayName 'WinRM HTTPS Management' -Profile Domain,Private -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5986` открыть порт в fw \
