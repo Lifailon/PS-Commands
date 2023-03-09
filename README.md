@@ -1,4 +1,4 @@
-![Image alt](https://github.com/Lifailon/PowerShell-Commands/blob/rsa/PowerShell-Commands.png)
+![Image alt](https://github.com/Lifailon/PowerShell-Commands/blob/rsa/Logo/PowerShell-Commands.png)
 
 - [Object](#Object)
 - [Regex](#Regex)
@@ -39,7 +39,24 @@
 `$srv[0].Length` узнать кол-во символов первого значения в массиве \
 `$srv[10..100]` срез
 
+### HashTable
+`$hashtable = @{}` \
+`$User = "user"` \
+`$Server = "Computer"` \
+`$hashtable.Add($env:username,$env:computername)` \
+`$hashtable.Remove("Lifailon")`
+
+`$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"}` \
+`$Tag = @{$true = 'dev'; $false = 'prod'}[([System.Net.Dns]::GetHostEntry("localhost").HostName) -match '.*.TestDomain$']`
+
+### Keys
+`$hashtable.Keys` список всех ключей \
+`$hashtable["User"]` получить значение (Values) по ключу
+
 ### PSCustomObject
+`$Collections = New-Object System.Collections.Generic.List[System.Object]` \
+`$Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})`
+
 `$object = New-Object –TypeName PSCustomObject -Property @{User = $env:username; Server = $env:computername}` предназначен для хранения объектов с произвольной структурой, где порядок их свойств может поменяться. Чтобы этого избежать, необходимо использовать дополнительный атрибут [ordered] \
 `$object | Get-Member` \
 `$object | Add-Member –MemberType NoteProperty –Name IP –Value "192.168.1.1"` добавить свойство или -MemberType ScriptMethod \
@@ -47,9 +64,6 @@
 
 `$obj = @()` \
 `$obj += [PSCustomObject]@{User = $env:username; Server = $env:computername}` медленный метод добавления, в каждой интерации перезаписывается массив и коллекция становится фиксированного размера (Collection was of a fixed size)
-
-`$Collections = New-Object System.Collections.Generic.List[System.Object]` \
-`$Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})`
 
 `Class CustomClass {` \
 `[string]$User` \
@@ -193,7 +207,8 @@
 `[Object]` массив (BaseType:System.Array) \
 `[int]` целое число (BaseType:System.ValueType) \
 `[String]` строка-текст (BaseType:System.Object) \
-`[DateTime]` формат времени (BaseType:System.ValueType)
+`[DateTime]` формат времени (BaseType:System.ValueType) \
+`[Boolean]` логический тип ($True/$False)
 
 ### Property
 `$srv.Count` кол-во элементов в массиве \
@@ -292,10 +307,10 @@
 # Items
 
 `Test-Path $path` проверить доступность пути \
+`Get-ChildItem $path *.exe* -Recurse` отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) \
 `Get-Location` отобразить текущие месторасположение (Alias: pwd/gl) \
 `Set-Location $path` перемещение по каталогам (Alias: cd/sl) \
 `Invoke-Item $path` открыть файл (Alias: ii/start) \
-`Get-ChildItem $path *.exe* -Recurse` отобразить содержимое каталога (Alias: ls/dir) и дочерних каталогов (-Recurse) \
 `Get-ItemProperty $env:userprofile\Documents\dns-list.txt | select FullName,Directory,Name,BaseName,Extension` свойтсва файла \
 `Get-ItemProperty -Path $path\* | select FullName,CreationTime,LastWriteTime` свойства файлов содержимого директории, дата их создания и последнего изменения \
 `New-Item -Path "C:\test\" -ItemType "Directory"` создать директорию (Alias: mkdir/md) \
@@ -308,6 +323,7 @@
 `Remove-Item 'C:\test\*'` удаление файлов внутри каталога \
 `Rename-Item "C:\test\*.*" "*.jpg"` переименовать файлы по маске (Alias: ren) \
 `Copy-Item` копирование файлов и каталогов (Alias: cp/copy) \
+`Copy-Item -Path "\\server-01\test" -Destination "C:\" -Recurse` копировать директорию с ее содержимым (-Recurse) \
 `Copy-Item -Path "C:\*.txt" -Destination "C:\test\"` знак '\' в конце Destination используется для переноса папки внутрь указанной, отсутствие, что это новое имя директории \
 `Copy-Item -Path "C:\*" -Destination "C:\test\" -Include '*.txt','*.jpg'` копировать объекты с указанным расширением (Include) \
 `Copy-Item -Path "C:\*" -Destination "C:\test\" -Exclude '*.jpeg'` копировать объекты, за исключением файлов с расширением (Exclude) \
@@ -320,6 +336,12 @@
 `if ($creat.LastWriteTime -le $date) {` \
 `Remove-Item $creat.FullName -Recurse` \
 `}` \
+`}`
+
+Размер всех дочерних директория в Mb (округлить до одного символа после запятой):
+`ls (pwd).Path | %{` \
+`$size = "{0:N1} Mb" -f ((ls $_.FullName -Recurse -Force | Measure-Object -Property Length -Sum).Sum / 1Mb)` \
+`"$_.Name | $size"` \
 `}`
 
 ### Filehash
@@ -715,6 +737,13 @@
 `(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP \
 `(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах
 
+`$srv = "localhost"` \
+`gwmi Win32_logicalDisk -ComputerName $srv | where {$_.Size -ne $null} | select @{` \
+`Label="Value"; Expression={$_.DeviceID}}, @{Label="AllSize"; Expression={` \
+`[string]([int]($_.Size/1Gb))+" GB"}},@{Label="FreeSize"; Expression={` \
+`[string]([int]($_.FreeSpace/1Gb))+" GB"}}, @{Label="Free%"; Expression={` \
+`[string]([int]($_.FreeSpace/$_.Size*100))+" %"}}`
+
 ### NLA (Network Level Authentication)
 `(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").UserAuthenticationRequired` \
 `(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(1)` включить NLA \
@@ -892,6 +921,22 @@
 `Add-DnsServerResourceRecordA -Name new-host-name -IPv4Address 192.168.1.100 -ZoneName domain.local -TimeToLive 01:00:00 -CreatePtr` создать А-запись и PTR для нее \
 `Remove-DnsServerResourceRecord -ZoneName domain.local -RRType A -Name new-host-name –Force` удалить А-запись
 
+`$DNSServer = "DC-01" \` \
+`$DNSFZone = "domain.com"` \
+`$DataFile = "C:\Scripts\DNS-Create-A-Records-from-File.csv"` \
+`# cat $DataFile` \
+`# "HostName;IP"` \
+`# "server-01;192.168.1.10"` \
+`$DNSRR = [WmiClass]"\\$DNSServer\root\MicrosoftDNS:MicrosoftDNS_ResourceRecord"` \
+`$ConvFile = $DataFile + "_unicode"` \
+`Get-Content $DataFile | Set-Content $ConvFile -Encoding Unicode` \
+`Import-CSV $ConvFile -Delimiter ";" | ForEach-Object {` \
+`$FQDN = $_.HostName + "." + $DNSFZone` \
+`$IP = $_.HostIP` \
+`$TextA = "$FQDN IN A $IP"` \
+`[Void]$DNSRR.CreateInstanceFromTextRepresentation($DNSServer,$DNSFZone,$TextA)` \
+`}`
+
 ### DHCP
 `$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
 `HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
@@ -979,7 +1024,7 @@
 `Get-PackageSource` источники установки пакетов \
 `Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
 `Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
-`Install-Package -Name Veeam.PowerCLI-Interactions -ProviderName PSGallery` установка пакета \
+`Install-Package -Name VeeamLogParser -ProviderName PSGallery` установка пакета \
 `Get-Command *Veeam*`
 
 ### PS2EXE
@@ -1137,3 +1182,21 @@
 `Get-VBRRestorePoint` \
 `Get-VBRViProxy` \
 `https://veeam-11:9419/swagger/ui/index.html` RAST API
+
+### Git
+`git --version`
+`git config --global user.name "Lifailon"` \
+`ls ~\.ssh -force` \
+`ssh-keygen -t rsa -b 4096` \
+`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
+`Get-Service | where name -match "ssh-agent" | Start-Service` \
+`ssh-agent` \
+`ssh-add C:\Users\Lifailon\.ssh\id_rsa` \
+`cat ~\.ssh\id_rsa.pub | Set-Clipboard` \
+`cd C:\git` \
+`git clone git@github.com:Lifailon/PowerShell-Commands` \
+`cd PowerShell-Commands` \
+`git status` \
+`git add -A` \
+`git commit -m "test git"` \
+`git push`
