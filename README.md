@@ -15,6 +15,8 @@
 - [SQLite](#SQLite)
 - [PowerCLI](#PowerCLI)
 - [Veeam](#Veeam)
+- [XML](#XML)
+- [Git](#Git)
 
 ### Help
 `Get-Command *Service*` поиск команды по имени \
@@ -62,8 +64,9 @@
 `$object | Add-Member –MemberType NoteProperty –Name IP –Value "192.168.1.1"` добавить свойство или -MemberType ScriptMethod \
 `$object.PsObject.Properties.Remove('User')` удалить свойство (столбец)
 
-`$obj = @()` \
-`$obj += [PSCustomObject]@{User = $env:username; Server = $env:computername}` медленный метод добавления, в каждой интерации перезаписывается массив и коллекция становится фиксированного размера (Collection was of a fixed size)
+`$arr = @()` \
+`$arr += [PSCustomObject]@{User = $env:username; Server = $env:computername}` медленный метод добавления, в каждой интерации перезаписывается массив и коллекция становится фиксированного размера (без возможности удаления) \
+`$arr.Remove(0)` Exception calling "Remove" with "1" argument(s): "Collection was of a fixed size."
 
 `Class CustomClass {` \
 `[string]$User` \
@@ -72,6 +75,13 @@
 `$Class = New-Object -TypeName CustomClass` \
 `$Class.User = "support"` \
 `$Class.Server = "srv-01"`
+
+### CSV
+`Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
+`Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
+
+### ConvertTo-HTML
+`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
 
 ### Pipeline
 `$obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force` добавление объкта вывода NoteProperty \
@@ -386,27 +396,10 @@
 `$Cred.Password | ConvertFrom-SecureString -Key (Get-Content "C:\password.key") | Set-Content "C:\password.txt"` сохранить пароль в файл используя внешний ключ \
 `$pass = Get-Content "C:\password.txt" | ConvertTo-SecureString -Key (Get-Content "\\Server\Share\password.key")` расшифровать пароль на втором компьютере
 
-### XML
-`$CredFile = ".\cred.xml"` \
-`try {` \
-`$Cred = Import-Clixml -path $credFile` \
-`}` \
-`catch {` \
-`$Cred = Get-Credential -Message "Enter credential"` \
-`if ($Cred -ne $null) {` \
-`$Cred | Export-CliXml -Path $credFile` \
-`}` \
-`else {return}` \
-`}`
-
-### CSV
-`Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
-`Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
-
-### ConvertTo-HTML/JSON/XML
-`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
-
 # Application
+
+### Get-Package
+`Get-Package -ProviderName msi,Programs` список установленных программ
 
 ### Local User and Group
 `Get-LocalUser` список пользователей \
@@ -721,6 +714,8 @@
 `gwmi -List | where name -match "service" | ft -auto` если в таблице присутствуют Methods, то можно взаимодействовать {StartService, StopService} \
 `gwmi -Class win32_service | select *` отобразить список всех служб и всех их свойств \
 `Get-CimInstance Win32_service` обращается на прямую к "root\cimv2" \
+`Get-CimInstance -ComputerName $srv Win32_OperatingSystem | select LastBootUpTime` время последнего включения \
+`gwmi -ComputerName $srv -Class Win32_OperatingSystem | select LocalDateTime,LastBootUpTime` текущее время и время последнего включения \
 `gwmi win32_service -Filter "name='Zabbix Agent'"` отфильтровать вывод по имени \
 `(gwmi win32_service -Filter "name='Zabbix Agent'").State` отобразить конкретное свойство \
 `gwmi win32_service -Filter "State = 'Running'"` отфильтровать запущенные службы \
@@ -1183,7 +1178,35 @@
 `Get-VBRViProxy` \
 `https://veeam-11:9419/swagger/ui/index.html` RAST API
 
-### Git
+# XML
+
+`$CredFile = ".\cred.xml"` \
+`try {` \
+`$Cred = Import-Clixml -path $credFile` \
+`}` \
+`catch {` \
+`$Cred = Get-Credential -Message "Enter credential"` \
+`if ($Cred -ne $null) {` \
+`$Cred | Export-CliXml -Path $credFile` \
+`}` \
+`else {return}` \
+`}`
+
+`$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'`
+`$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath`
+`[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}`
+`$EventData = Foreach ($event in $xml.Event) {`
+`New-Object PSObject -Property @{`
+`"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')`
+`"User Name" = $event.UserData.EventXML.User`
+`"User ID" = $event.UserData.EventXML.SessionID`
+`"User Address" = $event.UserData.EventXML.Address`
+`"Event ID" = $event.System.EventID`
+`}}`
+`$EventData`
+
+# Git
+
 `git --version`
 `git config --global user.name "Lifailon"` \
 `ls ~\.ssh -force` \
