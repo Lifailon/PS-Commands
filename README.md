@@ -80,9 +80,6 @@
 `Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
 `Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
 
-### ConvertTo-HTML
-`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
-
 ### Pipeline
 `$obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force` добавление объкта вывода NoteProperty \
 `$obj | Add-Member -MemberType NoteProperty -Name "User" -Value "admin" -Force` изменеие содержимого для сущности объекта User \
@@ -317,7 +314,7 @@
 # Items
 
 `Test-Path $path` проверить доступность пути \
-`Get-ChildItem $path *.exe* -Recurse` отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) \
+`Get-ChildItem $path -Filter *.txt -Recurse` # отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) и отфильтровать вывод \
 `Get-Location` отобразить текущие месторасположение (Alias: pwd/gl) \
 `Set-Location $path` перемещение по каталогам (Alias: cd/sl) \
 `Invoke-Item $path` открыть файл (Alias: ii/start) \
@@ -329,8 +326,8 @@
 `"test" >> "C:\test\file.txt"` добавить строку в файл \
 `New-Item -Path "C:\test\test\file.txt" -Force` ключ используется для создания отсутствующих в пути директорий или перезаписи файла если он уже существует \
 `Move-Item` перемещение объектов (Alias: mv/move) \
-`Remove-Item -Recurse` рекурсивное удаление, без запроса подверждения если в каталоге находятся файлы (Alias: rm/del) \
-`Remove-Item 'C:\test\*'` удаление файлов внутри каталога \
+`Remove-Item "$path\" -Recurse` удаление всех файлов внутри каталога, без запроса подверждения (Alias: rm/del) \
+`Remove-Item $path -Recurse -Include "*.txt","*.temp" -Exclude "log.txt"` удалить все файлы с расширением txt и temp ([Array]), кроме log.txt \
 `Rename-Item "C:\test\*.*" "*.jpg"` переименовать файлы по маске (Alias: ren) \
 `Copy-Item` копирование файлов и каталогов (Alias: cp/copy) \
 `Copy-Item -Path "\\server-01\test" -Destination "C:\" -Recurse` копировать директорию с ее содержимым (-Recurse) \
@@ -567,6 +564,9 @@
 `$pars.Images.src` ссылки на изображения \
 `iwr $url -OutFile $path` скачать файл
 
+### ConvertTo-HTML
+`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
+
 # WinRM
 
 `Enter-PSSession -ComputerName $srv` подключиться к PowerShell сессии через PSRemoting. Подключение возможно только по FQDN-имени \
@@ -673,9 +673,18 @@
 `$link = $wshell.CreateShortcut("$Home\Desktop\Яндекс.lnk")` создать ярлык \
 `$link.TargetPath = "https://yandex.ru"` куда ссылается (метод TargetPath объекта $link где хранится дочерний объект CreateShortcut) \
 `$link.Save()` сохранить \
+`(New-Object -ComObject wscript.shell).SendKeys([char]173)` включить/выключить звук
+
 `$wshell.Exec("notepad.exe")` запустить приложение \
-`$wshell.AppActivate('Блокнот')` открыть запущенное приложение \
-`$wshell.SendKeys("HI")`
+`$wshell.AppActivate("Блокнот")` развернуть запущенное приложение \
+`sleep -Milliseconds 500` \
+`$wshell.SendKeys("%")` ALT \
+`$wshell.SendKeys("{ENTER}")` \
+`$wshell.SendKeys("{DOWN}")` \
+`$wshell.SendKeys("{DOWN}")` \
+`$wshell.SendKeys("{ENTER}")` \
+`Set-WinUserLanguageList -LanguageList en-us,ru -Force` изменить языковую раскладку клавиатуры \
+`$wshell.SendKeys("login")`
 
 `$wshell = New-Object -ComObject Wscript.Shell` \
 `$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)` \
@@ -1058,7 +1067,8 @@
 `Get-Job | Remove-Job -Force` удалить все задачи \
 `break` остановить цикл \
 `}}` \
-`Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep)
+`Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep) \
+`(Get-Job).Information` отобразить результат всех заданий
 
 # SQLite
 
