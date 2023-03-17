@@ -1,0 +1,151 @@
+### [System.IconExtractor]
+
+$dll_import = @"
+using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
+namespace System
+{
+public class IconExtractor
+{
+public static Icon Extract(string file, int number, bool largeIcon)
+{
+IntPtr large;
+IntPtr small;
+ExtractIconEx(file, number, out large, out small, 1);
+try
+{
+return Icon.FromHandle(largeIcon ? large : small);
+}
+catch
+{
+return null;
+}
+}
+[DllImport("Shell32.dll", EntryPoint = "ExtractIconExW", CharSet = CharSet.Unicode, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+private static extern int ExtractIconEx(string sFile, int iIndex, out IntPtr piLargeVersion, out IntPtr piSmallVersion, int amountIcons);
+}
+}
+"@
+
+Add-Type -TypeDefinition $dll_import -ReferencedAssemblies System.Drawing
+$menuItem.Image = [System.IconExtractor]::Extract("shell32.dll", 174, $true)
+
+### [W.U32]::mouse_event
+
+Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern void mouse_event(int flags, int dx, int dy, int cButtons, int info);' -Name U32 -Namespace W;
+[W.U32]::mouse_event(0x02 -bor 0x04 -bor 0x8000 -bor 0x01, .1*65535, .1 *65535, 0, 0)
+
+### [Clicker]
+
+$cSource = @'
+using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+public class Clicker
+{
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646270(v=vs.85).aspx
+[StructLayout(LayoutKind.Sequential)]
+struct INPUT
+{ 
+    public int        type; // 0 = INPUT_MOUSE,
+                            // 1 = INPUT_KEYBOARD
+                            // 2 = INPUT_HARDWARE
+    public MOUSEINPUT mi;
+}
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646273(v=vs.85).aspx
+[StructLayout(LayoutKind.Sequential)]
+struct MOUSEINPUT
+{
+    public int    dx ;
+    public int    dy ;
+    public int    mouseData ;
+    public int    dwFlags;
+    public int    time;
+    public IntPtr dwExtraInfo;
+}
+//This covers most use cases although complex mice may have additional buttons
+//There are additional constants you can use for those cases, see the msdn page
+const int MOUSEEVENTF_MOVED      = 0x0001 ;
+const int MOUSEEVENTF_LEFTDOWN   = 0x0002 ;
+const int MOUSEEVENTF_LEFTUP     = 0x0004 ;
+const int MOUSEEVENTF_RIGHTDOWN  = 0x0008 ;
+const int MOUSEEVENTF_RIGHTUP    = 0x0010 ;
+const int MOUSEEVENTF_MIDDLEDOWN = 0x0020 ;
+const int MOUSEEVENTF_MIDDLEUP   = 0x0040 ;
+const int MOUSEEVENTF_WHEEL      = 0x0080 ;
+const int MOUSEEVENTF_XDOWN      = 0x0100 ;
+const int MOUSEEVENTF_XUP        = 0x0200 ;
+const int MOUSEEVENTF_ABSOLUTE   = 0x8000 ;
+const int screen_length          = 0x10000 ;
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646310(v=vs.85).aspx
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+extern static uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+public static void LeftClickAtPoint(int x, int y)
+{
+    //Move the mouse
+    INPUT[] input = new INPUT[3];
+    input[0].mi.dx = x*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width);
+    input[0].mi.dy = y*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
+    input[0].mi.dwFlags = MOUSEEVENTF_MOVED | MOUSEEVENTF_ABSOLUTE;
+    //Left mouse button down
+    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+    //Left mouse button up
+    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+    SendInput(3, input, Marshal.SizeOf(input[0]));
+}
+}
+'@
+
+Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing
+[Clicker]::LeftClickAtPoint(1900,1070)
+
+### [Audio]
+
+Add-Type -Language CsharpVersion3 -TypeDefinition @"
+using System.Runtime.InteropServices;
+[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IAudioEndpointVolume {
+// f(), g(), ... are unused COM method slots. Define these if you care
+int f(); int g(); int h(); int i();
+int SetMasterVolumeLevelScalar(float fLevel, System.Guid pguidEventContext);
+int j();
+int GetMasterVolumeLevelScalar(out float pfLevel);
+int k(); int l(); int m(); int n();
+int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, System.Guid pguidEventContext);
+int GetMute(out bool pbMute);
+}
+[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IMMDevice {
+int Activate(ref System.Guid id, int clsCtx, int activationParams, out IAudioEndpointVolume aev);
+}
+[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IMMDeviceEnumerator {
+int f(); // Unused
+int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
+}
+[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }
+public class Audio {
+static IAudioEndpointVolume Vol() {
+var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;
+IMMDevice dev = null;
+Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(/*eRender*/ 0, /*eMultimedia*/ 1, out dev));
+IAudioEndpointVolume epv = null;
+var epvid = typeof(IAudioEndpointVolume).GUID;
+Marshal.ThrowExceptionForHR(dev.Activate(ref epvid, /*CLSCTX_ALL*/ 23, 0, out epv));
+return epv;
+}
+public static float Volume {
+get {float v = -1; Marshal.ThrowExceptionForHR(Vol().GetMasterVolumeLevelScalar(out v)); return v;}
+set {Marshal.ThrowExceptionForHR(Vol().SetMasterVolumeLevelScalar(value, System.Guid.Empty));}
+}
+public static bool Mute {
+get { bool mute; Marshal.ThrowExceptionForHR(Vol().GetMute(out mute)); return mute; }
+set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
+}
+}
+"@
+
+[Audio]::Volume = 0.50
+[Audio]::Mute = $true
