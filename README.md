@@ -1185,7 +1185,7 @@
 `Get-VBRRestorePoint` \
 `Get-VBRViProxy`
 
-# IWR
+# REST
 
 `$pars = Invoke-WebRequest -Uri $url` \
 `$pars | Get-Member` \
@@ -1206,7 +1206,7 @@
 `$count_down = (Get-Item $path\*).count` \
 `"Downloaded $count_down of $count_all files to $path"`
 
-`Methods:`
+`Methods:` \
 `GET - Read` \
 `POST - Create` \
 `PATCH - Partial update/modify` \
@@ -1215,7 +1215,7 @@
 
 `https://veeam-11:9419/swagger/ui/index.html` \
 `$Header = @{` \
-`"x-api-version" = "1.0-rev1"` \
+`"x-api-version" = "1.0-rev2"` \
 `}` \
 `$Body = @{` \
 `"grant_type" = "password"` \
@@ -1225,13 +1225,13 @@
 `$vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck` \
 `$vtoken = (($vpost.Content) -split '"')[3]`
 
-`$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force \
+`$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force` \
 `$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck
 
 `$Header = @{` \
 `"x-api-version" = "1.0-rev1"` \
 `"Authorization" = "Bearer $vtoken"` \
-`}`
+`}` \
 `$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
 `$vjob = $vjob.Content | ConvertFrom-Json`
 

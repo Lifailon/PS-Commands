@@ -1215,7 +1215,7 @@ DELETE - Remove
 
 https://veeam-11:9419/swagger/ui/index.html
 $Header = @{
-"x-api-version" = "1.0-rev1"
+"x-api-version" = "1.0-rev2"
 }
 $Body = @{
 "grant_type" = "password"
