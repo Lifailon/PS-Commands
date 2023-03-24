@@ -14,7 +14,7 @@ PowerShell Commands
 - PackageManagement
 - SQLite
 - PowerCLI
-- Veeam
+- VBR
 - REST
 - XML
 - Git
@@ -1167,7 +1167,7 @@ Get-Command –Module *vmware* -name *syslog*
 Set-VMHostSysLogServer -VMHost esxi-05 -SysLogServer "tcp://192.168.3.100" -SysLogServerPort 3515
 Get-VMHostSysLogServer -VMHost esxi-05
 
-# Veeam
+# VBR
 
 Set-ExecutionPolicy AllSigned # or Set-ExecutionPolicy Bypass -Scope Process
 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
