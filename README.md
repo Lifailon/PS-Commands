@@ -14,7 +14,7 @@
 - [PackageManagement](#PackageManagement)
 - [SQLite](#SQLite)
 - [PowerCLI](#PowerCLI)
-- [Veeam](#Veeam)
+- [VBR](#VBR)
 - [REST](#REST)
 - [XML](#XML)
 - [Git](#Git)
@@ -1167,7 +1167,7 @@
 `Set-VMHostSysLogServer -VMHost esxi-05 -SysLogServer "tcp://192.168.3.100" -SysLogServerPort 3515` \
 `Get-VMHostSysLogServer -VMHost esxi-05`
 
-# Veeam
+# VBR
 
 `Set-ExecutionPolicy AllSigned` or Set-ExecutionPolicy Bypass -Scope Process \
 `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
@@ -1206,12 +1206,12 @@
 `$count_down = (Get-Item $path\*).count` \
 `"Downloaded $count_down of $count_all files to $path"`
 
-`Methods:` \
-`GET - Read` \
-`POST - Create` \
-`PATCH - Partial update/modify` \
-`PUT - Update/replace` \
-`DELETE - Remove`
+Methods: \
+GET - Read \
+POST - Create \
+PATCH - Partial update/modify \
+PUT - Update/replace \
+DELETE - Remove
 
 `https://veeam-11:9419/swagger/ui/index.html` \
 `$Header = @{` \
@@ -1226,7 +1226,7 @@
 `$vtoken = (($vpost.Content) -split '"')[3]`
 
 `$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force` \
-`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck
+`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck`
 
 `$Header = @{` \
 `"x-api-version" = "1.0-rev1"` \
