@@ -1266,22 +1266,25 @@
 
 # Git
 
-`git --version` \
-`git config --global user.name "Lifailon"` \
-`ssh-keygen -t rsa -b 4096 -с "lifailon@gmail.com"` \
-`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
+`git --version`
+`git config --global user.name "Lifailon"` add name for commit \
+`git config --global user.email "lifailon@mail.com"` \
+`ssh-keygen -t rsa -b 4096 -с "lifailon@mail.com"` \
+`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` настроить автозапуск службы \
 `Get-Service | where name -match "ssh-agent" | Start-Service` \
 `ssh-agent` \
 `ssh-add C:\Users\Lifailon\.ssh\id_rsa` \
-`cat ~\.ssh\id_rsa.pub | Set-Clipboard` \
-`cd C:\git` \
+`cat ~\.ssh\id_rsa.pub | Set-Clipboard` copy to https://github.com/settings/keys \
+`mkdir C:\Git; cd C:\Git` \
 `git clone git@github.com:Lifailon/PowerShell-Commands` \
 `cd PowerShell-Commands` \
-`git checkout rsa` \
 `git status` \
 `git diff` \
 `git add -A` \
-`git commit -m "v1"` \
+`git commit -m "update files"` \
 `git push` \
-`git log` \
-`git show 38cc9210c6cf1399188d0acaa367dde80d77b888`
+`git log` commit logs \
+`git show d01f09dead3a6a8d75dda848162831c58ca0ee13` \
+`git branch new_branch` creat branch \
+`git checkout new_branch` change branch \
+`git branch -d new_branch` delete branch
