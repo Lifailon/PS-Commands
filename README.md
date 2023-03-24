@@ -15,17 +15,20 @@
 - [SQLite](#SQLite)
 - [PowerCLI](#PowerCLI)
 - [Veeam](#Veeam)
+- [REST](#REST)
 - [XML](#XML)
 - [Git](#Git)
 
 ### Help
 `Get-Command *Service*` поиск команды по имени \
 `Get-Help Get-Service` синтаксис \
+`Get-Help Stop-Process -Parameter *` описание всех параметров \
 `Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) и Alias \
 `Get-Alias ps` \
 `Get-Verb` действия, утвержденные для использования в командах \
 `Set-ExecutionPolicy Unrestricted` \
-`Get-ExecutionPolicy`
+`Get-ExecutionPolicy` \
+`$PSVersionTable`
 
 # Object
 
@@ -59,26 +62,41 @@
 `$Collections = New-Object System.Collections.Generic.List[System.Object]` \
 `$Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})`
 
-`$object = New-Object –TypeName PSCustomObject -Property @{User = $env:username; Server = $env:computername}` предназначен для хранения объектов с произвольной структурой, где порядок их свойств может поменяться. Чтобы этого избежать, необходимо использовать дополнительный атрибут [ordered] \
+`$object = New-Object –TypeName PSCustomObject -Property @{User = $env:username; Server = $env:computername}` \
 `$object | Get-Member` \
-`$object | Add-Member –MemberType NoteProperty –Name IP –Value "192.168.1.1"` добавить свойство или -MemberType ScriptMethod \
+`$object | Add-Member –MemberType NoteProperty –Name IP –Value "192.168.1.1"` имеет возможость добавить свойство или -MemberType ScriptMethod \
 `$object.PsObject.Properties.Remove('User')` удалить свойство (столбец)
 
 `$arr = @()` \
 `$arr += [PSCustomObject]@{User = $env:username; Server = $env:computername}` медленный метод добавления, в каждой интерации перезаписывается массив и коллекция становится фиксированного размера (без возможности удаления) \
-`$arr.Remove(0)` Exception calling "Remove" with "1" argument(s): "Collection was of a fixed size."
+`$arr.Remove(0)` Exception calling "Remove" with "1" argument(s): "Collection was of a fixed size"
 
 `Class CustomClass {` \
 `[string]$User` \
 `[string]$Server` \
 `}` \
 `$Class = New-Object -TypeName CustomClass` \
-`$Class.User = "support"` \
-`$Class.Server = "srv-01"`
+`$Class.User = $env:username` \
+`$Class.Server = $env:computername`
 
 ### CSV
 `Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
 `Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
+
+`$data = ConvertFrom-Csv @"` \
+`Region,State,Units,Price` \
+`West,Texas,927,923.71` \
+`$null,Tennessee,466,770.67` \
+`"@`
+
+### ImportExcel
+`Install-Module -Name ImportExcel` \
+`$data | Export-Excel .\Data.xlsx` \
+`$data = Import-Excel .\Data.xlsx`
+
+`$data = ps` \
+`$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend` \
+`$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show`
 
 ### Pipeline
 `$obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force` добавление объкта вывода NoteProperty \
@@ -157,6 +175,9 @@
 ### Last/First
 `Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
 `Get-Process | Sort-Object -Descending CPU | select -Last 10` вывести последних 10 объектов
+
+### ConvertTo-HTML
+`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
 
 # Regex
 
@@ -422,16 +443,6 @@
 `Get-WinEvent -LogName Security -MaxEvents 100` отобразить последние 100 событий \
 `Get-WinEvent -FilterHashtable @{LogName="Security";ID=4624}` найти логи по ID в журнале Security
 
-`$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational" -FilterXPath '<QueryList><Query Id="0"><Select>*[System[EventID=1149]]</Select></Query></QueryList>'` \
-`[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}` \
-`$EventData = Foreach ($event in $xml.Event) {` \
-`New-Object PSObject -Property @{` \
-`"Время подключения" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')` \
-`"Имя пользователя" = $event.UserData.EventXML.Param1` \
-`"Адрес клиента" = $event.UserData.EventXML.Param3` \
-`}}` \
-`$EventData | Out-Gridview -Title "История RDP подключений на сервере $srv"`
-
 `$obj = @() \
 `$fw = Get-WinEvent 'Microsoft-Windows-Windows Firewall With Advanced Security/Firewall'` \
 `foreach ($temp_fw in $fw) {` \
@@ -553,19 +564,6 @@
 
 ### netstat
 `Get-NetTCPConnection -State Established,Listen | where LocalAddress -match "192.168"`
-
-### Invoke-WebRequest
-`$pars = iwr -Uri "https://losst.pro/"` \
-`$pars | Get-Member` отобразить все методы \
-`$pars.Content` содержимое страницы (Out-File url.html) \
-`$pars.statuscode -eq 200` код ответа, запрос выполнен успешно \
-`$pars.Headers` информация о сервере \
-`$pars.Links | fl innerText, href` ссылки \
-`$pars.Images.src` ссылки на изображения \
-`iwr $url -OutFile $path` скачать файл
-
-### ConvertTo-HTML
-`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
 
 # WinRM
 
@@ -1040,7 +1038,7 @@
 `-requireAdmin` при запуске запросить права администратора \
 `-credentialGUI` вывод диалогового окна для ввода учетных данных \
 `C:\Install\RDSA.exe -extract:"C:\Install\RDSA.ps1"` \
-`Invoke-ps2exe -inputFile "$env:USERPROFILE\Desktop\WinEvent-Viewer-1.1.ps1" -outputFile "$env:USERPROFILE\Desktop\WEV-1.1.exe" -iconFile "$env:USERPROFILE\Desktop\log_48px.ico" -title "WinEvent-Viewer" -noConsole -noOutput -noError`
+`Invoke-ps2exe -inputFile "$home\Desktop\WinEvent-Viewer-1.1.ps1" -outputFile "$home\Desktop\WEV-1.1.exe" -iconFile "$home\Desktop\log_48px.ico" -title "WinEvent-Viewer" -noConsole -noOutput -noError`
 
 ### NSSM
 `$powershell_Path = (Get-Command powershell).Source` \
@@ -1176,7 +1174,7 @@
 `choco install veeam-backup-and-replication-console` \
 `Get-Module Veeam.Backup.PowerShell` \
 `Get-Command -Module Veeam.Backup.PowerShell` or Get-VBRCommand \
-`Connect-VBRServer -Server $srv -Credential $cred` or -user and -password \
+`Connect-VBRServer -Server $srv -Credential $cred` # or -User and -Password # - Port 9392 # default \
 `Get-VBRJob` \
 `Get-VBRCommand *get*backup*` \
 `Get-VBRComputerBackupJob` \
@@ -1185,21 +1183,72 @@
 `Get-VBRBackupSession` \
 `Get-VBRBackupServerCertificate` \
 `Get-VBRRestorePoint` \
-`Get-VBRViProxy` \
-`https://veeam-11:9419/swagger/ui/index.html` API
+`Get-VBRViProxy`
+
+# IWR
+
+`$pars = Invoke-WebRequest -Uri $url` \
+`$pars | Get-Member` \
+`$pars.Content` \
+`$pars.StatusCode -eq 200` \
+`$pars.Headers` \
+`$pars.ParsedHtml | Select lastModified` \
+`$pars.Links | fl title,innerText,href` \
+`$pars.Images.src` links on images \
+`iwr $url -OutFile $path` download
+
+`$pars = wget -Uri $url` \
+`$pars.Images.src | %{` \
+`$name = $_ -replace ".+(?<=/)"` \
+`wget $_ -OutFile "$home\Pictures\$name"` \
+`}` \
+`$count_all = $pars.Images.src.Count` \
+`$count_down = (Get-Item $path\*).count` \
+`"Downloaded $count_down of $count_all files to $path"`
+
+`Methods:`
+`GET - Read` \
+`POST - Create` \
+`PATCH - Partial update/modify` \
+`PUT - Update/replace` \
+`DELETE - Remove`
+
+`https://veeam-11:9419/swagger/ui/index.html` \
+`$Header = @{` \
+`"x-api-version" = "1.0-rev1"` \
+`}` \
+`$Body = @{` \
+`"grant_type" = "password"` \
+`"username" = "$login"` \
+`"password" = "$password"` \
+`}` \
+`$vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck` \
+`$vtoken = (($vpost.Content) -split '"')[3]`
+
+`$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force \
+`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck
+
+`$Header = @{` \
+`"x-api-version" = "1.0-rev1"` \
+`"Authorization" = "Bearer $vtoken"` \
+`}`
+`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
+`$vjob = $vjob.Content | ConvertFrom-Json`
+
+`$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
+`$vjob.data.virtualMachines.includes.inventoryObject`
 
 # XML
 
-`$CredFile = ".\cred.xml"` \
-`try {` \
-`$Cred = Import-Clixml -path $credFile` \
-`}` \
-`catch {` \
+`if (Test-Path $CredFile) {` \
+`$Cred = Import-Clixml -path $CredFile` \
+`} elseif (!(Test-Path $CredFile)) {` \
 `$Cred = Get-Credential -Message "Enter credential"` \
 `if ($Cred -ne $null) {` \
-`$Cred | Export-CliXml -Path $credFile` \
+`$Cred | Export-CliXml -Path $CredFile` \
+`} else {` \
+`return` \
 `}` \
-`else {return}` \
 `}`
 
 `$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'` \
@@ -1217,10 +1266,9 @@
 
 # Git
 
-`git --version`
+`git --version` \
 `git config --global user.name "Lifailon"` \
-`ls ~\.ssh -force` \
-`ssh-keygen -t rsa -b 4096` \
+`ssh-keygen -t rsa -b 4096 -с "lifailon@gmail.com"` \
 `Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
 `Get-Service | where name -match "ssh-agent" | Start-Service` \
 `ssh-agent` \
@@ -1229,7 +1277,11 @@
 `cd C:\git` \
 `git clone git@github.com:Lifailon/PowerShell-Commands` \
 `cd PowerShell-Commands` \
+`git checkout rsa` \
 `git status` \
+`git diff` \
 `git add -A` \
-`git commit -m "test git"` \
-`git push`
+`git commit -m "v1"` \
+`git push` \
+`git log` \
+`git show 38cc9210c6cf1399188d0acaa367dde80d77b888`
