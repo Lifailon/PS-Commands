@@ -13,6 +13,7 @@
 - [ServerManager](#ServerManager)
 - [PackageManagement](#PackageManagement)
 - [SQLite](#SQLite)
+- [EMShell](#EMShell)
 - [PowerCLI](#PowerCLI)
 - [VBR](#VBR)
 - [REST](#REST)
@@ -1026,8 +1027,10 @@
 `Get-PackageSource` источники установки пакетов \
 `Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
 `Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
-`Install-Package -Name VeeamLogParser -ProviderName PSGallery` установка пакета \
-`Get-Command *Veeam*`
+`Install-Package -Name VeeamLogParser -ProviderName PSGallery -scope CurrentUser` \
+`Get-Command *Veeam*` \
+`Import-Module -Name VeeamLogParser` загрузить модуль \
+`Get-Module VeeamLogParser | select -ExpandProperty ExportedCommands` отобразить список функций
 
 ### PS2EXE
 `Install-Module ps2exe -Repository PSGallery` \
@@ -1037,7 +1040,6 @@
 `-noError` без вывода ошибок \
 `-requireAdmin` при запуске запросить права администратора \
 `-credentialGUI` вывод диалогового окна для ввода учетных данных \
-`C:\Install\RDSA.exe -extract:"C:\Install\RDSA.ps1"` \
 `Invoke-ps2exe -inputFile "$home\Desktop\WinEvent-Viewer-1.1.ps1" -outputFile "$home\Desktop\WEV-1.1.exe" -iconFile "$home\Desktop\log_48px.ico" -title "WinEvent-Viewer" -noConsole -noOutput -noError`
 
 ### NSSM
@@ -1092,6 +1094,212 @@
 `$Connection.ChangePassword("password")` \
 `$Connection.Close()` \
 `Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"`
+
+# EMShell
+
+`$srv_cas = "exchange-cas"` \
+`$session_exchange = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$srv_cas/PowerShell/ # -Credential $Cred -Authentication Kerberos` \
+`Get-PSSession` \
+`Import-PSSession $session_exchange -DisableNameChecking` импортировать в текущую сессию
+
+`Get-ExchangeServer | select name,serverrole,admindisplayversion,Edition,OriginatingServer,WhenCreated,WhenChanged,DataPath | ft` список всех серверов
+
+### Mailbox
+`Get-Mailbox -Database "it2"` список почтовых серверов в базе данных \
+`Get-Mailbox -resultsize unlimited | ? Emailaddresses -like "support4" | format-list name,emailaddresses,database,servername` какую БД, сервер и smtp-адреса использует почтовый ящик \
+`Get-Mailbox -Database $db_name -Archive` отобразить архивные почтовые ящики
+
+`Get-MailboxFolderStatistics -Identity "support4" -FolderScope All | select Name,ItemsInFolder,FolderSize` отобразить кол-во писем и размер в каждой папке
+`Get-MailboxStatistics "support4" | select \ DisplayName,LastLoggedOnUserAccount,LastLogonTime,LastLogoffTime,ItemCount,TotalItemSize,DeletedItemCount,TotalDeletedItemSize,Database,ServerName` общее кол-во писем, их размер, время последнего входа и выхода, имя сервера и БД \
+`Get-Mailbox -Server s2 | Get-MailboxStatistics | where {$_.Lastlogontime -lt (get-date).AddDays(-30)} | Sort Lastlogontime -desc | ft displayname,Lastlogontime,totalitemsize` ящики, которые не использовались 30 и более дней
+
+`Enable-Mailbox -Identity support9 -Database test_itlite` создать почтовый ящик для существующего пользователя в AD \
+`New-Mailbox -Name $login -UserPrincipalName "$login@$domain" -Database $select_db -OrganizationalUnit $path -Password (ConvertTo-SecureString -String "$password" -AsPlainText -Force)` создать новый почтовый ящик без привязки к пользователю AD \
+`Set-MailBox "support4" -PrimarySmtpAddress support24@kinomax.ru -EmailAddressPolicyEnabled $false` добавить и изменить основной SMTP-адрес электронной почты для пользователя \
+`Set-Mailbox -Identity "support4" -DeliverToMailboxAndForward $true -ForwardingSMTPAddress "username@outlook.com"` включить переадресацию почты \
+`Get-MailboxDatabase -Database $db_name | Remove-MailboxDatabase` удалить БД
+
+### MoveRequest
+`Get-Mailbox -Database $db_in | New-MoveRequest -TargetDatabase $db_out` переместить все почтовые ящики из одной БД в другую \
+`New-MoveRequest -Identity $db_in -TargetDatabase $db_out` переместить один почтовый ящик \
+`Get-MoveRequest | Suspend-MoveRequest` остановить запросы перемещения \
+`Get-MoveRequest | Remove-MoveRequest` удалить запросы на перемещение \
+`Get-MoveRequest | Get-MoveRequestStatistics` статус перемещения \
+Status: \
+Cleanup - нужно подождать \
+Queued - в очереди \
+InProgress - в процессе \
+Percent Complete - процент выполнения \
+CompletionInProgress - завершение процесса \
+Completed - завершено \
+`Remove-MoveRequest -Identity $db_name` завершить процесс перемещения (убрать статус перемещения с почтового ящика и очистить список перемещений) \
+`Get-MailboxDatabase | Select Name, MailboxRetention` после перемещения ящиков, размер базы не изменится, полное удаление из базы произойдет, как пройдет количество дней, выставленное в параметре MailboxRetention \
+`Set-MailboxDatabase -MailboxRetention '0.00:00:00' -Identity $db_name` изменить значение
+
+### Archive
+`Enable-Mailbox -Identity $name -Archive` включить архив для пользователя \
+`Get-Mailbox $name | New-MoveReques –ArchiveOnly –ArchiveTargetDatabase DBArch` переместить архивный почтовый ящик в другую БД \
+`Get-Mailbox $name | fl Name,Database,ArchiveDatabase` место расположения БД пользователя и БД его архива \
+`Disable-Mailbox -Identity $name -Archive` отключить архив \
+`Connect-Mailbox -Identity "8734c04e-981e-4ccf-a547-1c1ac7ebf3e2" -Archive -User $name -Database it2` подключение архива пользователя к указанному почтовому ящику \
+`Get-Mailbox $name | Set-Mailbox -ArchiveQuota 20GB -ArchiveWarningQuota 19GB` настроить квоты хранения архива
+
+### Quota
+`Get-Mailbox -Identity $db_name | fl IssueWarningQuota, ProhibitSendQuota, ProhibitSendReceiveQuota, UseDatabaseQuotaDefaults` отобразить квоты почтового ящика \
+IssueWarningQuota — квота, при достижении которой Exchange отправит уведомление \
+ProhibitSendQuota — при достижении будет запрещена отправка \
+ProhibitSendReceiveQuota — при достижении будет запрещена отправка и получение \
+UseDatabaseQuotaDefaults — используется ли квота БД или false - индвидиуальные \
+`Set-Mailbox -Identity $db_name -UseDatabaseQuotaDefaults $false -IssueWarningQuota "3 GB" -ProhibitSendQuota "4 GB" -ProhibitSendReceiveQuota "5 GB"` \
+`Set-MailboxDatabase $db -ProhibitSendReceiveQuota "5 GB" -ProhibitSendQuota "4 GB" -IssueWarningQuota "3 GB"` настроить квоты на БД
+
+### Database
+`Get-MailboxDatabase -Status | select ServerName,Name,DatabaseSize` список и размер всех БД на всех MX-серверах \
+`New-MailboxDatabase -Name it_2022 -EdbFilePath E:\Bases\it_2022\it_2022.edb -LogFolderPath G:\Logs\it_2022 -OfflineAddressBook "Default Offline Address List" -server exch-mx-01` создать БД \
+`Restart-Service MSExchangeIS` \
+`Get-Service | Where {$_ -match "exchange"} | Restart-Service` \
+`Get-MailboxDatabase -Server exch-01` список баз данных на MX-сервере \
+`New-MoveRequest -Identity "support4" -TargetDatabase it_2022` переместить почтовый ящик в новую БД \
+`Move-Databasepath $db_name –EdbFilepath "F:\DB\$db_name\$db_name.edb" –LogFolderpath "E:\DB\$db_name\logs\"` переместить БД и транзакционные логи на другой диск \
+`Set-MailboxDatabase -CircularLoggingEnabled $true -Identity $db_name` включить циклическое ведение журнала (Circular Logging), где последовательно пишутся 4 файла логов по 5 МБ, после чего первый лог-файл перезаписывается \
+`Set-MailboxDatabase -CircularLoggingEnabled $false -Identity $db_name` отключить циклическое ведение журнала \
+`Get-MailboxDatabase -Server "ukh-exch-mx-01" -Status | select EdbFilePath,LogFolderPath,LogFilePrefix` путь к БД, логам, имя текущего актуального лог-файла
+
+`New-MailboxRepairRequest -Database it2 -CorruptionType ProvisionedFolder, SearchFolder, AggregateCounts, Folderview` запустить последовательный (в конкретный момент времени не доступен один почтовый ящик) тест и исправление ошибок на прикладном уровне \
+`Get-MailboxRepairRequest -Database it2` прогресс \
+`Get-Mailbox -Database $db_name | Set-Mailbox -Database "TempDB"` перенацелить ящики с одной БД на другую (пустую) \
+`Restart-Service MSExchangeIS` перезапустить службу банка данных Mailbox Information Store (иначе пользователи будут по-прежнему пытаться подключиться к старой БД)
+
+### Recovery database (RDB)
+`New-MailboxDatabase –Recovery –Name RecoveryDB –Server $exch_mx –EdbFilePath "D:\TempDB\TempDB.edb" -LogFolderPath "D:\TempDB"` для переноса новых писем из временной БД в основную необходим только сам файл TempDB.edb со статусом Clean Shutdown, из нее необходимо создать служебную БД (ключ -Recovery) \
+`Mount-Database "D:\TempDB\TempDB.edb"` примонтировать БД \
+`Get-MailboxStatistics -Database RecoveryDB` \
+`New-MailboxRestoreRequest –SourceDatabase RecoveryDB –SourceStoreMailbox support –TargetMailbox support` скопировать данные почтового ящика с DisplayName: support из RecoveryDB в почтовый ящик с псевдонимом support существующей базы. По умолчанию ищет в почтовой базе совпадающие LegacyExchangeDN либо проверяет совпадение адреса X500, если нужно восстановить данные в другой ящик, нужно указывать ключ -AllowLegacyDNMisMatch \
+`New-MailboxRestoreRequest –SourceDatabase RecoveryDB –SourceStoreMailbox support –TargetMailbox support –TargetRootFolder "Restore"` скопировать письма в отдельную папку в ящике назначения (создается автоматически), возможно восстановить содержимое конкретной папки -IncludeFolders "#Inbox#" \
+`Get-MailboxRestoreRequest | Get-MailboxRestoreRequestStatistics` статус запроса восстановления \
+`Get-MailboxRestoreRequestStatistics -Identity support` \
+`Get-MailboxRestoreRequest -Status Completed | Remove-MailboxRestoreRequest` удалить все успешные запросы
+
+### Transport
+`Get-TransportServer $srv_cas | select MaxConcurrentMailboxDeliveries,MaxConcurrentMailboxSubmissions,MaxConnectionRatePerMinute,MaxOutboundConnections,MaxPerDomainOutboundConnections,PickupDirectoryMaxMessagesPerMinute` настройки пропускной способности транспортного сервера \
+MaxConcurrentMailboxDeliveries — максимальное количество одновременных потоков, которое может открыть сервер для отправки писем. \
+MaxConcurrentMailboxSubmissions — максимальное количество одновременных потоков, которое может открыть сервер для получения писем. \
+MaxConnectionRatePerMinute — максимальное возможная скорость открытия входящих соединений в минуту. \
+MaxOutboundConnections — максимальное возможное количество соединений, которое может открыть Exchange для отправки. \
+MaxPerDomainOutboundConnections — максимальное возможное количество исходящих соединений, которое может открыть Exchange для одного удаленного домена. \
+PickupDirectoryMaxMessagesPerMinute — скорость внутренней обработки сообщений в минуту (распределение писем по папкам). \
+`Get-TransportConfig | select MaxSendSize, MaxReceiveSize` ограничение размера сообщения на уровне траспорта (наименьший приоритет) \
+`New-TransportRule -Name AttachmentLimit -AttachmentSizeOver 15MB -RejectMessageReasonText "Sorry, messages with attachments over 15 MB are not accepted."` создать транспортное правило для проверки размера вложения
+
+### Connector
+`Get-ReceiveConnector | select Name,MaxMessageSize,RemoteIPRanges,WhenChanged` ограничения, на уровне коннектора \
+`Set-ReceiveConnector ((Get-ReceiveConnector).Identity)[-1] -MaxMessageSize 30Mb` изменить размер у последнего коннектора в списке (приоритет выше, чем у траспорта) \
+`Set-ReceiveConnector ((Get-ReceiveConnector).Identity)[-1] -MessageRateLimit 1000` изменить лимит обработки сообщений в минуту для коннектора \
+`Get-Mailbox "support4" | select MaxSendSize, MaxReceiveSize` наивысший приоритет \
+`Set-Mailbox "support4" -MaxSendSize 30MB -MaxReceiveSize 30MB` изменить размер
+
+`Set-SendConnector -Identity "ConnectorName" -Port 26` изменить порт коннектора отправки \
+`Get-SendConnector "proxmox" | select port`
+
+`Get-OfflineAddressbook | Update-OfflineAddressbook` обновить OAB \
+`Get-ClientAccessServer | Update-FileDistributionService`
+
+### PST
+`New-MailboxExportRequest -Mailbox $name -filepath "\\$srv\pst\$name.PST" # -ContentFilter {(Received -lt "01/01/2021")} -Priority Highest/Lower # -IsArchive` выполнить экспорт из архива пользователя \
+`New-MailboxExportRequest -Mailbox $name -IncludeFolders "#Inbox#" -FilePath "\\$srv\pst\$name.PST"` только папку входящие \
+`New-MailboxImportRequest -Mailbox $name "\\$srv\pst\$name.PST"` импорт из PST \
+`Get-MailboxExportRequest` статус запросов \
+`Get-MailboxExportRequest -Status Completed | Remove-MailboxExportRequest` удалить успешно завершенные запросы \
+`Remove-MailboxExportRequest -RequestQueue MBXDB01 -RequestGuid 25e0eaf2-6cc2-4353-b83e-5cb7b72d441f` отменить экспорт
+
+### DistributionGroup
+`Get-DistributionGroup` список групп рассылки \
+`Get-DistributionGroupMember "!_Офис"` список пользователей в группе \
+`Add-DistributionGroupMember -Identity "!_Офис" -Member "$name@$domain"` добавить в группу рассылки \
+`Remove-DistributionGroupMember -Identity "!_Офис" -Member "$name@$domain"` \
+`New-DistributionGroup -Name "!_Тест" -Members "$name@$domain"` создать группу \
+`Set-DistributionGroup -Identity "support4" -HiddenFromAddressListsEnabled $true (или Set-Mailbox)` скрыть из списка адресов Exchange
+
+### Search
+`Search-Mailbox -Identity "support4" -SearchQuery 'Тема:"Mikrotik DOWN"'` поиск писем по теме \
+`Search-Mailbox -Identity "support4" -SearchQuery 'Subject:"Mikrotik DOWN"'` \
+`Search-Mailbox -Identity "support4" -SearchQuery "отправлено: < 01/01/2020" -DeleteContent -Force` удаление по дате \
+`Search-Mailbox -Identity "support4" -SearchQuery 'attachment -like:"*.rar"'`
+
+`Get-AdminAuditLogConfig` настройки аудита \
+`Set-Mailbox -Identity "support4" -AuditOwner HardDelete` добавить логирование HardDelete писем \
+`Set-mailbox -identity "support4" -AuditlogAgelimit 120` указать время хранения \
+`Get-mailbox -identity "support4" | Format-list Audit*` данные аудита \
+`Search-MailboxAuditLog -Identity "support4" -LogonTypes Delegate -ShowDetails -Start "2022-02-22 18:00" -End "2022-03-22 18:00"` просмотр логов \
+`Search-AdminAuditLog -StartDate "02/20/2022" | ft CmdLetName,Caller,RunDate,ObjectModified -Autosize` история выполнения команд
+
+### Test
+`Test-ServiceHealth` проверить доступность ролей сервера: почтовых ящиков, клиентского доступа, единой системы обмена сообщениями, траспортного сервера \
+`$mx_srv_list | %{Test-MapiConnectivity -Server $_}` проверка подключения MX-серверов к БД \
+`Test-MAPIConnectivity -Database $db` проверка возможности логина в базу \
+`Test-MAPIConnectivity –Identity $user@$domain` проверка возможности логина в почтовый ящик \
+`Test-ComputerSecureChannel` проверка работы службы AD \
+`Test-MailFlow` результат тестового потока почты
+
+### Queue
+`Get-Service | where {$_.name -like "MSExchangeTransport"}` перезапустить служу очереди \
+`Rename-Item "C:\Program Files\Microsoft\Exchange Server\V15\TransportRoles\data\Queue" "C:\Program Files\Microsoft\Exchange Server\V15\TransportRoles\data\Queue_old"` очистить базу очереди \
+`C:\Program Files\Microsoft\Exchange Server\V15\Bin\EdgeTransport.exe.config` конфигурационный файл, который содержит путь к бд с очередью (блок <appSettings> ключи QueueDatabasePath и QueueDatabaseLoggingPath)
+
+`Get-TransportServer | %{Get-Queue -Server $_.Name}` отобразить очереди на всех транспортных серверах \
+`Get-Queue -Identity EXCHANGE-CAS\155530 | Format-List` подробная информация об очереди \
+`Get-Queue -Identity EXCHANGE-CAS\155530 | Get-Message -ResultSize Unlimited | Select FromAddress,Recipients` отобразить список отправителей (FromAddress) и список получателей в очереди (Recipients) \
+`Get-Message -Queue EXCHANGE-CAS\155530` отобразить индентификатор сообщений в конкретной очереди (сервер\очередь\идентификатор письма) \
+`Resume-Message EXCHANGE-CAS\155530\444010` повторить отправку письма из очереди \
+`Retry-Queue -Filter {Status -eq "Retry"}` принудительно повторить отправку всех сообщений c статусом "Повторить" \
+`Get-Queue -Identity EXCHANGE-CAS\155530 | Get-Message -ResultSize unlimited | Remove-Message -WithNDR $False` очистить очередь \
+`Get-transportserver EXCHANGE-CAS | Select MessageExpirationTimeout` отобразить время жизни сообщений в очереди (по умолчанию, 2 дня) \
+Error Exchange 452 4.3.1 Insufficient system resources - окончание свободного места на диске, на котором находятся очереди службы Exchange Hub Transport и компонент мониторинга доступных ресурсов Back Pressure
+
+### Defrag
+`Get-MailboxDatabase -Status | ft Name, DatabaseSize, AvailableNewMailboxSpace` \
+DatabaseSize - текущий размер базы \
+AvailableNewMailboxSpace - объём пустых страниц, пространство, которое можно освободить при дефрагментации \
+(DatabaseSize — AvailableNewMailboxSpace) x 1,1 - необходимо дополнительно иметь свободного места не менее 110% от текущего размера базы (без учета пустых страниц) \
+`cd $path` \
+`Dismount-Database "$path\$db_name"` отмонтировать БД \
+`eseutil /d "$path\$db_name.edb"` \
+`Mount-Database "$path\$db"` примонтировать БД
+
+### DAG (Database Availability Group)
+`Install-WindowsFeature -Name Failover-Clustering -ComputerName EXCH-MX-01` \
+`New-DatabaseAvailabilityGroup -Name dag-01 -WitnessServer fs-05 -WitnessDirectory C:\witness_exchange1` создать группу с указанием файлового свидетеля для кворума \
+`Set-DatabaseAvailabilityGroup dag-01 –DatabaseAvailabilityGroupIPAdress $ip` изменить ip-адрес группы \
+`Get-DatabaseAvailabilityGroup` список всех групп \
+`Get-DatabaseAvailabilityGroup -Identity dag-01` \
+`Add-DatabaseAvailabilityGroupServer -Identity dag-01 -MailboxServer EXCH-MX-01` добавить первый сервер # все БД на серверах в DAG должны храниться по одинаковому пути \
+`Add-MailboxDatabaseCopy -Identity it2 -MailboxServer EXCH-MX-04` добавить копию БД \
+`Get-MailboxDatabaseCopyStatus -Identity it2\* | select Name,Status,LastInspectedLogTime` статус и время последнего копирования журнала транзакий
+
+Status:
+Mounted - рабочая база
+Suspended - приостановлено копирование
+Healthy - рабочая пассивная копия
+ServiceDown - недоступна (выключен сервер)
+Dismounted - отмонтирована
+Resynchronizing - ошибка и приостановка копирования
+
+`Resume-MailboxDatabaseCopy -Identity it2\EXCH-MX-04` возобновить (Resume) или запустить копирование бд на EXCH-MX-04 (из статуса Suspended в Healthy) \
+`Suspend-MailboxDatabaseCopy -Identity it2\EXCH-MX-04` остановить копирование (в статус Suspended) \
+`Update-MailboxDatabaseCopy -Identity it2\EXCH-MX-04 -DeleteExistingFiles` обновить копию БД (сделать Full Backup) \
+`Set-MailboxDatabaseCopy -Identity it2\EXCH-MX-04 -ActivationPreference 1` изменить приоритет для активации копий БД (какую использовать, 1 – самое высокое значение) \
+`Move-ActiveMailboxDatabase it2 -ActivateOnServer EXCH-MX-04 -MountDialOverride:None -Confirm:$false` включить копию БД в DAG (переключиться на активную копию) \
+`Remove-MailboxDatabaseCopy -Identity it2\EXCH-MX-04 -Confirm:$False` удалить копии пассивной базы в DAG-группе (у БД должно быть отключено ведение циклического журнала) \
+`Remove-DatabaseAvailabilityGroupServer -Identity dag-01 -MailboxServer EXCH-MX-04 -ConfigurationOnly` удалить MX сервер из группы DAG \
+`Import-Module FailoverClusters` \
+`Get-ClusterNode EXCH-MX-04 | Remove-ClusterNode -Force` удалить отказавший узел из Windows Failover Cluster
+
+### Index
+`Get-MailboxDatabaseCopyStatus * | select name,status,ContentIndexState,ContentIndexErrorMessage,ActiveDatabaseCopy,LatestCopyBackupTime,CopyQueueLength` узнать состояние работы индксов БД и текст ошибки, на каком сервере активная копия БД, дата последней копии и текущая очередь \
+`Get-MailboxDatabaseCopyStatus -Identity $db_name\* | Format-List Name,ContentIndexState` отобразить список всех копий конкретной БД на всех серверах, и статус их индексов, если у второго сервера статус Healthy, можно восстановить из него \
+`Get-MailboxDatabaseCopyStatus -Identity $db_name\EXCH-MX-04 | Update-MailboxDatabaseCopy -SourceServer EXCH-MX-01 -CatalogOnly` \
+`cd %PROGRAMFILES%\Microsoft\Exchange Server\V14\Scripts` \
+`.\ResetSearchIndex.ps1 $db_name` скрипт восстановления индекса
 
 # PowerCLI
 
