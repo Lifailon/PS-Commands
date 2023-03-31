@@ -1110,7 +1110,7 @@
 `Get-Mailbox -Database $db_name -Archive` отобразить архивные почтовые ящики
 
 `Get-MailboxFolderStatistics -Identity "support4" -FolderScope All | select Name,ItemsInFolder,FolderSize` отобразить кол-во писем и размер в каждой папке
-`Get-MailboxStatistics "support4" | select \ DisplayName,LastLoggedOnUserAccount,LastLogonTime,LastLogoffTime,ItemCount,TotalItemSize,DeletedItemCount,TotalDeletedItemSize,Database,ServerName` общее кол-во писем, их размер, время последнего входа и выхода, имя сервера и БД \
+`Get-MailboxStatistics "support4" | select  DisplayName,LastLoggedOnUserAccount,LastLogonTime,LastLogoffTime,ItemCount,TotalItemSize,DeletedItemCount,TotalDeletedItemSize,Database,ServerName` общее кол-во писем, их размер, время последнего входа и выхода, имя сервера и БД \
 `Get-Mailbox -Server s2 | Get-MailboxStatistics | where {$_.Lastlogontime -lt (get-date).AddDays(-30)} | Sort Lastlogontime -desc | ft displayname,Lastlogontime,totalitemsize` ящики, которые не использовались 30 и более дней
 
 `Enable-Mailbox -Identity support9 -Database test_itlite` создать почтовый ящик для существующего пользователя в AD \
@@ -1124,14 +1124,16 @@
 `New-MoveRequest -Identity $db_in -TargetDatabase $db_out` переместить один почтовый ящик \
 `Get-MoveRequest | Suspend-MoveRequest` остановить запросы перемещения \
 `Get-MoveRequest | Remove-MoveRequest` удалить запросы на перемещение \
-`Get-MoveRequest | Get-MoveRequestStatistics` статус перемещения \
+`Get-MoveRequest | Get-MoveRequestStatistics` статус перемещения
+
 Status: \
 Cleanup - нужно подождать \
 Queued - в очереди \
 InProgress - в процессе \
 Percent Complete - процент выполнения \
 CompletionInProgress - завершение процесса \
-Completed - завершено \
+Completed - завершено
+
 `Remove-MoveRequest -Identity $db_name` завершить процесс перемещения (убрать статус перемещения с почтового ящика и очистить список перемещений) \
 `Get-MailboxDatabase | Select Name, MailboxRetention` после перемещения ящиков, размер базы не изменится, полное удаление из базы произойдет, как пройдет количество дней, выставленное в параметре MailboxRetention \
 `Set-MailboxDatabase -MailboxRetention '0.00:00:00' -Identity $db_name` изменить значение
@@ -1189,7 +1191,7 @@ MaxOutboundConnections — максимальное возможное коли�
 MaxPerDomainOutboundConnections — максимальное возможное количество исходящих соединений, которое может открыть Exchange для одного удаленного домена. \
 PickupDirectoryMaxMessagesPerMinute — скорость внутренней обработки сообщений в минуту (распределение писем по папкам). \
 `Get-TransportConfig | select MaxSendSize, MaxReceiveSize` ограничение размера сообщения на уровне траспорта (наименьший приоритет) \
-`New-TransportRule -Name AttachmentLimit -AttachmentSizeOver 15MB -RejectMessageReasonText "Sorry, messages with attachments over 15 MB are not accepted."` создать транспортное правило для проверки размера вложения
+`New-TransportRule -Name AttachmentLimit -AttachmentSizeOver 15MB -RejectMessageReasonText "Sorry, messages with attachments over 15 MB are not accepted"` создать транспортное правило для проверки размера вложения
 
 ### Connector
 `Get-ReceiveConnector | select Name,MaxMessageSize,RemoteIPRanges,WhenChanged` ограничения, на уровне коннектора \
@@ -1276,12 +1278,12 @@ AvailableNewMailboxSpace - объём пустых страниц, простр�
 `Add-MailboxDatabaseCopy -Identity it2 -MailboxServer EXCH-MX-04` добавить копию БД \
 `Get-MailboxDatabaseCopyStatus -Identity it2\* | select Name,Status,LastInspectedLogTime` статус и время последнего копирования журнала транзакий
 
-Status:
-Mounted - рабочая база
-Suspended - приостановлено копирование
-Healthy - рабочая пассивная копия
-ServiceDown - недоступна (выключен сервер)
-Dismounted - отмонтирована
+Status: \
+Mounted - рабочая база \
+Suspended - приостановлено копирование \
+Healthy - рабочая пассивная копия \
+ServiceDown - недоступна (выключен сервер) \
+Dismounted - отмонтирована \
 Resynchronizing - ошибка и приостановка копирования
 
 `Resume-MailboxDatabaseCopy -Identity it2\EXCH-MX-04` возобновить (Resume) или запустить копирование бд на EXCH-MX-04 (из статуса Suspended в Healthy) \
@@ -1298,7 +1300,7 @@ Resynchronizing - ошибка и приостановка копировани�
 `Get-MailboxDatabaseCopyStatus * | select name,status,ContentIndexState,ContentIndexErrorMessage,ActiveDatabaseCopy,LatestCopyBackupTime,CopyQueueLength` узнать состояние работы индксов БД и текст ошибки, на каком сервере активная копия БД, дата последней копии и текущая очередь \
 `Get-MailboxDatabaseCopyStatus -Identity $db_name\* | Format-List Name,ContentIndexState` отобразить список всех копий конкретной БД на всех серверах, и статус их индексов, если у второго сервера статус Healthy, можно восстановить из него \
 `Get-MailboxDatabaseCopyStatus -Identity $db_name\EXCH-MX-04 | Update-MailboxDatabaseCopy -SourceServer EXCH-MX-01 -CatalogOnly` \
-`cd %PROGRAMFILES%\Microsoft\Exchange Server\V14\Scripts` \
+`cd %PROGRAMFILES%\Microsoft\Exchange Server\V14\Scripts` или v15 для Exchange 2016 \
 `.\ResetSearchIndex.ps1 $db_name` скрипт восстановления индекса
 
 # PowerCLI
