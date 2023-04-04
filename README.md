@@ -1488,7 +1488,7 @@ DELETE - Remove
 `git config --global user.name "Lifailon"` add name for commit \
 `git config --global user.email "lifailon@mail.com"` \
 `ssh-keygen -t rsa -b 4096 -с "lifailon@mail.com"` \
-`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` настроить автозапуск службы \
+`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
 `Get-Service | where name -match "ssh-agent" | Start-Service` \
 `ssh-agent` \
 `ssh-add C:\Users\Lifailon\.ssh\id_rsa` \
@@ -1496,13 +1496,15 @@ DELETE - Remove
 `mkdir C:\Git; cd C:\Git` \
 `git clone git@github.com:Lifailon/PowerShell-Commands` \
 `cd PowerShell-Commands` \
+`git grep powershell` search text to all files \
+`git pull` synchronize changes from the repository \
 `git status` \
 `git diff` \
-`git add -A` \
+`git add -A` or git restore filename \
 `git commit -m "update files"` \
 `git push` \
 `git log` commit logs \
 `git show d01f09dead3a6a8d75dda848162831c58ca0ee13` \
-`git branch new_branch` creat branch \
-`git checkout new_branch` change branch \
-`git branch -d new_branch` delete branch
+`git branch test` creat branch \
+`git checkout test` or git switch test for change branch \
+`git branch -d test` delete branch
