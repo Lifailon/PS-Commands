@@ -786,7 +786,8 @@ $EventData
 `Add-WindowsCapability -Online -Name Rsat.RemoteDesktop.Services.Tools~~~~0.0.1.0` \
 `Get-WindowsCapability -Name RSAT* -Online | Select-Object -Property DisplayName, State` отобразить список установленных компанентов
 
-`$Session = New-PSSession -ComputerName $srv` \
+### Import-Module ActiveDirectory
+`$Session = New-PSSession -ComputerName $srv # -Credential $cred` \
 `Export-PSsession -Session $Session -Module ActiveDirectory -OutputModule ActiveDirectory` экспортировать модуль из удаленной сесси (например, с DC) \
 `Remove-PSSession -Session $Session` \
 `Import-Module ActiveDirectory` \
@@ -808,6 +809,16 @@ $EventData
 `$usrfind = $ldapsearcher.FindOne()` \
 `$groups = $usrfind.properties.memberof -replace "(,OU=.+)"` \
 `$groups = $groups -replace "(CN=)"`
+
+DC (Domain Component) - компонент доменного имени \
+OU (Organizational Unit) - организационные подразделения (type), используются для упорядочения объектов \
+Container - так же используется для упорядочения объектов, контейнеры в отличии от подраделений не могут быть переименованы, удалены, созданы или связаны с объектом групповой политики (Computers, Domain Controllers, Users) \
+DN (Distinguished Name) — уникальное имя объекта и местоположение в лесу AD. В DN описывается содержимое атрибутов в дереве (путь навигации), требуемое для доступа к конкретной записи или ее поиска \
+CN (Common Name) - общее имя
+
+`(Get-ADObject (Get-ADRootDSE).DefaultNamingContext -Properties wellKnownObjects).wellKnownObjects` отобразить отобразить контейнеры по умолчанию \
+`redircmp OU=Client Computers,DC=root,DC=domain,DC=local` изменить контейнер компьютеров по умолчанию \
+`redirusr` изменить контейнер пользователей по умолчанию
 
 ### LAPS (Local Admin Password Management)
 `Import-module AdmPwd.ps` импортировать модуль \
@@ -833,8 +844,22 @@ $EventData
 `$photo = [byte[]](Get-Content C:\Install\adm.jpg -Encoding byte)` преобразовать файл картинки в массив байтов (jpeg/bmp файл, размером фото до 100 Кб и разрешением 96×96) \
 `Set-ADUser support4 -Replace @{thumbnailPhoto=$photo}` задать значение атрибута thumbnailPhoto
 
+### ADDomainController
+`Get-ADDomainController` выводит информацию о текущем контроллере домена (LogonServer), который используется данным компьютером для аутентификации (DC выбирается при загрузке в соответствии с топологией сайтов AD) \
+`Get-ADDomainController -Discover -Service PrimaryDC` найти контроллер с ролью PDC в домене \
+`Get-ADDomainController -Filter * | ft HostName,IPv4Address,Name,Site,OperatingSystem,IsGlobalCatalog` список все DC, принадлежность к сайту, версии ОС и GC
+
+При загрузке ОС служба NetLogon делает DNS запрос со списком контроллеров домена (к SRV записи _ldap._tcp.dc._msdcs.domain_), DNS возвращает список DC в домене с записью Service Location (SRV). Клиент делает LDAP запрос к DC для определения сайта AD по своему IP адресу. Клиент через DNS запрашивает список контроллеров домена в сайте (в разделе _tcp.sitename._sites...).
+
+USN (Update Sequence Numbers) - счетчик номера последовательного обновления, который существует у каждого объекта AD. При репликации контроллеры обмениваются значениями USN, объект с более низким USN будет при репликации перезаписан объектом с более высоким USN. Находится в свойствах - Object (включить View - Advanced Features). Каждый контроллер домена содержит отдельный счетчик USN, который начинает отсчет в момент запуска процесса Dcpromo и продолжает увеличивать значения в течение всего времени существования контроллера домена. Значение счетчика USN увеличивается каждый раз, когда на контроллере домена происходит транзакция, это операции создания, обновления или удаления объекта.
+
+`Get-ADDomainController -Filter * | % { # отобразить USN объекта на всех DC в домене` \
+`Get-ADUser -Server $_.HostName -Identity support4 -Properties uSNChanged | select SamAccountName,uSNChanged` \
+`}`
+
+`dcpromo /forceremoval` принудительно выполнит понижение в роли контроллера домена до уровня рядового сервера. После понижения роли выполняется удаление всех ссылок в домене на этот контроллер. Далее производит включение сервера в состав домена, и выполнение обратного процесса, т.е. повышение сервера до уровня контроллера домена.
+
 ### ADComputer
-`Get-ADDomainController -Filter * | ft HostName, IPv4Address, operatingsystem,site,IsGlobalCatalog,IsReadOnly` список DC в домене \
 `nltest /DSGETDC:$env:userdnsdomain` узнать на каком DC аудентифицирован хост (Logon Server) \
 `nltest /SC_RESET:$env:userdnsdomain\srv-dc2.$env:userdnsdomain` переключить компьютер на другой контроллер домена AD вручную (The command completed successfully) \
 `Get-ADComputer –Identity $env:computername -Properties PasswordLastSet` время последней смены пароля на сервере \
@@ -904,20 +929,41 @@ $EventData
 `Get-ADReplicationFailure -Target dc-01` список ошибок репликации с партнерами \
 `Get-ADReplicationFailure -Target $env:userdnsdomain -Scope Domain` \
 `Get-ADReplicationPartnerMetadata -Target dc-01 | select Partner,LastReplicationAttempt,LastReplicationSuccess,LastReplicationResult,LastChangeUsn` время последней и время успешной репликации с партнерами \
-`Get-ADReplicationUpToDatenessVectorTable -Target dc-01` Update Sequence Number (USN) увеличивается каждый раз, когда на контроллере домена происходит транзакция (операции создания, обновления или удаления объекта), при репликации DC обмениваются значениями USN, объект с более низким USN при репликации будет перезаписан высоким USN. \
-`Get-ADUser -server dc-01 -Identity support4 -Properties uSNChanged | select SamAccountName,uSNChanged` отобразить номер USN объета на конкретном DC
+`Get-ADReplicationUpToDatenessVectorTable -Target dc-01` Update Sequence Number (USN) увеличивается каждый раз, когда на контроллере домена происходит транзакция (операции создания, обновления или удаления объекта), при репликации DC обмениваются значениями USN, объект с более низким USN при репликации будет перезаписан высоким USN.
 
-`repadmin /replsummary` отображает все DC, время последней репликации по направлению (Source и Destination) и их состояние с учетом партнеров \
-`repadmin /showrepl dc-01` отображает всех партнеров DC по реплкации и их статус для всех разделов NC (Naming Contexts) разделов (DC=ForestDnsZones, DC=DomainDnsZones, CN=Schema, CN=Configuration) \
-`repadmin /retry` повторить попытку привязки к целевому DC, если была ошибка 1722 или 1753 (RPC недоступен) \
-`repadmin /replicate $srv2 $srv1 DC=$d1,DC=$d2` выполнить репликацию с $srv1 на $srv2 только указанный раздела \
+`repadmin /replsummary` отображает время последней репликации на всех DC по направлению (Source и Destination) и их состояние с учетом партнеров \
+`repadmin /showrepl $srv` отображает всех партнеров по реплкации и их статус для всех разделов Naming Contexts (DC=ForestDnsZones, DC=DomainDnsZones, CN=Schema, CN=Configuration) \
+`repadmin /replicate $srv2 $srv1 DC=domain,DC=local ` выполнить репликацию с $srv1 на $srv2 только указанный раздела домена \
 `repadmin /SyncAll /AdeP` запустить межсайтовую исходящую репликацию всех разделов от текущего сервера со всеми партнерами по репликации \
-`/A` выполнить для всех разделов NC \
-`/d` в сообщениях идентифицировать серверы по DN (вместо GUID DNS - глобальным уникальным идентификаторам) \
-`/e` межсайтовая синхронизация (по умолчанию синхронизирует только с DC текущего сайта) \
-`/P` извещать об изменениях с этого сервера (по умолчанию: опрашивать об изменениях) \
-`repadmin /Queue dc-01` отображает кол-во запросов входящей репликации (очередь), которое необходимо обработать (причиной может быть большое кол-во партнеров или формирование 1000 объектов скриптом) \
-`repadmin /showbackup *` узнать дату последнего Backup \
+/A # выполнить для всех разделов NC \
+/d # в сообщениях идентифицировать серверы по DN (вместо GUID DNS - глобальным уникальным идентификаторам) \
+/e # межсайтовая синхронизация (по умолчанию синхронизирует только с DC текущего сайта) \
+/P # извещать об изменениях с этого сервера (по умолчанию: опрашивать об изменениях) \
+`repadmin /Queue $srv` отображает кол-во запросов входящей репликации (очередь), которое необходимо обработать (причиной может быть большое кол-во партнеров или формирование 1000 объектов скриптом) \
+`repadmin /showbackup *` узнать дату последнего Backup
+
+Error: 1722 - сервер rpc недоступен (ошибка отката репликации). Проверить имя домена в настройках сетевого адаптера, первым должен идти адрес DNS-сервера другого контроллера домена, вторым свой адрес. \
+`Get-Service -ComputerName $srv | select name,status | ? name -like "RpcSs"` \
+`Get-Service -ComputerName $srv -Name RpcSs -RequiredServices` зависимые службы \
+Зависимые службы RPC: \
+"Служба сведений о подключенных сетях" - должен быть включен отложенный запуск. Если служба срабатывает до "службы списка сетей", может падать связь с доменом (netlogon) \
+"Центр распространения ключей Kerberos" \
+"DNS-сервер" \
+`nslookup $srv` \
+`tnc $srv -p 135` \
+`repadmin /retry` повторить попытку привязки к целевому DC, если была ошибка 1722 или 1753 (RPC недоступен)
+
+`repadmin /showrepl $srv` \
+`Last attempt @ 2022-07-15 10:46:01 завершена с ошибкой, результат 8456 (0x2108)` при проверки showrepl этого партнера, его ошибка: 8457 (0x2109) \
+`Last success @ 2022-07-11 02:29:46` последний успех \
+Когда репликация автоматически отключена, ОС записывает в DSA - not writable одно из четырех значений: \
+`Path: HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\NTDS\Parameters` \
+`Dsa Not Writable` \
+`#define DSA_WRITABLE_GEN 1` версия леса несовместима с ОС \
+`#define DSA_WRITABLE_NO_SPACE 2` на диске, где размещена база данных Active Directory или файлы журналов (логи), недостаточно свободного места \
+`#define DSA_WRITABLE_USNROLLBCK 4` откат USN произошел из-за неправильного отката базы данных Active Directory во времени (восстановление из снапшота) \
+`#define DSA_WRITABLE_CORRUPT_UTDV 8` вектор актуальности поврежден на локальном контроллере домена
+
 `dcdiag /Test:replications /s:dc-01` отображает ошибки репликации \
 `dcdiag /Test:DNS /e /v /q` тест DNS \
 `/a` проверка всех серверов данного сайта \
