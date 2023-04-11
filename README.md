@@ -1586,8 +1586,8 @@ Start-Sleep -Seconds 1
 } while ($true)
 
 ### [Clicker]
-
-```$cSource = @'
+```
+$cSource = @'
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -1645,8 +1645,8 @@ public static void LeftClickAtPoint(int x, int y)
     SendInput(3, input, Marshal.SizeOf(input[0]));
 }
 }
-'@```
-
+'@
+```
 `Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing` \
 `[Clicker]::LeftClickAtPoint(1900,1070)`
 
