@@ -1051,7 +1051,7 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `Get-RDUserSession -ConnectionBroker $broker` список всех активных пользователей \
 `Disconnect-RDUser -HostServer $srv -UnifiedSessionID $id -Force` отключить сессию пользователя \
 `Get-RDAvailableApp -ConnectionBroker $broker -CollectionName C03` список установленного ПО на серверах в коллекции \
-`(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty` use redirection server name:i:1
+`(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty` use redirection server name:i:1 \
 `Get-RDConnectionBrokerHighAvailability`
 
 ### DFSR
