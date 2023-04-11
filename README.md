@@ -3,6 +3,7 @@
 - [Object](#Object)
 - [Regex](#Regex)
 - [Items](#Items)
+- [Event](#Event)
 - [Application](#Application)
 - [Network](#Network)
 - [SMB](#SMB)
@@ -16,8 +17,8 @@
 - [EMShell](#EMShell)
 - [PowerCLI](#PowerCLI)
 - [VBR](#VBR)
-- [REST](#REST)
-- [XML](#XML)
+- [REST API](#REST API)
+- [Console API](#Console API)
 - [Git](#Git)
 
 ### Help
@@ -423,18 +424,7 @@
 `$Cred.Password | ConvertFrom-SecureString -Key (Get-Content "C:\password.key") | Set-Content "C:\password.txt"` сохранить пароль в файл используя внешний ключ \
 `$pass = Get-Content "C:\password.txt" | ConvertTo-SecureString -Key (Get-Content "\\Server\Share\password.key")` расшифровать пароль на втором компьютере
 
-# Application
-
-### Get-Package
-`Get-Package -ProviderName msi,Programs` список установленных программ
-
-### Local User and Group
-`Get-LocalUser` список пользователей \
-`Get-LocalGroup` список групп \
-`New-LocalUser "1C" -Password $Password -FullName "1C Domain"` создать пользователя \
-`Set-LocalUser -Password $Password 1c` изменить пароль \
-`Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
-`Get-LocalGroupMember "Administrators"` члены группы
+# Event
 
 ### EventLog
 `Get-EventLog -List` отобразить все корневые журналы логов и их размер \
@@ -461,26 +451,43 @@
 `$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}` \
 `}`
 
-### Event
-`Register-EngineEvent` регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job) \
-`Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {` \
-`$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)` \
+### XML
+`if (Test-Path $CredFile) {` \
+`$Cred = Import-Clixml -path $CredFile` \
+`} elseif (!(Test-Path $CredFile)) {` \
+`$Cred = Get-Credential -Message "Enter credential"` \
+`if ($Cred -ne $null) {` \
+`$Cred | Export-CliXml -Path $CredFile` \
+`} else {` \
+`return` \
 `}` \
-`-SupportEvent` не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job \
-`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
+`}`
 
-`Register-ObjectEvent` регистрирует подписку на события объектов .NET \
-`$System_Obj | Get-Member -MemberType Event` отобразить список всех событий объекта \
-`Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {` \
-`Write-Host $System_Obj.Text` \
-`}` \
-`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
-`Unregister-Event -SourceIdentifier SrvListClick` удаляет регистрацию подписки на событие по имени события (или все *) \
-`Remove-Job -Name SrvListClick` удаляет задание \
-`-InputObject` объект или переменная, хранящая объект \
-`-EventName` событие (например, Click,MouseClick) \
-`-SourceIdentifier` название регистрируемого события \
-`-Action` действие при возникновении события
+`$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'` \
+`$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath` \
+`[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}` \
+`$EventData = Foreach ($event in $xml.Event) {` \
+`New-Object PSObject -Property @{` \
+`"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')` \
+`"User Name" = $event.UserData.EventXML.User` \
+`"User ID" = $event.UserData.EventXML.SessionID` \
+`"User Address" = $event.UserData.EventXML.Address` \
+`"Event ID" = $event.System.EventID` \
+`}}` \
+`$EventData`
+
+# Application
+
+### Get-Package
+`Get-Package -ProviderName msi,Programs` список установленных программ
+
+### Local User and Group
+`Get-LocalUser` список пользователей \
+`Get-LocalGroup` список групп \
+`New-LocalUser "1C" -Password $Password -FullName "1C Domain"` создать пользователя \
+`Set-LocalUser -Password $Password 1c` изменить пароль \
+`Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
+`Get-LocalGroupMember "Administrators"` члены группы
 
 ### Firewall
 `New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135` открыть in-порт \
@@ -576,6 +583,7 @@
 
 # WinRM
 
+`Get-Service -Name winrm -RequiredServices` статус зависимых служб \
 `Enter-PSSession -ComputerName $srv` подключиться к PowerShell сессии через PSRemoting. Подключение возможно только по FQDN-имени \
 `Invoke-Command $srv -ScriptBlock {Get-ComputerInfo}` выполнение команды через PSRemoting \
 `$session = New-PSSession $srv` открыть сессию \
@@ -800,8 +808,28 @@
 `$groups = $groups -replace "(CN=)"`
 
 ### LAPS (Local Admin Password Management)
-`Get-ADComputer -Filter * -SearchBase "DC=$d1,DC=$d2" | Get-AdmPwdPassword -ComputerName {$_.Name} | select ComputerName,Password,ExpirationTimestamp > C:\pass.txt` \
+`Import-module AdmPwd.ps` импортировать модуль \
+`Get-AdmPwdPassword -ComputerName NAME` посмотреть пароль \
+`Reset-AdmPwdPassword -ComputerName NAME` изменить пароль \
+`Get-ADComputer -Filter * -SearchBase "DC=$d1,DC=$d2" | Get-AdmPwdPassword -ComputerName {$_.Name} | select ComputerName,Password,ExpirationTimestamp | Out-GridView` \
 `Get-ADComputer -Identity $srv | Get-AdmPwdPassword -ComputerName {$_.Name} | select ComputerName,Password,ExpirationTimestamp`
+
+### Recycle Bin
+Удаленные объекты хранятся в корзине AD в течении времени захоронения (определяется в атрибуте домена msDS-deletedObjectLifetime), заданном для леса. По умолчанию это 180 дней. Если данный срок прошел, объект все еще остается в контейнере Deleted Objects, но большинство его атрибутов и связей очищаются (Recycled Object). После истечения периода tombstoneLifetime (по умолчанию также 180 дней, но можно увеличить) объект полностью удаляется из AD автоматическим процессом очистки. \
+`Get-ADForest domain.local` отобразить уровень работы леса \
+`Set-ADForestMode -Identity domain.local -ForestMode Windows2008R2Forest -force` увеличить уровень работы леса \
+`Enable-ADOptionalFeature –Identity "CN=Recycle Bin Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=domain,DC=local" –Scope ForestOrConfigurationSet –Target "domain.local"` включить корзину \
+`Get-ADOptionalFeature "Recycle Bin Feature" | select-object name,EnabledScopes` если значение EnabledScopes не пустое, значит в домене корзина Active Directory включена \
+`Get-ADObject -Filter 'Name -like "*tnas*"' -IncludeDeletedObjects` найти удаленную (Deleted: True) УЗ (ObjectClass: user) в AD \
+`Get-ADObject -Filter 'Name -like "*tnas*"' –IncludeDeletedObjects -Properties *| select-object Name, sAMAccountName, LastKnownParent, memberOf, IsDeleted | fl` проверить значение атрибута IsDeleted, контейнер, в котором находился пользователе перед удалением (LastKnownParent) и список групп, в которых он состоял \
+`Get-ADObject –filter {Deleted -eq $True -and ObjectClass -eq "user"} –includeDeletedObjects` вывести список удаленных пользователей \
+`Restore-ADObject -Identity "3dc33c7c-b912-4a19-b1b7-415c1395a34e"` восстановить по значению атрибута ObjectGUID \
+`Get-ADObject -Filter 'SAMAccountName -eq "tnas-01"' –IncludeDeletedObjects | Restore-ADObject` восстановить по SAMAccountName \
+`Get-ADObject -Filter {Deleted -eq $True -and ObjectClass -eq 'group' -and Name -like '*Allow*'} –IncludeDeletedObjects | Restore-ADObject –Verbose` восстановить группу или компьютер
+
+### thumbnailPhoto
+`$photo = [byte[]](Get-Content C:\Install\adm.jpg -Encoding byte)` преобразовать файл картинки в массив байтов (jpeg/bmp файл, размером фото до 100 Кб и разрешением 96×96) \
+`Set-ADUser support4 -Replace @{thumbnailPhoto=$photo}` задать значение атрибута thumbnailPhoto
 
 ### ADComputer
 `Get-ADDomainController -Filter * | ft HostName, IPv4Address, operatingsystem,site,IsGlobalCatalog,IsReadOnly` список DC в домене \
@@ -857,7 +885,7 @@
 `$day = (Get-Date).adddays(-30)` \
 `Get-ADUser -filter {(Created -ge $day)} -Property Created | select Name,Created` Новые пользователи за 30 дней
 
-`$day = (Get-Date).adddays(-360)`
+`$day = (Get-Date).adddays(-360)` \
 `Get-ADUser -Filter {(LastLogonTimestamp -le $day)} -Property LastLogonTimestamp | select Name,SamAccountName,@{n='LastLogonTimestamp';e={[DateTime]::FromFileTime($_.LastLogonTimestamp)}} | sort -Descending LastLogonTimestamp` пользователи, которые не логинились больше 360 дней. Репликация атрибута LastLogonTimestamp составляет от 9 до 14 дней. \
 `| Disable-ADAccount $_.SamAccountName` заблокировать \
 `-WhatIf` отобразить вывод без применения изменений
@@ -915,6 +943,18 @@
 `Get-Command *DNS*` \
 `Get-DnsServerSetting -ALL` \
 `Uninstall-WindowsFeature -Name DNS`
+
+### WSB (Windows Server Backup)
+При создании backup DC через WSB, создается копия состояния системы (System State), куда попадает база AD (NTDS.DIT), объекты групповых политик, содержимое каталога SYSVOL, реестр, метаданные IIS, база AD CS, и другие системные файлы и ресурсы. Резервная копия создается через службу теневого копирования VSS. \
+`Get-WindowsFeature Windows-Server-Backup` проверить установлена ли роль \
+`Add-Windowsfeature Windows-Server-Backup –Includeallsubfeature` установить роль
+
+`$path="\\$srv\bak-dc\dc-03\"` \
+`[string]$TargetUNC=$path+(get-date -f 'yyyy-MM-dd')` \
+`if ((Test-Path -Path $path) -eq $true) {New-Item -Path $TargetUNC -ItemType directory} # если путь доступен, создать новую директорию по дате` \
+`$WBadmin_cmd = "wbadmin.exe START BACKUP -backupTarget:$TargetUNC -systemState -noverify -vssCopy -quiet" \
+`# $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet" # Backup DB NTDS` \
+`Invoke-Expression $WBadmin_cmd`
 
 ### DNS
 `$zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,` \
@@ -1112,6 +1152,31 @@
 
 `Get-ExchangeServer | select name,serverrole,admindisplayversion,Edition,OriginatingServer,WhenCreated,WhenChanged,DataPath | ft` список всех серверов
 
+`Get-ImapSettings` настройки IMAP \
+`Get-ExchangeCertificate` список сертификатов \
+`Get-ExchangeCertificate -Thumbprint "5CEC8544D4743BC279E5FEA1679F79F5BD0C2B3A" | Enable-ExchangeCertificate -Services  IMAP, POP, IIS, SMTP` \
+`iisreset` \
+`Get-ClientAccessService | fl identity, *uri*` настройки службы автообнаружения в Exchange 2016 \
+`Get-ClientAccessService -Identity $srv | Set-ClientAccessService -AutoDiscoverServiceInternalUri https://mail.domain.ru/Autodiscover/Autodiscover.xml` изменить на внешний адрес \
+`Get-OutlookAnywhere` OA позволяет клиентам Outlook подключаться к своим почтовым ящикам за пределами локальной сети (без использования VPN) \
+`Get-WebServicesVirtualDirectory` \
+`Get-OwaVirtualDirectory` \
+`Get-ActiveSyncVirtualDirectory` \
+`Get-OabVirtualDirectory` виртуальная директория автономной адресной книги \
+`Get-OabVirtualDirectory -Server $srv | Set-OabVirtualDirectory -InternalUrl "https://mail.domain.ru/OAB" -ExternalUrl "https://mail.domain.ru/OAB"`
+
+### MessageTrackingLog
+`Get-MessageTrackingLog  –ResultSize Unlimited | select Timestamp,MessageSubject,Sender,Recipients,Source,EventID,ClientHostname,ServerHostname,ConnectorId,TotalBytes` маршрутизация писем \
+`Get-MessageTrackingLog -Start (Get-Date).AddHours(-24) -ResultSize Unlimited | where {[string]$_.recipients -like "*@yandex.ru"}` вывести сообщения за последние 24 часа, где получателем был указанный домен \
+`-Start "04/01/2023 09:00:00" -End "04/01/2023 18:00:00"` поиск по указанному промежутку времени \
+`-MessageSubject "Тест"` поиск по теме письма \
+`-Recipients "support4@domain.ru"` поиск по получателю \
+`-Sender` поиск по отправителю \
+EventID – поиск по коду события сервера (RECEIVE, SEND, FAIL, DSN, DELIVER, BADMAIL, RESOLVE, EXPAND, REDIRECT, TRANSFER, SUBMIT, POISONMESSAGE, DEFER) \
+Server – поиск на определенном транспортном сервере \
+MessageSubject — поиск по теме сообщения \
+messageID – трекинг письма по его ID
+
 ### Mailbox
 `Get-Mailbox -Database "it2"` список почтовых серверов в базе данных \
 `Get-Mailbox -resultsize unlimited | ? Emailaddresses -like "support4" | format-list name,emailaddresses,database,servername` какую БД, сервер и smtp-адреса использует почтовый ящик \
@@ -1121,9 +1186,9 @@
 `Get-MailboxStatistics "support4" | select  DisplayName,LastLoggedOnUserAccount,LastLogonTime,LastLogoffTime,ItemCount,TotalItemSize,DeletedItemCount,TotalDeletedItemSize,Database,ServerName` общее кол-во писем, их размер, время последнего входа и выхода, имя сервера и БД \
 `Get-Mailbox -Server s2 | Get-MailboxStatistics | where {$_.Lastlogontime -lt (get-date).AddDays(-30)} | Sort Lastlogontime -desc | ft displayname,Lastlogontime,totalitemsize` ящики, которые не использовались 30 и более дней
 
-`Enable-Mailbox -Identity support9 -Database test_itlite` создать почтовый ящик для существующего пользователя в AD \
+`Enable-Mailbox -Identity support9 -Database test_base` создать почтовый ящик для существующего пользователя в AD \
 `New-Mailbox -Name $login -UserPrincipalName "$login@$domain" -Database $select_db -OrganizationalUnit $path -Password (ConvertTo-SecureString -String "$password" -AsPlainText -Force)` создать новый почтовый ящик без привязки к пользователю AD \
-`Set-MailBox "support4" -PrimarySmtpAddress support24@kinomax.ru -EmailAddressPolicyEnabled $false` добавить и изменить основной SMTP-адрес электронной почты для пользователя \
+`Set-MailBox "support4" -PrimarySmtpAddress support24@domain.ru -EmailAddressPolicyEnabled $false` добавить и изменить основной SMTP-адрес электронной почты для пользователя \
 `Set-Mailbox -Identity "support4" -DeliverToMailboxAndForward $true -ForwardingSMTPAddress "username@outlook.com"` включить переадресацию почты \
 `Get-MailboxDatabase -Database $db_name | Remove-MailboxDatabase` удалить БД
 
@@ -1403,7 +1468,7 @@ Resynchronizing - ошибка и приостановка копировани�
 `Get-VBRRestorePoint` \
 `Get-VBRViProxy`
 
-# REST
+# REST API
 
 `$pars = Invoke-WebRequest -Uri $url` \
 `$pars | Get-Member` \
@@ -1456,31 +1521,205 @@ DELETE - Remove
 `$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
 `$vjob.data.virtualMachines.includes.inventoryObject`
 
-# XML
+# Console API
 
-`if (Test-Path $CredFile) {` \
-`$Cred = Import-Clixml -path $CredFile` \
-`} elseif (!(Test-Path $CredFile)) {` \
-`$Cred = Get-Credential -Message "Enter credential"` \
-`if ($Cred -ne $null) {` \
-`$Cred | Export-CliXml -Path $CredFile` \
-`} else {` \
-`return` \
+[Console] | Get-Member -Static
+[Console]::BackgroundColor = "Blue"
+
+do {
+if ([Console]::KeyAvailable) {
+$keyInfo = [Console]::ReadKey($true)
+break
+}
+Write-Host "." -NoNewline
+sleep 1
+} while ($true)
+Write-Host
+$keyInfo
+
+function Get-KeyPress {
+param (
+[Parameter(Mandatory)][ConsoleKey]$Key,
+[System.ConsoleModifiers]$ModifierKey = 0
+)
+if ([Console]::KeyAvailable) {
+$pressedKey = [Console]::ReadKey($true)
+$isPressedKey = $key -eq $pressedKey.Key
+if ($isPressedKey) {
+$pressedKey.Modifiers -eq $ModifierKey
+} else {
+[Console]::Beep(1800, 200)
+$false
+}}}
+
+Write-Warning 'Press Ctrl+Shift+Q to exit'
+do {
+Write-Host "." -NoNewline
+$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
+if ($pressed) {break}
+sleep 1
+} while ($true)
+
+### Windows API 
+
+Add-Type -AssemblyName System.Windows.Forms
+[int][System.Windows.Forms.Keys]::F1
+
+65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}
+```
+function Get-ControlKey {
+$key = 112
+$Signature = @'
+[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
+public static extern short GetAsyncKeyState(int virtualKeyCode); 
+'@
+Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
+[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
+}
+``````
+Write-Warning 'Press F1 to exit'
+do {
+Write-Host '.' -NoNewline
+$pressed = Get-ControlKey
+if ($pressed) { break }
+Start-Sleep -Seconds 1
+} while ($true)
+```
+### [Clicker]
+```
+$cSource = @'
+using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+public class Clicker
+{
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646270(v=vs.85).aspx
+[StructLayout(LayoutKind.Sequential)]
+struct INPUT
+{ 
+    public int        type; // 0 = INPUT_MOUSE,
+                            // 1 = INPUT_KEYBOARD
+                            // 2 = INPUT_HARDWARE
+    public MOUSEINPUT mi;
+}
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646273(v=vs.85).aspx
+[StructLayout(LayoutKind.Sequential)]
+struct MOUSEINPUT
+{
+    public int    dx ;
+    public int    dy ;
+    public int    mouseData ;
+    public int    dwFlags;
+    public int    time;
+    public IntPtr dwExtraInfo;
+}
+//This covers most use cases although complex mice may have additional buttons
+//There are additional constants you can use for those cases, see the msdn page
+const int MOUSEEVENTF_MOVED      = 0x0001 ;
+const int MOUSEEVENTF_LEFTDOWN   = 0x0002 ;
+const int MOUSEEVENTF_LEFTUP     = 0x0004 ;
+const int MOUSEEVENTF_RIGHTDOWN  = 0x0008 ;
+const int MOUSEEVENTF_RIGHTUP    = 0x0010 ;
+const int MOUSEEVENTF_MIDDLEDOWN = 0x0020 ;
+const int MOUSEEVENTF_MIDDLEUP   = 0x0040 ;
+const int MOUSEEVENTF_WHEEL      = 0x0080 ;
+const int MOUSEEVENTF_XDOWN      = 0x0100 ;
+const int MOUSEEVENTF_XUP        = 0x0200 ;
+const int MOUSEEVENTF_ABSOLUTE   = 0x8000 ;
+const int screen_length          = 0x10000 ;
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646310(v=vs.85).aspx
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+extern static uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+public static void LeftClickAtPoint(int x, int y)
+{
+    //Move the mouse
+    INPUT[] input = new INPUT[3];
+    input[0].mi.dx = x*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width);
+    input[0].mi.dy = y*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
+    input[0].mi.dwFlags = MOUSEEVENTF_MOVED | MOUSEEVENTF_ABSOLUTE;
+    //Left mouse button down
+    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+    //Left mouse button up
+    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+    SendInput(3, input, Marshal.SizeOf(input[0]));
+}
+}
+'@
+
+Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing
+[Clicker]::LeftClickAtPoint(1900,1070)
+```
+### [Audio]
+```
+Add-Type -Language CsharpVersion3 -TypeDefinition @"
+using System.Runtime.InteropServices;
+[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IAudioEndpointVolume {
+// f(), g(), ... are unused COM method slots. Define these if you care
+int f(); int g(); int h(); int i();
+int SetMasterVolumeLevelScalar(float fLevel, System.Guid pguidEventContext);
+int j();
+int GetMasterVolumeLevelScalar(out float pfLevel);
+int k(); int l(); int m(); int n();
+int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, System.Guid pguidEventContext);
+int GetMute(out bool pbMute);
+}
+[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IMMDevice {
+int Activate(ref System.Guid id, int clsCtx, int activationParams, out IAudioEndpointVolume aev);
+}
+[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IMMDeviceEnumerator {
+int f(); // Unused
+int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
+}
+[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }
+public class Audio {
+static IAudioEndpointVolume Vol() {
+var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;
+IMMDevice dev = null;
+Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(/*eRender*/ 0, /*eMultimedia*/ 1, out dev));
+IAudioEndpointVolume epv = null;
+var epvid = typeof(IAudioEndpointVolume).GUID;
+Marshal.ThrowExceptionForHR(dev.Activate(ref epvid, /*CLSCTX_ALL*/ 23, 0, out epv));
+return epv;
+}
+public static float Volume {
+get {float v = -1; Marshal.ThrowExceptionForHR(Vol().GetMasterVolumeLevelScalar(out v)); return v;}
+set {Marshal.ThrowExceptionForHR(Vol().SetMasterVolumeLevelScalar(value, System.Guid.Empty));}
+}
+public static bool Mute {
+get { bool mute; Marshal.ThrowExceptionForHR(Vol().GetMute(out mute)); return mute; }
+set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
+}
+}
+"@
+
+[Audio]::Volume = 0.50
+[Audio]::Mute = $true
+```
+### Register-Event
+
+`Register-EngineEvent` регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job) \
+`Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {` \
+`$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)` \
 `}` \
-`}`
+`-SupportEvent` не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job \
+`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
 
-`$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'` \
-`$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath` \
-`[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}` \
-`$EventData = Foreach ($event in $xml.Event) {` \
-`New-Object PSObject -Property @{` \
-`"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')` \
-`"User Name" = $event.UserData.EventXML.User` \
-`"User ID" = $event.UserData.EventXML.SessionID` \
-`"User Address" = $event.UserData.EventXML.Address` \
-`"Event ID" = $event.System.EventID` \
-`}}` \
-`$EventData`
+`Register-ObjectEvent` регистрирует подписку на события объектов .NET \
+`$System_Obj | Get-Member -MemberType Event` отобразить список всех событий объекта \
+`Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {` \
+`Write-Host $System_Obj.Text` \
+`}` \
+`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
+`Unregister-Event -SourceIdentifier SrvListClick` удаляет регистрацию подписки на событие по имени события (или все *) \
+`Remove-Job -Name SrvListClick` удаляет задание \
+`-InputObject` объект или переменная, хранящая объект \
+`-EventName` событие (например, Click,MouseClick) \
+`-SourceIdentifier` название регистрируемого события \
+`-Action` действие при возникновении события
 
 # Git
 
