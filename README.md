@@ -17,8 +17,8 @@
 - [EMShell](#EMShell)
 - [PowerCLI](#PowerCLI)
 - [VBR](#VBR)
-- [REST API](#REST API)
-- [Console API](#Console API)
+- [REST API](#REST-API)
+- [Console API](#Console-API)
 - [Git](#Git)
 
 ### Help
@@ -1468,7 +1468,7 @@ Resynchronizing - ошибка и приостановка копировани�
 `Get-VBRRestorePoint` \
 `Get-VBRViProxy`
 
-# REST API
+# REST-API
 
 `$pars = Invoke-WebRequest -Uri $url` \
 `$pars | Get-Member` \
@@ -1521,11 +1521,11 @@ DELETE - Remove
 `$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
 `$vjob.data.virtualMachines.includes.inventoryObject`
 
-# Console API
+# Console-API
 
-[Console] | Get-Member -Static
-[Console]::BackgroundColor = "Blue"
-
+`[Console] | Get-Member -Static` \
+`[Console]::BackgroundColor = "Blue"`
+```
 do {
 if ([Console]::KeyAvailable) {
 $keyInfo = [Console]::ReadKey($true)
@@ -1559,14 +1559,14 @@ $pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
 if ($pressed) {break}
 sleep 1
 } while ($true)
+```
+### Windows-API 
 
-### Windows API 
+`Add-Type -AssemblyName System.Windows.Forms` \
+`[int][System.Windows.Forms.Keys]::F1`
 
-Add-Type -AssemblyName System.Windows.Forms
-[int][System.Windows.Forms.Keys]::F1
-
-65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}
-
+`65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}`
+```
 function Get-ControlKey {
 $key = 112
 $Signature = @'
@@ -1584,7 +1584,7 @@ $pressed = Get-ControlKey
 if ($pressed) { break }
 Start-Sleep -Seconds 1
 } while ($true)
-
+```
 ### [Clicker]
 ```
 $cSource = @'
@@ -1651,7 +1651,7 @@ public static void LeftClickAtPoint(int x, int y)
 `[Clicker]::LeftClickAtPoint(1900,1070)`
 
 ### [Audio]
-
+```
 Add-Type -Language CsharpVersion3 -TypeDefinition @"
 using System.Runtime.InteropServices;
 [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -1695,9 +1695,9 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 }
 }
 "@
-
-[Audio]::Volume = 0.50
-[Audio]::Mute = $true
+```
+`[Audio]::Volume = 0.50` \
+`[Audio]::Mute = $true`
 
 ### Register-Event
 
