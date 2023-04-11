@@ -4,6 +4,7 @@
 - [Regex](#Regex)
 - [Items](#Items)
 - [Event](#Event)
+- [XML](#XML)
 - [Application](#Application)
 - [Network](#Network)
 - [SMB](#SMB)
@@ -451,31 +452,32 @@
 `$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}` \
 `}`
 
-### XML
-`if (Test-Path $CredFile) {` \
-`$Cred = Import-Clixml -path $CredFile` \
-`} elseif (!(Test-Path $CredFile)) {` \
-`$Cred = Get-Credential -Message "Enter credential"` \
-`if ($Cred -ne $null) {` \
-`$Cred | Export-CliXml -Path $CredFile` \
-`} else {` \
-`return` \
-`}` \
-`}`
+# XML
+```
+if (Test-Path $CredFile) {
+$Cred = Import-Clixml -path $CredFile
+} elseif (!(Test-Path $CredFile)) {
+$Cred = Get-Credential -Message "Enter credential"
+if ($Cred -ne $null) {
+$Cred | Export-CliXml -Path $CredFile
+} else {
+return
+}
+}
 
-`$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'` \
-`$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath` \
-`[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}` \
-`$EventData = Foreach ($event in $xml.Event) {` \
-`New-Object PSObject -Property @{` \
-`"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')` \
-`"User Name" = $event.UserData.EventXML.User` \
-`"User ID" = $event.UserData.EventXML.SessionID` \
-`"User Address" = $event.UserData.EventXML.Address` \
-`"Event ID" = $event.System.EventID` \
-`}}` \
-`$EventData`
-
+$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
+$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath
+[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}
+$EventData = Foreach ($event in $xml.Event) {
+New-Object PSObject -Property @{
+"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')
+"User Name" = $event.UserData.EventXML.User
+"User ID" = $event.UserData.EventXML.SessionID
+"User Address" = $event.UserData.EventXML.Address
+"Event ID" = $event.System.EventID
+}}
+$EventData
+```
 # Application
 
 ### Get-Package
