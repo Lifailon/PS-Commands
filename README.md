@@ -1566,7 +1566,7 @@ Add-Type -AssemblyName System.Windows.Forms
 [int][System.Windows.Forms.Keys]::F1
 
 65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}
-```
+
 function Get-ControlKey {
 $key = 112
 $Signature = @'
@@ -1576,7 +1576,7 @@ public static extern short GetAsyncKeyState(int virtualKeyCode);
 Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
 [bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
 }
-``````
+
 Write-Warning 'Press F1 to exit'
 do {
 Write-Host '.' -NoNewline
@@ -1584,10 +1584,10 @@ $pressed = Get-ControlKey
 if ($pressed) { break }
 Start-Sleep -Seconds 1
 } while ($true)
-```
+
 ### [Clicker]
-```
-$cSource = @'
+
+```$cSource = @'
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -1645,13 +1645,13 @@ public static void LeftClickAtPoint(int x, int y)
     SendInput(3, input, Marshal.SizeOf(input[0]));
 }
 }
-'@
+'@```
 
-Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing
-[Clicker]::LeftClickAtPoint(1900,1070)
-```
+`Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing` \
+`[Clicker]::LeftClickAtPoint(1900,1070)`
+
 ### [Audio]
-```
+
 Add-Type -Language CsharpVersion3 -TypeDefinition @"
 using System.Runtime.InteropServices;
 [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -1698,7 +1698,7 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 
 [Audio]::Volume = 0.50
 [Audio]::Mute = $true
-```
+
 ### Register-Event
 
 `Register-EngineEvent` регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job) \
