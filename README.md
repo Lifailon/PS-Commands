@@ -15,11 +15,11 @@
 - [ServerManager](#ServerManager)
 - [PackageManagement](#PackageManagement)
 - [SQLite](#SQLite)
-- [EMShell](#EMShell)
 - [PowerCLI](#PowerCLI)
 - [VBR](#VBR)
 - [REST API](#REST-API)
 - [Console API](#Console-API)
+- [EMShell](#EMShell)
 - [Git](#Git)
 
 ### Help
@@ -1010,6 +1010,36 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `sync from domain account dsrmadmin` \
 `quit` \
 `quit`
+
+Ошибка 0x00002e2 при загрузке ОС. \
+Загрузиться в режиме восстанавления WinRE (Windows Recovery Environment) - Startup Settings - Restart - DSRM (Directory Services Restore Mode) \
+`reagentc /boottore # shutdown /f /r /o /t 0` перезагрузка в режиме WinRE - ОС на базе WinPE (Windows Preinstallation Environment), образ winre.wim находится на скрытом разделе System Restore \
+На контроллере домена единственная локальная учетная запись — администратор DSRM. Пароль создается при установке роли контроллера домена ADDS на сервере (SafeModeAdministratorPassword). \
+`ntdsutil` \
+`activate instance ntds` \
+`Files` \
+`Info` \
+`integrity` проверить целостность БД \
+Ошибка: Failed to open DIT for AD DS/LDS instance NTDS. Error -2147418113 \
+`mkdir c:\ntds_bak` \
+`xcopy c:\Windows\NTDS\*.* c:\ntds_bak` backup содержимого каталога с БД \
+`esentutl /g c:\windows\ntds\ntds.dit` проверим целостность файла \
+Вывод: Integrity check completed. Database is CORRUPTED # ошибка, база AD повреждена \
+`esentutl /p c:\windows\ntds\ntds.dit` исправить ошибки \
+Вывод: Operation completed successfully in xx seconds. # нет ошибок \
+`esentutl /g c:\windows\ntds\ntds.dit` проверим целостность файла \
+Выполнить анализ семантики базы с помощью ntdsutil: \
+`ntdsutil` \
+`activate instance ntds` \
+`semantic database analysis` \
+`go` \
+`go fixup` исправить семантические ошибки \
+Сжать файл БД: \
+`activate instance ntds` \
+`files` \
+`compact to C:\Windows\NTDS\TEMP` \
+`copy C:\Windows\NTDS\TEMP\ntds.dit C:\Windows\NTDS\ntds.dit` заменить оригинальный файл ntds.dit \
+`Del C:\Windows\NTDS\*.log` удалить все лог файлы из каталога NTDS
 
 # ServerManager
 
