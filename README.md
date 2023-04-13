@@ -1221,6 +1221,351 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `$Connection.Close()` \
 `Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"`
 
+# PowerCLI
+
+`Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
+`Get-Module -ListAvailable VMware* | Select Name,Version` \
+`Import-Module VMware.VimAutomation.Core` импортировать в сессию \
+`Get-PSProvider | format-list Name,PSSnapIn,ModuleName` список оснасток Windows PowerShell
+
+`Get-PowerCLIConfiguration` конфигурация подключения \
+`Set-PowerCLIConfiguration -Scope AllUsers -InvalidCertificateAction ignore -confirm:$false` eсли используется самоподписанный сертификат, изменить значение параметра InvalidCertificateAction с Unset на Ignore/Warn \
+`Set-PowerCLIConfiguration -Scope AllUsers -ParticipateInCeip $false` отключить уведомление сбора данных через VMware Customer Experience Improvement Program (CEIP)
+
+`Read-Host –AsSecureString | ConvertFrom-SecureString | Out-File "$home\Documents\vcsa_password.txt"` зашифровать пароль и сохранить в файл \
+`$esxi = "vcsa.domain.local"` \
+`$user = "administrator@vsphere.local"` \
+`$pass = Get-Content "$home\Documents\vcsa_password.txt" | ConvertTo-SecureString` прочитать пароль \
+`$pass = "password"` \
+`$Cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $user ,$pass` \
+`Connect-VIServer $esxi -User $Cred.Username -Password $Cred.GetNetworkCredential().password` подключиться, используя PSCredential ($Cred) \
+`Connect-VIServer $esxi -User $user -Password $pass` подключиться, используя логин и пароль
+
+`Get-Command –Module *vmware*` \
+`Get-Command –Module *vmware* -name *get*iscsi*` \
+`Get-IScsiHbaTarget` \
+`Get-Datacenter` \
+`Get-Cluster` \
+`Get-VMHost` \
+`Get-VMHost | select Name,Model,ProcessorType,MaxEVCMode,NumCpu,CpuTotalMhz,CpuUsageMhz,MemoryTotalGB,MemoryUsageGB` \
+`Get-VMHostDisk | select VMHost,ScsiLun,TotalSectors`
+
+`Get-Datastore` \
+`Get-Datastore TNAS-vmfs-4tb-01` \
+`Get-Datastore TNAS-vmfs-4tb-01 | get-vm` \
+`Get-Datastore -RelatedObject vm-01` \
+`(Get-Datastore TNAS-vmfs-4tb-01).ExtensionData.Info.GetType()` \
+`(Get-Datastore TNAS-vmfs-4tb-01).ExtensionData.Info.Vmfs.Extent`
+
+`Get-Command –Module *vmware* -name *disk*` \
+`Get-VM vm-01 | Get-Datastore` \
+`Get-VM vm-01 | Get-HardDisk` \
+`Get-VM | Get-HardDisk | select Parent,Name,CapacityGB,StorageFormat,FileName | ft` \
+`Copy-HardDisk` \
+`Get-VM | Get-Snapshot` \
+`Get-VM | where {$_.Powerstate -eq "PoweredOn"}` \
+`Get-VMHost esxi-05 | Get-VM | where {$_.Powerstate -eq "PoweredOff"} | Move-VM –Destination (Get-VMHost esxi-06)`
+
+`Get-VM | select Name,VMHost,PowerState,NumCpu,MemoryGB,` \
+`@{Name="UsedSpaceGB"; Expression={[int32]($_.UsedSpaceGB)}},@{Name="ProvisionedSpaceGB"; Expression={[int32]($_.ProvisionedSpaceGB)}},` \
+`CreateDate,CpuHotAddEnabled,MemoryHotAddEnabled,CpuHotRemoveEnabled,Notes`
+
+`Get-VMGuest vm-01 | Update-Tools` \
+`Get-VMGuest vm-01 | select OSFullName,IPAddress,HostName,State,Disks,Nics,ToolsVersion` \
+`Get-VMGuest * | select -ExpandProperty IPAddress` \
+`Restart-VMGuest -vm vm-01 -Confirm:$False` \
+`Start-VM -vm vm-01 -Confirm:$False` \
+`Shutdown-VMGuest -vm vm-01 -Confirm:$false`
+
+`New-VM –Name vm-01 -VMHost esxi-06 –ResourcePool Production –DiskGB 60 –DiskStorageFormat Thin –Datastore TNAS-vmfs-4tb-01` \
+`Get-VM vm-01 | Copy-VMGuestFile -Source "\\$srv\Install\Soft\Btest.exe" -Destination "C:\Install\" -LocalToGuest -GuestUser USER -GuestPassword PASS -force`
+
+`Get-VM -name vm-01 | Export-VApp -Destination C:\Install -Format OVF` Export template (.ovf, .vmdk, .mf) \
+`Get-VM -name vm-01 | Export-VApp -Destination C:\Install -Format OVA`
+
+`Get-VMHostNetworkAdapter | select VMHost,Name,Mac,IP,@{Label="Port Group"; Expression={$_.ExtensionData.Portgroup}} | ft` \
+`Get-VM | Get-NetworkAdapter | select Parent,Name,Id,Type,MacAddress,ConnectionState,WakeOnLanEnabled | ft`
+
+`Get-Command –Module *vmware* -name *event*` \
+`Get-VIEvent -MaxSamples 1000 | where {($_.FullFormattedMessage -match "power")} | select username,CreatedTime,FullFormattedMessage` \
+`Get-logtype | select Key,SourceEntityId,Filename,Creator,Info` \
+`(Get-Log vpxd:vpxd.log).Entries | select -Last 50`
+
+`Get-Command –Module *vmware* -name *syslog*` \
+`Set-VMHostSysLogServer -VMHost esxi-05 -SysLogServer "tcp://192.168.3.100" -SysLogServerPort 3515` \
+`Get-VMHostSysLogServer -VMHost esxi-05`
+
+# VBR
+
+`Set-ExecutionPolicy AllSigned` or Set-ExecutionPolicy Bypass -Scope Process \
+`Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
+`choco install veeam-backup-and-replication-console` \
+`Get-Module Veeam.Backup.PowerShell` \
+`Get-Command -Module Veeam.Backup.PowerShell` or Get-VBRCommand \
+`Connect-VBRServer -Server $srv -Credential $cred` # or -User and -Password # - Port 9392 # default \
+`Get-VBRJob` \
+`Get-VBRCommand *get*backup*` \
+`Get-VBRComputerBackupJob` \
+`Get-VBRBackup` \
+`Get-VBRBackupRepository` \
+`Get-VBRBackupSession` \
+`Get-VBRBackupServerCertificate` \
+`Get-VBRRestorePoint` \
+`Get-VBRViProxy`
+
+# REST-API
+
+`$pars = Invoke-WebRequest -Uri $url` \
+`$pars | Get-Member` \
+`$pars.Content` \
+`$pars.StatusCode -eq 200` \
+`$pars.Headers` \
+`$pars.ParsedHtml | Select lastModified` \
+`$pars.Links | fl title,innerText,href` \
+`$pars.Images.src` links on images \
+`iwr $url -OutFile $path` download
+
+`$pars = wget -Uri $url` \
+`$pars.Images.src | %{` \
+`$name = $_ -replace ".+(?<=/)"` \
+`wget $_ -OutFile "$home\Pictures\$name"` \
+`}` \
+`$count_all = $pars.Images.src.Count` \
+`$count_down = (Get-Item $path\*).count` \
+`"Downloaded $count_down of $count_all files to $path"`
+
+Methods: \
+GET - Read \
+POST - Create \
+PATCH - Partial update/modify \
+PUT - Update/replace \
+DELETE - Remove
+
+`https://veeam-11:9419/swagger/ui/index.html` \
+`$Header = @{` \
+`"x-api-version" = "1.0-rev2"` \
+`}` \
+`$Body = @{` \
+`"grant_type" = "password"` \
+`"username" = "$login"` \
+`"password" = "$password"` \
+`}` \
+`$vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck` \
+`$vtoken = (($vpost.Content) -split '"')[3]`
+
+`$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force` \
+`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck`
+
+`$Header = @{` \
+`"x-api-version" = "1.0-rev1"` \
+`"Authorization" = "Bearer $vtoken"` \
+`}` \
+`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
+`$vjob = $vjob.Content | ConvertFrom-Json`
+
+`$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
+`$vjob.data.virtualMachines.includes.inventoryObject`
+
+# Console-API
+
+`[Console] | Get-Member -Static` \
+`[Console]::BackgroundColor = "Blue"`
+```
+do {
+if ([Console]::KeyAvailable) {
+$keyInfo = [Console]::ReadKey($true)
+break
+}
+Write-Host "." -NoNewline
+sleep 1
+} while ($true)
+Write-Host
+$keyInfo
+
+function Get-KeyPress {
+param (
+[Parameter(Mandatory)][ConsoleKey]$Key,
+[System.ConsoleModifiers]$ModifierKey = 0
+)
+if ([Console]::KeyAvailable) {
+$pressedKey = [Console]::ReadKey($true)
+$isPressedKey = $key -eq $pressedKey.Key
+if ($isPressedKey) {
+$pressedKey.Modifiers -eq $ModifierKey
+} else {
+[Console]::Beep(1800, 200)
+$false
+}}}
+
+Write-Warning 'Press Ctrl+Shift+Q to exit'
+do {
+Write-Host "." -NoNewline
+$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
+if ($pressed) {break}
+sleep 1
+} while ($true)
+```
+### Windows-API 
+
+`Add-Type -AssemblyName System.Windows.Forms` \
+`[int][System.Windows.Forms.Keys]::F1`
+
+`65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}`
+```
+function Get-ControlKey {
+$key = 112
+$Signature = @'
+[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
+public static extern short GetAsyncKeyState(int virtualKeyCode); 
+'@
+Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
+[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
+}
+
+Write-Warning 'Press F1 to exit'
+do {
+Write-Host '.' -NoNewline
+$pressed = Get-ControlKey
+if ($pressed) { break }
+Start-Sleep -Seconds 1
+} while ($true)
+```
+### [Clicker]
+```
+$cSource = @'
+using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+public class Clicker
+{
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646270(v=vs.85).aspx
+[StructLayout(LayoutKind.Sequential)]
+struct INPUT
+{ 
+    public int        type; // 0 = INPUT_MOUSE,
+                            // 1 = INPUT_KEYBOARD
+                            // 2 = INPUT_HARDWARE
+    public MOUSEINPUT mi;
+}
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646273(v=vs.85).aspx
+[StructLayout(LayoutKind.Sequential)]
+struct MOUSEINPUT
+{
+    public int    dx ;
+    public int    dy ;
+    public int    mouseData ;
+    public int    dwFlags;
+    public int    time;
+    public IntPtr dwExtraInfo;
+}
+//This covers most use cases although complex mice may have additional buttons
+//There are additional constants you can use for those cases, see the msdn page
+const int MOUSEEVENTF_MOVED      = 0x0001 ;
+const int MOUSEEVENTF_LEFTDOWN   = 0x0002 ;
+const int MOUSEEVENTF_LEFTUP     = 0x0004 ;
+const int MOUSEEVENTF_RIGHTDOWN  = 0x0008 ;
+const int MOUSEEVENTF_RIGHTUP    = 0x0010 ;
+const int MOUSEEVENTF_MIDDLEDOWN = 0x0020 ;
+const int MOUSEEVENTF_MIDDLEUP   = 0x0040 ;
+const int MOUSEEVENTF_WHEEL      = 0x0080 ;
+const int MOUSEEVENTF_XDOWN      = 0x0100 ;
+const int MOUSEEVENTF_XUP        = 0x0200 ;
+const int MOUSEEVENTF_ABSOLUTE   = 0x8000 ;
+const int screen_length          = 0x10000 ;
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646310(v=vs.85).aspx
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+extern static uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+public static void LeftClickAtPoint(int x, int y)
+{
+    //Move the mouse
+    INPUT[] input = new INPUT[3];
+    input[0].mi.dx = x*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width);
+    input[0].mi.dy = y*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
+    input[0].mi.dwFlags = MOUSEEVENTF_MOVED | MOUSEEVENTF_ABSOLUTE;
+    //Left mouse button down
+    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+    //Left mouse button up
+    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+    SendInput(3, input, Marshal.SizeOf(input[0]));
+}
+}
+'@
+```
+`Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing` \
+`[Clicker]::LeftClickAtPoint(1900,1070)`
+
+### [Audio]
+```
+Add-Type -Language CsharpVersion3 -TypeDefinition @"
+using System.Runtime.InteropServices;
+[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IAudioEndpointVolume {
+// f(), g(), ... are unused COM method slots. Define these if you care
+int f(); int g(); int h(); int i();
+int SetMasterVolumeLevelScalar(float fLevel, System.Guid pguidEventContext);
+int j();
+int GetMasterVolumeLevelScalar(out float pfLevel);
+int k(); int l(); int m(); int n();
+int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, System.Guid pguidEventContext);
+int GetMute(out bool pbMute);
+}
+[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IMMDevice {
+int Activate(ref System.Guid id, int clsCtx, int activationParams, out IAudioEndpointVolume aev);
+}
+[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IMMDeviceEnumerator {
+int f(); // Unused
+int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
+}
+[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }
+public class Audio {
+static IAudioEndpointVolume Vol() {
+var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;
+IMMDevice dev = null;
+Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(/*eRender*/ 0, /*eMultimedia*/ 1, out dev));
+IAudioEndpointVolume epv = null;
+var epvid = typeof(IAudioEndpointVolume).GUID;
+Marshal.ThrowExceptionForHR(dev.Activate(ref epvid, /*CLSCTX_ALL*/ 23, 0, out epv));
+return epv;
+}
+public static float Volume {
+get {float v = -1; Marshal.ThrowExceptionForHR(Vol().GetMasterVolumeLevelScalar(out v)); return v;}
+set {Marshal.ThrowExceptionForHR(Vol().SetMasterVolumeLevelScalar(value, System.Guid.Empty));}
+}
+public static bool Mute {
+get { bool mute; Marshal.ThrowExceptionForHR(Vol().GetMute(out mute)); return mute; }
+set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
+}
+}
+"@
+```
+`[Audio]::Volume = 0.50` \
+`[Audio]::Mute = $true`
+
+### Register-Event
+
+`Register-EngineEvent` регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job) \
+`Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {` \
+`$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)` \
+`}` \
+`-SupportEvent` не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job \
+`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
+
+`Register-ObjectEvent` регистрирует подписку на события объектов .NET \
+`$System_Obj | Get-Member -MemberType Event` отобразить список всех событий объекта \
+`Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {` \
+`Write-Host $System_Obj.Text` \
+`}` \
+`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
+`Unregister-Event -SourceIdentifier SrvListClick` удаляет регистрацию подписки на событие по имени события (или все *) \
+`Remove-Job -Name SrvListClick` удаляет задание \
+`-InputObject` объект или переменная, хранящая объект \
+`-EventName` событие (например, Click,MouseClick) \
+`-SourceIdentifier` название регистрируемого события \
+`-Action` действие при возникновении события
+
 # EMShell
 
 `$srv_cas = "exchange-cas"` \
@@ -1575,351 +1920,6 @@ CopyQueue Length - длина репликационной очереди коп
 `.\ResetSearchIndex.ps1 $db_name` скрипт восстановления индекса
 
 `Get-MailboxDatabaseCopyStatus * | where {$_.ContentIndexState -eq "Failed" -or $_.ContentIndexState -eq "FailedAndSuspended"}` отобразить у какой БД произошел сбой работы (FailedAndSuspended) или индекса (ContentIndexState)
-
-# PowerCLI
-
-`Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
-`Get-Module -ListAvailable VMware* | Select Name,Version` \
-`Import-Module VMware.VimAutomation.Core` импортировать в сессию \
-`Get-PSProvider | format-list Name,PSSnapIn,ModuleName` список оснасток Windows PowerShell
-
-`Get-PowerCLIConfiguration` конфигурация подключения \
-`Set-PowerCLIConfiguration -Scope AllUsers -InvalidCertificateAction ignore -confirm:$false` eсли используется самоподписанный сертификат, изменить значение параметра InvalidCertificateAction с Unset на Ignore/Warn \
-`Set-PowerCLIConfiguration -Scope AllUsers -ParticipateInCeip $false` отключить уведомление сбора данных через VMware Customer Experience Improvement Program (CEIP)
-
-`Read-Host –AsSecureString | ConvertFrom-SecureString | Out-File "$home\Documents\vcsa_password.txt"` зашифровать пароль и сохранить в файл \
-`$esxi = "vcsa.domain.local"` \
-`$user = "administrator@vsphere.local"` \
-`$pass = Get-Content "$home\Documents\vcsa_password.txt" | ConvertTo-SecureString` прочитать пароль \
-`$pass = "password"` \
-`$Cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $user ,$pass` \
-`Connect-VIServer $esxi -User $Cred.Username -Password $Cred.GetNetworkCredential().password` подключиться, используя PSCredential ($Cred) \
-`Connect-VIServer $esxi -User $user -Password $pass` подключиться, используя логин и пароль
-
-`Get-Command –Module *vmware*` \
-`Get-Command –Module *vmware* -name *get*iscsi*` \
-`Get-IScsiHbaTarget` \
-`Get-Datacenter` \
-`Get-Cluster` \
-`Get-VMHost` \
-`Get-VMHost | select Name,Model,ProcessorType,MaxEVCMode,NumCpu,CpuTotalMhz,CpuUsageMhz,MemoryTotalGB,MemoryUsageGB` \
-`Get-VMHostDisk | select VMHost,ScsiLun,TotalSectors`
-
-`Get-Datastore` \
-`Get-Datastore TNAS-vmfs-4tb-01` \
-`Get-Datastore TNAS-vmfs-4tb-01 | get-vm` \
-`Get-Datastore -RelatedObject vm-01` \
-`(Get-Datastore TNAS-vmfs-4tb-01).ExtensionData.Info.GetType()` \
-`(Get-Datastore TNAS-vmfs-4tb-01).ExtensionData.Info.Vmfs.Extent`
-
-`Get-Command –Module *vmware* -name *disk*` \
-`Get-VM vm-01 | Get-Datastore` \
-`Get-VM vm-01 | Get-HardDisk` \
-`Get-VM | Get-HardDisk | select Parent,Name,CapacityGB,StorageFormat,FileName | ft` \
-`Copy-HardDisk` \
-`Get-VM | Get-Snapshot` \
-`Get-VM | where {$_.Powerstate -eq "PoweredOn"}` \
-`Get-VMHost esxi-05 | Get-VM | where {$_.Powerstate -eq "PoweredOff"} | Move-VM –Destination (Get-VMHost esxi-06)`
-
-`Get-VM | select Name,VMHost,PowerState,NumCpu,MemoryGB,` \
-`@{Name="UsedSpaceGB"; Expression={[int32]($_.UsedSpaceGB)}},@{Name="ProvisionedSpaceGB"; Expression={[int32]($_.ProvisionedSpaceGB)}},` \
-`CreateDate,CpuHotAddEnabled,MemoryHotAddEnabled,CpuHotRemoveEnabled,Notes`
-
-`Get-VMGuest vm-01 | Update-Tools` \
-`Get-VMGuest vm-01 | select OSFullName,IPAddress,HostName,State,Disks,Nics,ToolsVersion` \
-`Get-VMGuest * | select -ExpandProperty IPAddress` \
-`Restart-VMGuest -vm vm-01 -Confirm:$False` \
-`Start-VM -vm vm-01 -Confirm:$False` \
-`Shutdown-VMGuest -vm vm-01 -Confirm:$false`
-
-`New-VM –Name vm-01 -VMHost esxi-06 –ResourcePool Production –DiskGB 60 –DiskStorageFormat Thin –Datastore TNAS-vmfs-4tb-01` \
-`Get-VM vm-01 | Copy-VMGuestFile -Source "\\$srv\Install\Soft\Btest.exe" -Destination "C:\Install\" -LocalToGuest -GuestUser USER -GuestPassword PASS -force`
-
-`Get-VM -name vm-01 | Export-VApp -Destination C:\Install -Format OVF` Export template (.ovf, .vmdk, .mf) \
-`Get-VM -name vm-01 | Export-VApp -Destination C:\Install -Format OVA`
-
-`Get-VMHostNetworkAdapter | select VMHost,Name,Mac,IP,@{Label="Port Group"; Expression={$_.ExtensionData.Portgroup}} | ft` \
-`Get-VM | Get-NetworkAdapter | select Parent,Name,Id,Type,MacAddress,ConnectionState,WakeOnLanEnabled | ft`
-
-`Get-Command –Module *vmware* -name *event*` \
-`Get-VIEvent -MaxSamples 1000 | where {($_.FullFormattedMessage -match "power")} | select username,CreatedTime,FullFormattedMessage` \
-`Get-logtype | select Key,SourceEntityId,Filename,Creator,Info` \
-`(Get-Log vpxd:vpxd.log).Entries | select -Last 50`
-
-`Get-Command –Module *vmware* -name *syslog*` \
-`Set-VMHostSysLogServer -VMHost esxi-05 -SysLogServer "tcp://192.168.3.100" -SysLogServerPort 3515` \
-`Get-VMHostSysLogServer -VMHost esxi-05`
-
-# VBR
-
-`Set-ExecutionPolicy AllSigned` or Set-ExecutionPolicy Bypass -Scope Process \
-`Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
-`choco install veeam-backup-and-replication-console` \
-`Get-Module Veeam.Backup.PowerShell` \
-`Get-Command -Module Veeam.Backup.PowerShell` or Get-VBRCommand \
-`Connect-VBRServer -Server $srv -Credential $cred` # or -User and -Password # - Port 9392 # default \
-`Get-VBRJob` \
-`Get-VBRCommand *get*backup*` \
-`Get-VBRComputerBackupJob` \
-`Get-VBRBackup` \
-`Get-VBRBackupRepository` \
-`Get-VBRBackupSession` \
-`Get-VBRBackupServerCertificate` \
-`Get-VBRRestorePoint` \
-`Get-VBRViProxy`
-
-# REST-API
-
-`$pars = Invoke-WebRequest -Uri $url` \
-`$pars | Get-Member` \
-`$pars.Content` \
-`$pars.StatusCode -eq 200` \
-`$pars.Headers` \
-`$pars.ParsedHtml | Select lastModified` \
-`$pars.Links | fl title,innerText,href` \
-`$pars.Images.src` links on images \
-`iwr $url -OutFile $path` download
-
-`$pars = wget -Uri $url` \
-`$pars.Images.src | %{` \
-`$name = $_ -replace ".+(?<=/)"` \
-`wget $_ -OutFile "$home\Pictures\$name"` \
-`}` \
-`$count_all = $pars.Images.src.Count` \
-`$count_down = (Get-Item $path\*).count` \
-`"Downloaded $count_down of $count_all files to $path"`
-
-Methods: \
-GET - Read \
-POST - Create \
-PATCH - Partial update/modify \
-PUT - Update/replace \
-DELETE - Remove
-
-`https://veeam-11:9419/swagger/ui/index.html` \
-`$Header = @{` \
-`"x-api-version" = "1.0-rev2"` \
-`}` \
-`$Body = @{` \
-`"grant_type" = "password"` \
-`"username" = "$login"` \
-`"password" = "$password"` \
-`}` \
-`$vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck` \
-`$vtoken = (($vpost.Content) -split '"')[3]`
-
-`$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force` \
-`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck`
-
-`$Header = @{` \
-`"x-api-version" = "1.0-rev1"` \
-`"Authorization" = "Bearer $vtoken"` \
-`}` \
-`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
-`$vjob = $vjob.Content | ConvertFrom-Json`
-
-`$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
-`$vjob.data.virtualMachines.includes.inventoryObject`
-
-# Console-API
-
-`[Console] | Get-Member -Static` \
-`[Console]::BackgroundColor = "Blue"`
-```
-do {
-if ([Console]::KeyAvailable) {
-$keyInfo = [Console]::ReadKey($true)
-break
-}
-Write-Host "." -NoNewline
-sleep 1
-} while ($true)
-Write-Host
-$keyInfo
-
-function Get-KeyPress {
-param (
-[Parameter(Mandatory)][ConsoleKey]$Key,
-[System.ConsoleModifiers]$ModifierKey = 0
-)
-if ([Console]::KeyAvailable) {
-$pressedKey = [Console]::ReadKey($true)
-$isPressedKey = $key -eq $pressedKey.Key
-if ($isPressedKey) {
-$pressedKey.Modifiers -eq $ModifierKey
-} else {
-[Console]::Beep(1800, 200)
-$false
-}}}
-
-Write-Warning 'Press Ctrl+Shift+Q to exit'
-do {
-Write-Host "." -NoNewline
-$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
-if ($pressed) {break}
-sleep 1
-} while ($true)
-```
-### Windows-API 
-
-`Add-Type -AssemblyName System.Windows.Forms` \
-`[int][System.Windows.Forms.Keys]::F1`
-
-`65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}`
-```
-function Get-ControlKey {
-$key = 112
-$Signature = @'
-[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
-public static extern short GetAsyncKeyState(int virtualKeyCode); 
-'@
-Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
-[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
-}
-
-Write-Warning 'Press F1 to exit'
-do {
-Write-Host '.' -NoNewline
-$pressed = Get-ControlKey
-if ($pressed) { break }
-Start-Sleep -Seconds 1
-} while ($true)
-```
-### [Clicker]
-```
-$cSource = @'
-using System;
-using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
-public class Clicker
-{
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646270(v=vs.85).aspx
-[StructLayout(LayoutKind.Sequential)]
-struct INPUT
-{ 
-    public int        type; // 0 = INPUT_MOUSE,
-                            // 1 = INPUT_KEYBOARD
-                            // 2 = INPUT_HARDWARE
-    public MOUSEINPUT mi;
-}
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646273(v=vs.85).aspx
-[StructLayout(LayoutKind.Sequential)]
-struct MOUSEINPUT
-{
-    public int    dx ;
-    public int    dy ;
-    public int    mouseData ;
-    public int    dwFlags;
-    public int    time;
-    public IntPtr dwExtraInfo;
-}
-//This covers most use cases although complex mice may have additional buttons
-//There are additional constants you can use for those cases, see the msdn page
-const int MOUSEEVENTF_MOVED      = 0x0001 ;
-const int MOUSEEVENTF_LEFTDOWN   = 0x0002 ;
-const int MOUSEEVENTF_LEFTUP     = 0x0004 ;
-const int MOUSEEVENTF_RIGHTDOWN  = 0x0008 ;
-const int MOUSEEVENTF_RIGHTUP    = 0x0010 ;
-const int MOUSEEVENTF_MIDDLEDOWN = 0x0020 ;
-const int MOUSEEVENTF_MIDDLEUP   = 0x0040 ;
-const int MOUSEEVENTF_WHEEL      = 0x0080 ;
-const int MOUSEEVENTF_XDOWN      = 0x0100 ;
-const int MOUSEEVENTF_XUP        = 0x0200 ;
-const int MOUSEEVENTF_ABSOLUTE   = 0x8000 ;
-const int screen_length          = 0x10000 ;
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646310(v=vs.85).aspx
-[System.Runtime.InteropServices.DllImport("user32.dll")]
-extern static uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
-public static void LeftClickAtPoint(int x, int y)
-{
-    //Move the mouse
-    INPUT[] input = new INPUT[3];
-    input[0].mi.dx = x*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width);
-    input[0].mi.dy = y*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
-    input[0].mi.dwFlags = MOUSEEVENTF_MOVED | MOUSEEVENTF_ABSOLUTE;
-    //Left mouse button down
-    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-    //Left mouse button up
-    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
-    SendInput(3, input, Marshal.SizeOf(input[0]));
-}
-}
-'@
-```
-`Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing` \
-`[Clicker]::LeftClickAtPoint(1900,1070)`
-
-### [Audio]
-```
-Add-Type -Language CsharpVersion3 -TypeDefinition @"
-using System.Runtime.InteropServices;
-[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IAudioEndpointVolume {
-// f(), g(), ... are unused COM method slots. Define these if you care
-int f(); int g(); int h(); int i();
-int SetMasterVolumeLevelScalar(float fLevel, System.Guid pguidEventContext);
-int j();
-int GetMasterVolumeLevelScalar(out float pfLevel);
-int k(); int l(); int m(); int n();
-int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, System.Guid pguidEventContext);
-int GetMute(out bool pbMute);
-}
-[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IMMDevice {
-int Activate(ref System.Guid id, int clsCtx, int activationParams, out IAudioEndpointVolume aev);
-}
-[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IMMDeviceEnumerator {
-int f(); // Unused
-int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
-}
-[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }
-public class Audio {
-static IAudioEndpointVolume Vol() {
-var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;
-IMMDevice dev = null;
-Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(/*eRender*/ 0, /*eMultimedia*/ 1, out dev));
-IAudioEndpointVolume epv = null;
-var epvid = typeof(IAudioEndpointVolume).GUID;
-Marshal.ThrowExceptionForHR(dev.Activate(ref epvid, /*CLSCTX_ALL*/ 23, 0, out epv));
-return epv;
-}
-public static float Volume {
-get {float v = -1; Marshal.ThrowExceptionForHR(Vol().GetMasterVolumeLevelScalar(out v)); return v;}
-set {Marshal.ThrowExceptionForHR(Vol().SetMasterVolumeLevelScalar(value, System.Guid.Empty));}
-}
-public static bool Mute {
-get { bool mute; Marshal.ThrowExceptionForHR(Vol().GetMute(out mute)); return mute; }
-set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
-}
-}
-"@
-```
-`[Audio]::Volume = 0.50` \
-`[Audio]::Mute = $true`
-
-### Register-Event
-
-`Register-EngineEvent` регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job) \
-`Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {` \
-`$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)` \
-`}` \
-`-SupportEvent` не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job \
-`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
-
-`Register-ObjectEvent` регистрирует подписку на события объектов .NET \
-`$System_Obj | Get-Member -MemberType Event` отобразить список всех событий объекта \
-`Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {` \
-`Write-Host $System_Obj.Text` \
-`}` \
-`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
-`Unregister-Event -SourceIdentifier SrvListClick` удаляет регистрацию подписки на событие по имени события (или все *) \
-`Remove-Job -Name SrvListClick` удаляет задание \
-`-InputObject` объект или переменная, хранящая объект \
-`-EventName` событие (например, Click,MouseClick) \
-`-SourceIdentifier` название регистрируемого события \
-`-Action` действие при возникновении события
 
 # Git
 
