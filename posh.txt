@@ -377,10 +377,9 @@ Remove-Item $creat.FullName -Recurse
 }
 }
 
-Размер всех дочерних директория в Mb (округлить до одного символа после запятой):
 ls (pwd).Path | %{
-$size = "{0:N1} Mb" -f ((ls $_.FullName -Recurse -Force | Measure-Object -Property Length -Sum).Sum / 1Mb)
-"$_.Name | $size"
+$size = "{0:N1} Mb" -f ((ls $_.FullName -Recurse -Force | Measure-Object -Property Length -Sum).Sum / 1Mb) # посчитать размер всех дочерних директория в Mb (округлить до одного символа после запятой)
+$hashtable += @{"$_.Name" = $size} # заполнить hashtable
 }
 
 ### Filehash
@@ -1628,16 +1627,15 @@ SCP (Service Connection Point) - запись прописывается в AD, 
 Autodiscover. Outlook выбирает в качестве сервера Client Access тот, который прописан в атрибуте RPCClientAccessServer базы данных пользователя. Сведения о базе данных и сервере mailbox, на котором она лежит, берутся из AD.
 
 ### MessageTrackingLog
-Get-MessageTrackingLog  –ResultSize Unlimited | select Timestamp,MessageSubject,Sender,Recipients,Source,EventID,ClientHostname,ServerHostname,ConnectorId,TotalBytes # маршрутизация писем
+Get-MessageTrackingLog -ResultSize Unlimited | select Timestamp,Sender,Recipients,RecipientCount,MessageSubject,Source,EventID,ClientHostname,ServerHostname,ConnectorId, @{Name="MessageSize"; Expression={[string]([int]($_.TotalBytes / 1024))+" KB"}},@{Name="MessageLatency"; Expression={$_.MessageLatency -replace "\.\d+$"}}
 Get-MessageTrackingLog -Start (Get-Date).AddHours(-24) -ResultSize Unlimited | where {[string]$_.recipients -like "*@yandex.ru"} # вывести сообщения за последние 24 часа, где получателем был указанный домен
--Start "04/01/2023 09:00:00" -End "04/01/2023 18:00:00" # поиск по указанному промежутку времени
--MessageSubject "Тест" # поиск по теме письма
--Recipients "support4@domain.ru" # поиск по получателю
--Sender # поиск по отправителю
-EventID – поиск по коду события сервера (RECEIVE, SEND, FAIL, DSN, DELIVER, BADMAIL, RESOLVE, EXPAND, REDIRECT, TRANSFER, SUBMIT, POISONMESSAGE, DEFER)
-Server – поиск на определенном транспортном сервере
-MessageSubject — поиск по теме сообщения
-messageID – трекинг письма по его ID
+-Start "04/01/2023 09:00:00" -End "04/01/2023 18:00:00" - поиск по указанному промежутку времени
+-MessageSubject "Тест" - поиск по теме письма
+-Recipients "support4@domain.ru" - поиск по получателю
+-Sender - поиск по отправителю
+-EventID – поиск по коду события сервера (RECEIVE, SEND, FAIL, DSN, DELIVER, BADMAIL, RESOLVE, EXPAND, REDIRECT, TRANSFER, SUBMIT, POISONMESSAGE, DEFER)
+-Server – поиск на определенном транспортном сервере
+-messageID – трекинг письма по его ID
 
 ### Mailbox
 Get-Mailbox -Database "it2" # список почтовых серверов в базе данных
