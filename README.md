@@ -452,6 +452,25 @@
 `}`
 
 # XML
+
+`$xml = [xml](Get-Content C:\file.xml)` прочитать содержимое xml-файла \
+`$xml = New-Object System.Xml.XmlDocument` создать пустой xml объект \
+`$xml.Save("C:\file.xml")` сохранить содержимое объекта в файла
+```
+$xmlDocument = [xml]'<Books>
+<Book>
+<Title>Book 1</Title>
+<Author>Author 1</Author>
+</Book>
+<Book>
+<Title>Book 2</Title>
+<Author>Author 2</Author>
+</Book>
+</Books>'
+$xmlDocument.SelectNodes("//Book")
+```
+`Export-CliXml` экспортировать объект powershell в xml \
+`Import-Clixml` импортировать объект xml в powershell
 ```
 if (Test-Path $CredFile) {
 $Cred = Import-Clixml -path $CredFile
@@ -477,6 +496,24 @@ New-Object PSObject -Property @{
 }}
 $EventData
 ```
+### JSON
+```log =
+{
+   level = 7;
+};
+
+$log = [xml]"<log>
+   <level>7</level>
+</log>"
+
+$log = '{
+  "log": {
+    "level": 7
+  }
+}' | ConvertFrom-Json```
+
+`Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" -Method Get` GET-запрос для получения объекта JSON
+
 # Application
 
 ### Get-Package
@@ -1940,6 +1977,8 @@ CopyQueue Length - длина репликационной очереди коп
 `Import-Module FailoverClusters` \
 `Get-ClusterNode EXCH-MX-04 | Remove-ClusterNode -Force` удалить отказавший узел из Windows Failover Cluster
 
+`Get-DatabaseAvailabilityGroup | Get-DatabaseAvailabilityGroupHealth` мониторинг
+
 ### Index
 `Get-MailboxDatabaseCopyStatus * | select name,status,ContentIndexState,ContentIndexErrorMessage,ActiveDatabaseCopy,LatestCopyBackupTime,CopyQueueLength` узнать состояние работы индксов БД и текст ошибки, на каком сервере активная копия БД, дата последней копии и текущая очередь \
 `Get-MailboxDatabaseCopyStatus -Identity $db_name\* | Format-List Name,ContentIndexState` отобразить список всех копий конкретной БД на всех серверах, и статус их индексов, если у второго сервера статус Healthy, можно восстановить из него \
@@ -1952,7 +1991,7 @@ CopyQueue Length - длина репликационной очереди коп
 # Git
 
 `git --version`
-`git config --global user.name "Lifailon"` add name for commit \
+`git config --global user.name "Lifailon"` добавить имя для коммитов \
 `git config --global user.email "lifailon@mail.com"` \
 `ssh-keygen -t rsa -b 4096 -с "lifailon@mail.com"` \
 `Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
@@ -1963,15 +2002,17 @@ CopyQueue Length - длина репликационной очереди коп
 `mkdir C:\Git; cd C:\Git` \
 `git clone git@github.com:Lifailon/PowerShell-Commands` \
 `cd PowerShell-Commands` \
-`git grep powershell` search text to all files \
-`git pull` synchronize changes from the repository \
-`git status` \
-`git diff` \
-`git add -A` or git restore filename \
-`git commit -m "update files"` \
-`git push` \
-`git log` commit logs \
-`git show d01f09dead3a6a8d75dda848162831c58ca0ee13` \
-`git branch test` creat branch \
-`git checkout test` or git switch test for change branch \
-`git branch -d test` delete branch
+`git grep powershell` поиск текста в файлах \
+`git pull` синхронизировать изменения из хранилища \
+`git status` отобразить статус изменений по файлам \
+`git diff` отобразить изменения построчно \
+`git add -A` добавить изменения \
+`git restore filename` удалить изменения \
+`git commit -m "update files"` сохранить изменения с комментарием \
+`git push` синхронизировать локальные изменения с репозиторием \
+`git log` лог коммитов \
+`git show d01f09dead3a6a8d75dda848162831c58ca0ee13` отобразить подробный лог по номеру коммита \
+`git branch test` создать новую ветку \
+`git branch -d test` удалить ветку \
+`git checkout test` переключиться на другую ветку \
+`git merge test` слияние текущей ветки (git branch) с указанной
