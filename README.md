@@ -497,7 +497,8 @@ New-Object PSObject -Property @{
 $EventData
 ```
 ### JSON
-```log =
+```
+log =
 {
    level = 7;
 };
@@ -510,8 +511,8 @@ $log = '{
   "log": {
     "level": 7
   }
-}' | ConvertFrom-Json```
-
+}' | ConvertFrom-Json
+```
 `Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" -Method Get` GET-запрос для получения объекта JSON
 
 # Application
