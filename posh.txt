@@ -4,7 +4,6 @@ PowerShell Commands
 - Regex
 - Items
 - Event
-- XML
 - Application
 - Network
 - SMB
@@ -16,10 +15,11 @@ PowerShell Commands
 - PackageManagement
 - SQLite
 - PowerCLI
+- EMShell
 - VBR
 - REST-API
 - Console-API
-- EMShell
+- Convert-Language
 - Git
 
 ### Help
@@ -159,9 +159,6 @@ $path[-1..-10] # обратная сборка массива без сорти�
 ### Last/First
 Get-Process | Sort-Object -Descending CPU | select -First 10 # вывести первых 10 объектов
 Get-Process | Sort-Object -Descending CPU | select -Last 10 # вывести последних 10 объектов
-
-### ConvertTo-HTML
-Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html" # вывод в формате List (Format-List) или Table (Format-Table)
 
 # Regex
 
@@ -431,163 +428,6 @@ $port = $temp_fw.Properties[7] | select -ExpandProperty value
 $name = $temp_fw.Properties[1] | select -ExpandProperty value
 $obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}
 }
-
-# XML (Extensible Markup Language)
-
-$xml = [xml](Get-Content ~\desktop\home.rdg) # прочитать содержимое xml-файла
-$xml = New-Object System.Xml.XmlDocument # создать пустой xml объект
-$file = Resolve-Path("~\desktop\home.rdg") # забрать путь к файлу
-$xml.load($file) # открыть файл
-$xml | Select-Xml "//RDCMan/file/group/server/properties"
-$xml.RDCMan.file.group.server.properties
-$xml.RDCMan.file.group.server[1].properties
-$xml.RDCMan.file.group.server[1].properties.displayName = "plex-02" # изменить значение
-$xml.RDCMan.file.group.server[1].properties.name = "192.168.3.200"
-$xml.RDCMan.file.group.server[0].RemoveAll()
-$xml.Save($file) # сохранить содержимое объекта в файла
-
-Export-CliXml # экспортировать объект powershell в xml
-Import-Clixml # импортировать объект xml в powershell
-
-if (Test-Path $CredFile) {
-$Cred = Import-Clixml -path $CredFile
-} elseif (!(Test-Path $CredFile)) {
-$Cred = Get-Credential -Message "Enter credential"
-if ($Cred -ne $null) {
-$Cred | Export-CliXml -Path $CredFile
-} else {
-return
-}
-}
-
-$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
-$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath
-[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}
-$EventData = Foreach ($event in $xml.Event) {
-New-Object PSObject -Property @{
-"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')
-"User Name" = $event.UserData.EventXML.User
-"User ID" = $event.UserData.EventXML.SessionID
-"User Address" = $event.UserData.EventXML.Address
-"Event ID" = $event.System.EventID
-}}
-$EventData
-
-### JSON (JavaScript Object Notation)
-
-log =
-{
-   level = 7;
-};
-
-$log = [xml]"<log>
-   <level>7</level>
-</log>"
-
-$log = '{
-  "log": {
-    "level": 7
-  }
-}' | ConvertFrom-Json
-
-Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" -Method Get # GET-запрос для получения объекта JSON
-
-### YAML (Yet Another Markup Language)
-
-Import-Module PSYaml
-$network = "
-network:
-  ethernets:
-    ens160:
-      dhcp4: yes
-      dhcp6: no
-      nameservers:
-        addresses: # [8.8.8.8, 1.1.1.1]
-		  - 8.8.8.8
-		  - 1.1.1.1
-  version: 2
-"
-$Result = ConvertFrom-Yaml $network
-$Result.Values.ethernets.ens160.nameservers
-
-### CSV (Comma-Separated Values)
-Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default # экспортировать в csv (-Encoding UTF8)
-Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter "," # импортировать массив
-
-$data = ConvertFrom-Csv @"
-Region,State,Units,Price
-West,Texas,927,923.71
-$null,Tennessee,466,770.67
-"@
-
-### ImportExcel
-Install-Module -Name ImportExcel
-$data | Export-Excel .\Data.xlsx
-$data = Import-Excel .\Data.xlsx
-
-$data = ps
-$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend
-$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show
-
-### Excel.Application
-
-$path = "$home\Desktop\Services-to-Excel.xlsx"
-$Excel = New-Object -ComObject Excel.Application
-$Excel.Visible = $false # отключить открытие GUI
-$ExcelWorkBook = $Excel.Workbooks.Add() # Создать книгу
-$ExcelWorkSheet = $ExcelWorkBook.Worksheets.Item(1) # Создать лист
-$ExcelWorkSheet.Name = "Services" # задать имя листа
-$ExcelWorkSheet.Cells.Item(1,1) = "Name service"
-# Задать имена столбцов:
-$ExcelWorkSheet.Cells.Item(1,2) = "Description"
-$ExcelWorkSheet.Cells.Item(1,3) = "Status"
-$ExcelWorkSheet.Cells.Item(1,4) = "Startup type"
-$ExcelWorkSheet.Rows.Item(1).Font.Bold = $true # выделить жирным шрифтом
-$ExcelWorkSheet.Rows.Item(1).Font.size=14
-# Задать ширину колонок:
-$ExcelWorkSheet.Columns.Item(1).ColumnWidth=30
-$ExcelWorkSheet.Columns.Item(2).ColumnWidth=80
-$ExcelWorkSheet.Columns.Item(3).ColumnWidth=15
-$ExcelWorkSheet.Columns.Item(4).ColumnWidth=25
-$services =  Get-Service
-$counter = 2 # задать начальный номер строки для записи
-foreach ($service in $services) {
-$status = $service.Status
-if ($status -eq 1) {
-$status_type = "Stopped"
-} elseif ($status -eq 4) {
-$status_type = "Running"
-}
-$Start = $service.StartType
-if ($Start -eq 1) {
-$start_type = "Delayed start"
-} elseif ($Start -eq 2) {
-$start_type = "Automatic"
-} elseif ($Start -eq 3) {
-$start_type = "Manually"
-} elseif ($Start -eq 4) {
-$start_type = "Disabled"
-}
-$ExcelWorkSheet.Columns.Item(1).Rows.Item($counter) = $service.Name
-$ExcelWorkSheet.Columns.Item(2).Rows.Item($counter) = $service.DisplayName
-$ExcelWorkSheet.Columns.Item(3).Rows.Item($counter) = $status_type
-$ExcelWorkSheet.Columns.Item(4).Rows.Item($counter) = $start_type
-if ($status_type -eq "Running") {
-$ExcelWorkSheet.Columns.Item(3).Rows.Item($counter).Font.Bold = $true
-}
-$counter++ # +1 увеличить для счетчика строки Rows
-}
-$ExcelWorkBook.SaveAs($path)
-$ExcelWorkBook.close($true)
-$Excel.Quit()
-
-$Excel = New-Object -ComObject Excel.Application
-$Excel.Visible = $false
-$ExcelWorkBook = $excel.Workbooks.Open($path) # открыть xlsx-файл
-$ExcelWorkBook.Sheets | select Name,Index # отобразить листы
-$ExcelWorkSheet = $ExcelWorkBook.Sheets.Item(1) # открыть лист по номеру Index
-1..100 | %{$ExcelWorkSheet.Range("A$_").Text} # прочитать значение из столбца А строки c 1 по 100
-$Excel.Quit()
 
 # Application
 
@@ -1436,277 +1276,6 @@ Get-Command –Module *vmware* -name *syslog*
 Set-VMHostSysLogServer -VMHost esxi-05 -SysLogServer "tcp://192.168.3.100" -SysLogServerPort 3515
 Get-VMHostSysLogServer -VMHost esxi-05
 
-# VBR
-
-Set-ExecutionPolicy AllSigned # or Set-ExecutionPolicy Bypass -Scope Process
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-choco install veeam-backup-and-replication-console
-Get-Module Veeam.Backup.PowerShell
-Get-Command -Module Veeam.Backup.PowerShell # or Get-VBRCommand
-Connect-VBRServer -Server $srv -Credential $cred # or -User and -Password # - Port 9392 # default
-Get-VBRJob
-Get-VBRCommand *get*backup*
-Get-VBRComputerBackupJob
-Get-VBRBackup
-Get-VBRBackupRepository
-Get-VBRBackupSession
-Get-VBRBackupServerCertificate
-Get-VBRRestorePoint
-Get-VBRViProxy
-
-# REST-API
-
-$pars = Invoke-WebRequest -Uri $url
-$pars | Get-Member
-$pars.Content
-$pars.StatusCode -eq 200
-$pars.Headers
-$pars.ParsedHtml | Select lastModified
-$pars.Links | fl title,innerText,href
-$pars.Images.src # links on images
-iwr $url -OutFile $path # download
-
-$pars = wget -Uri $url
-$pars.Images.src | %{
-$name = $_ -replace ".+(?<=/)"
-wget $_ -OutFile "$home\Pictures\$name"
-}
-$count_all = $pars.Images.src.Count
-$count_down = (Get-Item $path\*).count
-"Downloaded $count_down of $count_all files to $path"
-
-Methods:
-GET - Read
-POST - Create
-PATCH - Partial update/modify
-PUT - Update/replace
-DELETE - Remove
-
-https://veeam-11:9419/swagger/ui/index.html
-$Header = @{
-"x-api-version" = "1.0-rev2"
-}
-$Body = @{
-"grant_type" = "password"
-"username" = "$login"
-"password" = "$password"
-}
-$vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck
-$vtoken = (($vpost.Content) -split '"')[3]
-
-$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force
-$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck
-
-$Header = @{
-"x-api-version" = "1.0-rev1"
-"Authorization" = "Bearer $vtoken"
-}
-$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
-$vjob = $vjob.Content | ConvertFrom-Json
-
-$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
-$vjob.data.virtualMachines.includes.inventoryObject
-
-# Console-API
-
-[Console] | Get-Member -Static
-[Console]::BackgroundColor = "Blue"
-
-do {
-if ([Console]::KeyAvailable) {
-$keyInfo = [Console]::ReadKey($true)
-break
-}
-Write-Host "." -NoNewline
-sleep 1
-} while ($true)
-Write-Host
-$keyInfo
-
-function Get-KeyPress {
-param (
-[Parameter(Mandatory)][ConsoleKey]$Key,
-[System.ConsoleModifiers]$ModifierKey = 0
-)
-if ([Console]::KeyAvailable) {
-$pressedKey = [Console]::ReadKey($true)
-$isPressedKey = $key -eq $pressedKey.Key
-if ($isPressedKey) {
-$pressedKey.Modifiers -eq $ModifierKey
-} else {
-[Console]::Beep(1800, 200)
-$false
-}}}
-
-Write-Warning 'Press Ctrl+Shift+Q to exit'
-do {
-Write-Host "." -NoNewline
-$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
-if ($pressed) {break}
-sleep 1
-} while ($true)
-
-### Windows-API 
-
-Add-Type -AssemblyName System.Windows.Forms
-[int][System.Windows.Forms.Keys]::F1
-
-65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}
-
-function Get-ControlKey {
-$key = 112
-$Signature = @'
-[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
-public static extern short GetAsyncKeyState(int virtualKeyCode); 
-'@
-Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
-[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
-}
-
-Write-Warning 'Press F1 to exit'
-do {
-Write-Host '.' -NoNewline
-$pressed = Get-ControlKey
-if ($pressed) { break }
-Start-Sleep -Seconds 1
-} while ($true)
-
-### [Clicker]
-
-$cSource = @'
-using System;
-using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
-public class Clicker
-{
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646270(v=vs.85).aspx
-[StructLayout(LayoutKind.Sequential)]
-struct INPUT
-{ 
-    public int        type; // 0 = INPUT_MOUSE,
-                            // 1 = INPUT_KEYBOARD
-                            // 2 = INPUT_HARDWARE
-    public MOUSEINPUT mi;
-}
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646273(v=vs.85).aspx
-[StructLayout(LayoutKind.Sequential)]
-struct MOUSEINPUT
-{
-    public int    dx ;
-    public int    dy ;
-    public int    mouseData ;
-    public int    dwFlags;
-    public int    time;
-    public IntPtr dwExtraInfo;
-}
-//This covers most use cases although complex mice may have additional buttons
-//There are additional constants you can use for those cases, see the msdn page
-const int MOUSEEVENTF_MOVED      = 0x0001 ;
-const int MOUSEEVENTF_LEFTDOWN   = 0x0002 ;
-const int MOUSEEVENTF_LEFTUP     = 0x0004 ;
-const int MOUSEEVENTF_RIGHTDOWN  = 0x0008 ;
-const int MOUSEEVENTF_RIGHTUP    = 0x0010 ;
-const int MOUSEEVENTF_MIDDLEDOWN = 0x0020 ;
-const int MOUSEEVENTF_MIDDLEUP   = 0x0040 ;
-const int MOUSEEVENTF_WHEEL      = 0x0080 ;
-const int MOUSEEVENTF_XDOWN      = 0x0100 ;
-const int MOUSEEVENTF_XUP        = 0x0200 ;
-const int MOUSEEVENTF_ABSOLUTE   = 0x8000 ;
-const int screen_length          = 0x10000 ;
-//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646310(v=vs.85).aspx
-[System.Runtime.InteropServices.DllImport("user32.dll")]
-extern static uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
-public static void LeftClickAtPoint(int x, int y)
-{
-    //Move the mouse
-    INPUT[] input = new INPUT[3];
-    input[0].mi.dx = x*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width);
-    input[0].mi.dy = y*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
-    input[0].mi.dwFlags = MOUSEEVENTF_MOVED | MOUSEEVENTF_ABSOLUTE;
-    //Left mouse button down
-    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-    //Left mouse button up
-    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
-    SendInput(3, input, Marshal.SizeOf(input[0]));
-}
-}
-'@
-
-Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing
-[Clicker]::LeftClickAtPoint(1900,1070)
-
-### [Audio]
-
-Add-Type -Language CsharpVersion3 -TypeDefinition @"
-using System.Runtime.InteropServices;
-[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IAudioEndpointVolume {
-// f(), g(), ... are unused COM method slots. Define these if you care
-int f(); int g(); int h(); int i();
-int SetMasterVolumeLevelScalar(float fLevel, System.Guid pguidEventContext);
-int j();
-int GetMasterVolumeLevelScalar(out float pfLevel);
-int k(); int l(); int m(); int n();
-int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, System.Guid pguidEventContext);
-int GetMute(out bool pbMute);
-}
-[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IMMDevice {
-int Activate(ref System.Guid id, int clsCtx, int activationParams, out IAudioEndpointVolume aev);
-}
-[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IMMDeviceEnumerator {
-int f(); // Unused
-int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
-}
-[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }
-public class Audio {
-static IAudioEndpointVolume Vol() {
-var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;
-IMMDevice dev = null;
-Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(/*eRender*/ 0, /*eMultimedia*/ 1, out dev));
-IAudioEndpointVolume epv = null;
-var epvid = typeof(IAudioEndpointVolume).GUID;
-Marshal.ThrowExceptionForHR(dev.Activate(ref epvid, /*CLSCTX_ALL*/ 23, 0, out epv));
-return epv;
-}
-public static float Volume {
-get {float v = -1; Marshal.ThrowExceptionForHR(Vol().GetMasterVolumeLevelScalar(out v)); return v;}
-set {Marshal.ThrowExceptionForHR(Vol().SetMasterVolumeLevelScalar(value, System.Guid.Empty));}
-}
-public static bool Mute {
-get { bool mute; Marshal.ThrowExceptionForHR(Vol().GetMute(out mute)); return mute; }
-set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
-}
-}
-"@
-
-[Audio]::Volume = 0.50
-[Audio]::Mute = $true
-
-### Register-Event
-
-Register-EngineEvent # регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job)
-Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
-$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
-}
--SupportEvent # не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job
--Forward # перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
-
-Register-ObjectEvent # регистрирует подписку на события объектов .NET
-$System_Obj | Get-Member -MemberType Event # отобразить список всех событий объекта
-Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {
-Write-Host $System_Obj.Text
-}
-Get-EventSubscriber # список зарегистрированных подписок на события в текущей сессии
-Unregister-Event -SourceIdentifier SrvListClick # удаляет регистрацию подписки на событие по имени события (или все *)
-Remove-Job -Name SrvListClick # удаляет задание
--InputObject # объект или переменная, хранящая объект
--EventName # событие (например, Click,MouseClick)
--SourceIdentifier # название регистрируемого события
--Action # действие при возникновении события
-
 # EMShell
 
 $srv_cas = "exchange-cas"
@@ -2062,6 +1631,439 @@ cd %PROGRAMFILES%\Microsoft\Exchange Server\V14\Scripts # или v15 для Exch
 .\ResetSearchIndex.ps1 $db_name # скрипт восстановления индекса
 
 Get-MailboxDatabaseCopyStatus * | where {$_.ContentIndexState -eq "Failed" -or $_.ContentIndexState -eq "FailedAndSuspended"} # отобразить у какой БД произошел сбой работы (FailedAndSuspended) или индекса (ContentIndexState)
+
+# VBR
+
+Set-ExecutionPolicy AllSigned # or Set-ExecutionPolicy Bypass -Scope Process
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+choco install veeam-backup-and-replication-console
+Get-Module Veeam.Backup.PowerShell
+Get-Command -Module Veeam.Backup.PowerShell # or Get-VBRCommand
+Connect-VBRServer -Server $srv -Credential $cred # or -User and -Password # - Port 9392 # default
+Get-VBRJob
+Get-VBRCommand *get*backup*
+Get-VBRComputerBackupJob
+Get-VBRBackup
+Get-VBRBackupRepository
+Get-VBRBackupSession
+Get-VBRBackupServerCertificate
+Get-VBRRestorePoint
+Get-VBRViProxy
+
+# REST-API
+
+$pars = Invoke-WebRequest -Uri $url
+$pars | Get-Member
+$pars.Content
+$pars.StatusCode -eq 200
+$pars.Headers
+$pars.ParsedHtml | Select lastModified
+$pars.Links | fl title,innerText,href
+$pars.Images.src # links on images
+iwr $url -OutFile $path # download
+
+$pars = wget -Uri $url
+$pars.Images.src | %{
+$name = $_ -replace ".+(?<=/)"
+wget $_ -OutFile "$home\Pictures\$name"
+}
+$count_all = $pars.Images.src.Count
+$count_down = (Get-Item $path\*).count
+"Downloaded $count_down of $count_all files to $path"
+
+Methods:
+GET - Read
+POST - Create
+PATCH - Partial update/modify
+PUT - Update/replace
+DELETE - Remove
+
+https://veeam-11:9419/swagger/ui/index.html
+$Header = @{
+"x-api-version" = "1.0-rev2"
+}
+$Body = @{
+"grant_type" = "password"
+"username" = "$login"
+"password" = "$password"
+}
+$vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck
+$vtoken = (($vpost.Content) -split '"')[3]
+
+$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force
+$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck
+
+$Header = @{
+"x-api-version" = "1.0-rev1"
+"Authorization" = "Bearer $vtoken"
+}
+$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
+$vjob = $vjob.Content | ConvertFrom-Json
+
+$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
+$vjob.data.virtualMachines.includes.inventoryObject
+
+# Console-API
+
+[Console] | Get-Member -Static
+[Console]::BackgroundColor = "Blue"
+
+do {
+if ([Console]::KeyAvailable) {
+$keyInfo = [Console]::ReadKey($true)
+break
+}
+Write-Host "." -NoNewline
+sleep 1
+} while ($true)
+Write-Host
+$keyInfo
+
+function Get-KeyPress {
+param (
+[Parameter(Mandatory)][ConsoleKey]$Key,
+[System.ConsoleModifiers]$ModifierKey = 0
+)
+if ([Console]::KeyAvailable) {
+$pressedKey = [Console]::ReadKey($true)
+$isPressedKey = $key -eq $pressedKey.Key
+if ($isPressedKey) {
+$pressedKey.Modifiers -eq $ModifierKey
+} else {
+[Console]::Beep(1800, 200)
+$false
+}}}
+
+Write-Warning 'Press Ctrl+Shift+Q to exit'
+do {
+Write-Host "." -NoNewline
+$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
+if ($pressed) {break}
+sleep 1
+} while ($true)
+
+### Windows-API 
+
+Add-Type -AssemblyName System.Windows.Forms
+[int][System.Windows.Forms.Keys]::F1
+
+65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}
+
+function Get-ControlKey {
+$key = 112
+$Signature = @'
+[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
+public static extern short GetAsyncKeyState(int virtualKeyCode); 
+'@
+Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
+[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
+}
+
+Write-Warning 'Press F1 to exit'
+do {
+Write-Host '.' -NoNewline
+$pressed = Get-ControlKey
+if ($pressed) { break }
+Start-Sleep -Seconds 1
+} while ($true)
+
+### [Clicker]
+
+$cSource = @'
+using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+public class Clicker
+{
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646270(v=vs.85).aspx
+[StructLayout(LayoutKind.Sequential)]
+struct INPUT
+{ 
+    public int        type; // 0 = INPUT_MOUSE,
+                            // 1 = INPUT_KEYBOARD
+                            // 2 = INPUT_HARDWARE
+    public MOUSEINPUT mi;
+}
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646273(v=vs.85).aspx
+[StructLayout(LayoutKind.Sequential)]
+struct MOUSEINPUT
+{
+    public int    dx ;
+    public int    dy ;
+    public int    mouseData ;
+    public int    dwFlags;
+    public int    time;
+    public IntPtr dwExtraInfo;
+}
+//This covers most use cases although complex mice may have additional buttons
+//There are additional constants you can use for those cases, see the msdn page
+const int MOUSEEVENTF_MOVED      = 0x0001 ;
+const int MOUSEEVENTF_LEFTDOWN   = 0x0002 ;
+const int MOUSEEVENTF_LEFTUP     = 0x0004 ;
+const int MOUSEEVENTF_RIGHTDOWN  = 0x0008 ;
+const int MOUSEEVENTF_RIGHTUP    = 0x0010 ;
+const int MOUSEEVENTF_MIDDLEDOWN = 0x0020 ;
+const int MOUSEEVENTF_MIDDLEUP   = 0x0040 ;
+const int MOUSEEVENTF_WHEEL      = 0x0080 ;
+const int MOUSEEVENTF_XDOWN      = 0x0100 ;
+const int MOUSEEVENTF_XUP        = 0x0200 ;
+const int MOUSEEVENTF_ABSOLUTE   = 0x8000 ;
+const int screen_length          = 0x10000 ;
+//https://msdn.microsoft.com/en-us/library/windows/desktop/ms646310(v=vs.85).aspx
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+extern static uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+public static void LeftClickAtPoint(int x, int y)
+{
+    //Move the mouse
+    INPUT[] input = new INPUT[3];
+    input[0].mi.dx = x*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width);
+    input[0].mi.dy = y*(65535/System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height);
+    input[0].mi.dwFlags = MOUSEEVENTF_MOVED | MOUSEEVENTF_ABSOLUTE;
+    //Left mouse button down
+    input[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+    //Left mouse button up
+    input[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+    SendInput(3, input, Marshal.SizeOf(input[0]));
+}
+}
+'@
+
+Add-Type -TypeDefinition $cSource -ReferencedAssemblies System.Windows.Forms,System.Drawing
+[Clicker]::LeftClickAtPoint(1900,1070)
+
+### [Audio]
+
+Add-Type -Language CsharpVersion3 -TypeDefinition @"
+using System.Runtime.InteropServices;
+[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IAudioEndpointVolume {
+// f(), g(), ... are unused COM method slots. Define these if you care
+int f(); int g(); int h(); int i();
+int SetMasterVolumeLevelScalar(float fLevel, System.Guid pguidEventContext);
+int j();
+int GetMasterVolumeLevelScalar(out float pfLevel);
+int k(); int l(); int m(); int n();
+int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, System.Guid pguidEventContext);
+int GetMute(out bool pbMute);
+}
+[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IMMDevice {
+int Activate(ref System.Guid id, int clsCtx, int activationParams, out IAudioEndpointVolume aev);
+}
+[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IMMDeviceEnumerator {
+int f(); // Unused
+int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
+}
+[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumeratorComObject { }
+public class Audio {
+static IAudioEndpointVolume Vol() {
+var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;
+IMMDevice dev = null;
+Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(/*eRender*/ 0, /*eMultimedia*/ 1, out dev));
+IAudioEndpointVolume epv = null;
+var epvid = typeof(IAudioEndpointVolume).GUID;
+Marshal.ThrowExceptionForHR(dev.Activate(ref epvid, /*CLSCTX_ALL*/ 23, 0, out epv));
+return epv;
+}
+public static float Volume {
+get {float v = -1; Marshal.ThrowExceptionForHR(Vol().GetMasterVolumeLevelScalar(out v)); return v;}
+set {Marshal.ThrowExceptionForHR(Vol().SetMasterVolumeLevelScalar(value, System.Guid.Empty));}
+}
+public static bool Mute {
+get { bool mute; Marshal.ThrowExceptionForHR(Vol().GetMute(out mute)); return mute; }
+set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
+}
+}
+"@
+
+[Audio]::Volume = 0.50
+[Audio]::Mute = $true
+
+### Register-Event
+
+Register-EngineEvent # регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job)
+Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
+}
+-SupportEvent # не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job
+-Forward # перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
+
+Register-ObjectEvent # регистрирует подписку на события объектов .NET
+$System_Obj | Get-Member -MemberType Event # отобразить список всех событий объекта
+Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {
+Write-Host $System_Obj.Text
+}
+Get-EventSubscriber # список зарегистрированных подписок на события в текущей сессии
+Unregister-Event -SourceIdentifier SrvListClick # удаляет регистрацию подписки на событие по имени события (или все *)
+Remove-Job -Name SrvListClick # удаляет задание
+-InputObject # объект или переменная, хранящая объект
+-EventName # событие (например, Click,MouseClick)
+-SourceIdentifier # название регистрируемого события
+-Action # действие при возникновении события
+
+# Convert-Language
+
+### HTML (HyperText Markup Language)
+Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html" # вывод в формате List (Format-List) или Table (Format-Table)
+
+### XML (Extensible Markup Language)
+
+$xml = [xml](Get-Content ~\desktop\home.rdg) # прочитать содержимое xml-файла
+$xml = New-Object System.Xml.XmlDocument # создать пустой xml объект
+$file = Resolve-Path("~\desktop\home.rdg") # забрать путь к файлу
+$xml.load($file) # открыть файл
+$xml | Select-Xml "//RDCMan/file/group/server/properties"
+$xml.RDCMan.file.group.server.properties
+$xml.RDCMan.file.group.server[1].properties
+$xml.RDCMan.file.group.server[1].properties.displayName = "plex-02" # изменить значение
+$xml.RDCMan.file.group.server[1].properties.name = "192.168.3.200"
+$xml.RDCMan.file.group.server[0].RemoveAll()
+$xml.Save($file) # сохранить содержимое объекта в файла
+
+Export-CliXml # экспортировать объект powershell в xml
+Import-Clixml # импортировать объект xml в powershell
+
+if (Test-Path $CredFile) {
+$Cred = Import-Clixml -path $CredFile
+} elseif (!(Test-Path $CredFile)) {
+$Cred = Get-Credential -Message "Enter credential"
+if ($Cred -ne $null) {
+$Cred | Export-CliXml -Path $CredFile
+} else {
+return
+}
+}
+
+$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
+$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath
+[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}
+$EventData = Foreach ($event in $xml.Event) {
+New-Object PSObject -Property @{
+"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')
+"User Name" = $event.UserData.EventXML.User
+"User ID" = $event.UserData.EventXML.SessionID
+"User Address" = $event.UserData.EventXML.Address
+"Event ID" = $event.System.EventID
+}}
+$EventData
+
+### JSON (JavaScript Object Notation)
+
+log =
+{
+   level = 7;
+};
+
+$log = [xml]"<log>
+   <level>7</level>
+</log>"
+
+$log = '{
+  "log": {
+    "level": 7
+  }
+}' | ConvertFrom-Json
+
+Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" -Method Get # GET-запрос для получения объекта JSON
+
+### YAML (Yet Another Markup Language)
+
+Import-Module PSYaml
+$network = "
+network:
+  ethernets:
+    ens160:
+      dhcp4: yes
+      dhcp6: no
+      nameservers:
+        addresses: # [8.8.8.8, 1.1.1.1]
+		  - 8.8.8.8
+		  - 1.1.1.1
+  version: 2
+"
+$Result = ConvertFrom-Yaml $network
+$Result.Values.ethernets.ens160.nameservers
+
+### CSV (Comma-Separated Values)
+Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default # экспортировать в csv (-Encoding UTF8)
+Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter "," # импортировать массив
+
+$data = ConvertFrom-Csv @"
+Region,State,Units,Price
+West,Texas,927,923.71
+$null,Tennessee,466,770.67
+"@
+
+### Excel.Application
+
+$path = "$home\Desktop\Services-to-Excel.xlsx"
+$Excel = New-Object -ComObject Excel.Application
+$Excel.Visible = $false # отключить открытие GUI
+$ExcelWorkBook = $Excel.Workbooks.Add() # Создать книгу
+$ExcelWorkSheet = $ExcelWorkBook.Worksheets.Item(1) # Создать лист
+$ExcelWorkSheet.Name = "Services" # задать имя листа
+$ExcelWorkSheet.Cells.Item(1,1) = "Name service"
+# Задать имена столбцов:
+$ExcelWorkSheet.Cells.Item(1,2) = "Description"
+$ExcelWorkSheet.Cells.Item(1,3) = "Status"
+$ExcelWorkSheet.Cells.Item(1,4) = "Startup type"
+$ExcelWorkSheet.Rows.Item(1).Font.Bold = $true # выделить жирным шрифтом
+$ExcelWorkSheet.Rows.Item(1).Font.size=14
+# Задать ширину колонок:
+$ExcelWorkSheet.Columns.Item(1).ColumnWidth=30
+$ExcelWorkSheet.Columns.Item(2).ColumnWidth=80
+$ExcelWorkSheet.Columns.Item(3).ColumnWidth=15
+$ExcelWorkSheet.Columns.Item(4).ColumnWidth=25
+$services =  Get-Service
+$counter = 2 # задать начальный номер строки для записи
+foreach ($service in $services) {
+$status = $service.Status
+if ($status -eq 1) {
+$status_type = "Stopped"
+} elseif ($status -eq 4) {
+$status_type = "Running"
+}
+$Start = $service.StartType
+if ($Start -eq 1) {
+$start_type = "Delayed start"
+} elseif ($Start -eq 2) {
+$start_type = "Automatic"
+} elseif ($Start -eq 3) {
+$start_type = "Manually"
+} elseif ($Start -eq 4) {
+$start_type = "Disabled"
+}
+$ExcelWorkSheet.Columns.Item(1).Rows.Item($counter) = $service.Name
+$ExcelWorkSheet.Columns.Item(2).Rows.Item($counter) = $service.DisplayName
+$ExcelWorkSheet.Columns.Item(3).Rows.Item($counter) = $status_type
+$ExcelWorkSheet.Columns.Item(4).Rows.Item($counter) = $start_type
+if ($status_type -eq "Running") {
+$ExcelWorkSheet.Columns.Item(3).Rows.Item($counter).Font.Bold = $true
+}
+$counter++ # +1 увеличить для счетчика строки Rows
+}
+$ExcelWorkBook.SaveAs($path)
+$ExcelWorkBook.close($true)
+$Excel.Quit()
+
+$Excel = New-Object -ComObject Excel.Application
+$Excel.Visible = $false
+$ExcelWorkBook = $excel.Workbooks.Open($path) # открыть xlsx-файл
+$ExcelWorkBook.Sheets | select Name,Index # отобразить листы
+$ExcelWorkSheet = $ExcelWorkBook.Sheets.Item(1) # открыть лист по номеру Index
+1..100 | %{$ExcelWorkSheet.Range("A$_").Text} # прочитать значение из столбца А строки c 1 по 100
+$Excel.Quit()
+
+### ImportExcel
+Install-Module -Name ImportExcel
+$data | Export-Excel .\Data.xlsx
+$data = Import-Excel .\Data.xlsx
+
+$data = ps
+$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend
+$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show
 
 # Git
 
