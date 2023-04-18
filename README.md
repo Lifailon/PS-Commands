@@ -2014,7 +2014,7 @@ $Result.Values.ethernets.ens160.nameservers
 `$null,Tennessee,466,770.67` \
 `"@`
 
-### Excel.Application
+### Excel.Application.Creat
 ```
 $path = "$home\Desktop\Services-to-Excel.xlsx"
 $Excel = New-Object -ComObject Excel.Application
@@ -2065,7 +2065,9 @@ $counter++ # +1 увеличить для счетчика строки Rows
 $ExcelWorkBook.SaveAs($path)
 $ExcelWorkBook.close($true)
 $Excel.Quit()
-
+```
+### Excel.Application.Open
+```
 $Excel = New-Object -ComObject Excel.Application
 $Excel.Visible = $false
 $ExcelWorkBook = $excel.Workbooks.Open($path) # открыть xlsx-файл
