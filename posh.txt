@@ -1908,13 +1908,27 @@ Remove-Job -Name SrvListClick # удаляет задание
 ### HTML (HyperText Markup Language)
 Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html" # вывод в формате List (Format-List) или Table (Format-Table)
 
+Import-Module PSWriteHTML
+(Get-Module PSWriteHTML).ExportedCommands
+Get-Service | Out-GridHtml -FilePath ~\Desktop\Get-Service-Out-GridHtml.html
+
+Import-Module HtmlReport
+$topVM = ps | Sort PrivateMemorySize -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.PrivateMemorySize)}
+$topCPU = ps | Sort CPU -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.CPU)}
+New-Report -Title "Piggy Processes" -Input {
+New-Chart Bar "Top VM Users" -input $topVm
+New-Chart Column "Top CPU Overall" -input $topCPU
+ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Processes"
+} > ~\Desktop\Get-Process-HtmlReport.html
+
 ### XML (Extensible Markup Language)
 
 $xml = [xml](Get-Content ~\desktop\home.rdg) # прочитать содержимое xml-файла
 $xml = New-Object System.Xml.XmlDocument # создать пустой xml объект
 $file = Resolve-Path("~\desktop\home.rdg") # забрать путь к файлу
 $xml.load($file) # открыть файл
-$xml | Select-Xml "//RDCMan/file/group/server/properties"
+$xml | Select-Xml -XPath "//RDCMan/file/group/server/properties/name[text() = '192.168.3.100']" # XPath-запрос поиска
+$xml.SelectNodes("//RDCMan/file/group/server/properties/name[text() = '192.168.3.100']")
 $xml.RDCMan.file.group.server.properties
 $xml.RDCMan.file.group.server[1].properties
 $xml.RDCMan.file.group.server[1].properties.displayName = "plex-02" # изменить значение
@@ -1936,6 +1950,8 @@ return
 }
 }
 
+### XPath
+
 $FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
 $RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath
 [xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}
@@ -1956,11 +1972,13 @@ log =
    level = 7;
 };
 
-$log = [xml]"<log>
+$log = [xml]"
+<log>
    <level>7</level>
 </log>"
 
-$log = '{
+$log = '
+{
   "log": {
     "level": 7
   }
