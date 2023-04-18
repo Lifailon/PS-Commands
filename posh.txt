@@ -82,25 +82,6 @@ $Class = New-Object -TypeName CustomClass
 $Class.User = $env:username
 $Class.Server = $env:computername
 
-### CSV
-Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default # экспортировать в csv (-Encoding UTF8)
-Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter "," # импортировать массив
-
-$data = ConvertFrom-Csv @"
-Region,State,Units,Price
-West,Texas,927,923.71
-$null,Tennessee,466,770.67
-"@
-
-### ImportExcel
-Install-Module -Name ImportExcel
-$data | Export-Excel .\Data.xlsx
-$data = Import-Excel .\Data.xlsx
-
-$data = ps
-$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend
-$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show
-
 ### Pipeline
 $obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force # добавление объкта вывода NoteProperty
 $obj | Add-Member -MemberType NoteProperty -Name "User" -Value "admin" -Force # изменеие содержимого для сущности объекта User
@@ -451,23 +432,19 @@ $name = $temp_fw.Properties[1] | select -ExpandProperty value
 $obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}
 }
 
-# XML
+# XML (Extensible Markup Language)
 
-$xml = [xml](Get-Content C:\file.xml) # прочитать содержимое xml-файла
+$xml = [xml](Get-Content ~\desktop\home.rdg) # прочитать содержимое xml-файла
 $xml = New-Object System.Xml.XmlDocument # создать пустой xml объект
-$xml.Save("C:\file.xml") # сохранить содержимое объекта в файла
-
-$xmlDocument = [xml]'<Books>
-<Book>
-<Title>Book 1</Title>
-<Author>Author 1</Author>
-</Book>
-<Book>
-<Title>Book 2</Title>
-<Author>Author 2</Author>
-</Book>
-</Books>'
-$xmlDocument.SelectNodes("//Book")
+$file = Resolve-Path("~\desktop\home.rdg") # забрать путь к файлу
+$xml.load($file) # открыть файл
+$xml | Select-Xml "//RDCMan/file/group/server/properties"
+$xml.RDCMan.file.group.server.properties
+$xml.RDCMan.file.group.server[1].properties
+$xml.RDCMan.file.group.server[1].properties.displayName = "plex-02" # изменить значение
+$xml.RDCMan.file.group.server[1].properties.name = "192.168.3.200"
+$xml.RDCMan.file.group.server[0].RemoveAll()
+$xml.Save($file) # сохранить содержимое объекта в файла
 
 Export-CliXml # экспортировать объект powershell в xml
 Import-Clixml # импортировать объект xml в powershell
@@ -496,7 +473,7 @@ New-Object PSObject -Property @{
 }}
 $EventData
 
-### JSON
+### JSON (JavaScript Object Notation)
 
 log =
 {
@@ -514,6 +491,103 @@ $log = '{
 }' | ConvertFrom-Json
 
 Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" -Method Get # GET-запрос для получения объекта JSON
+
+### YAML (Yet Another Markup Language)
+
+Import-Module PSYaml
+$network = "
+network:
+  ethernets:
+    ens160:
+      dhcp4: yes
+      dhcp6: no
+      nameservers:
+        addresses: # [8.8.8.8, 1.1.1.1]
+		  - 8.8.8.8
+		  - 1.1.1.1
+  version: 2
+"
+$Result = ConvertFrom-Yaml $network
+$Result.Values.ethernets.ens160.nameservers
+
+### CSV (Comma-Separated Values)
+Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default # экспортировать в csv (-Encoding UTF8)
+Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter "," # импортировать массив
+
+$data = ConvertFrom-Csv @"
+Region,State,Units,Price
+West,Texas,927,923.71
+$null,Tennessee,466,770.67
+"@
+
+### ImportExcel
+Install-Module -Name ImportExcel
+$data | Export-Excel .\Data.xlsx
+$data = Import-Excel .\Data.xlsx
+
+$data = ps
+$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend
+$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show
+
+### Excel.Application
+
+$path = "$home\Desktop\Services-to-Excel.xlsx"
+$Excel = New-Object -ComObject Excel.Application
+$Excel.Visible = $false # отключить открытие GUI
+$ExcelWorkBook = $Excel.Workbooks.Add() # Создать книгу
+$ExcelWorkSheet = $ExcelWorkBook.Worksheets.Item(1) # Создать лист
+$ExcelWorkSheet.Name = "Services" # задать имя листа
+$ExcelWorkSheet.Cells.Item(1,1) = "Name service"
+# Задать имена столбцов:
+$ExcelWorkSheet.Cells.Item(1,2) = "Description"
+$ExcelWorkSheet.Cells.Item(1,3) = "Status"
+$ExcelWorkSheet.Cells.Item(1,4) = "Startup type"
+$ExcelWorkSheet.Rows.Item(1).Font.Bold = $true # выделить жирным шрифтом
+$ExcelWorkSheet.Rows.Item(1).Font.size=14
+# Задать ширину колонок:
+$ExcelWorkSheet.Columns.Item(1).ColumnWidth=30
+$ExcelWorkSheet.Columns.Item(2).ColumnWidth=80
+$ExcelWorkSheet.Columns.Item(3).ColumnWidth=15
+$ExcelWorkSheet.Columns.Item(4).ColumnWidth=25
+$services =  Get-Service
+$counter = 2 # задать начальный номер строки для записи
+foreach ($service in $services) {
+$status = $service.Status
+if ($status -eq 1) {
+$status_type = "Stopped"
+} elseif ($status -eq 4) {
+$status_type = "Running"
+}
+$Start = $service.StartType
+if ($Start -eq 1) {
+$start_type = "Delayed start"
+} elseif ($Start -eq 2) {
+$start_type = "Automatic"
+} elseif ($Start -eq 3) {
+$start_type = "Manually"
+} elseif ($Start -eq 4) {
+$start_type = "Disabled"
+}
+$ExcelWorkSheet.Columns.Item(1).Rows.Item($counter) = $service.Name
+$ExcelWorkSheet.Columns.Item(2).Rows.Item($counter) = $service.DisplayName
+$ExcelWorkSheet.Columns.Item(3).Rows.Item($counter) = $status_type
+$ExcelWorkSheet.Columns.Item(4).Rows.Item($counter) = $start_type
+if ($status_type -eq "Running") {
+$ExcelWorkSheet.Columns.Item(3).Rows.Item($counter).Font.Bold = $true
+}
+$counter++ # +1 увеличить для счетчика строки Rows
+}
+$ExcelWorkBook.SaveAs($path)
+$ExcelWorkBook.close($true)
+$Excel.Quit()
+
+$Excel = New-Object -ComObject Excel.Application
+$Excel.Visible = $false
+$ExcelWorkBook = $excel.Workbooks.Open($path) # открыть xlsx-файл
+$ExcelWorkBook.Sheets | select Name,Index # отобразить листы
+$ExcelWorkSheet = $ExcelWorkBook.Sheets.Item(1) # открыть лист по номеру Index
+1..100 | %{$ExcelWorkSheet.Range("A$_").Text} # прочитать значение из столбца А строки c 1 по 100
+$Excel.Quit()
 
 # Application
 
