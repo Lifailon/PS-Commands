@@ -2090,6 +2090,7 @@ $data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show
 git --version
 git config --global user.name "Lifailon" # добавить имя для коммитов
 git config --global user.email "lifailon@mail.com"
+git config --global --edit
 ssh-keygen -t rsa -b 4096 -с "lifailon@mail.com"
 Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic
 Get-Service | where name -match "ssh-agent" | Start-Service
