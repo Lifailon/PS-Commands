@@ -1,0 +1,12 @@
+Import-Module .\Zabbix-api.psm1
+
+$Cred = Get-Credential
+Connect-Zabbix -PSCredential $Cred -IPAdress 192.168.1.1
+Connect-Zabbix -PSCredential $Cred -IPAdress zabbix.domain.ru -UseSSL
+
+(Get-Module Zabbix).ExportedCommands
+
+Get-ZabbixHostInterface | ft
+Get-ZabbixHost | ft
+Get-ZabbixGroup | ft
+Get-ZabbixTemplate | ft
