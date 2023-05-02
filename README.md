@@ -1732,6 +1732,14 @@ DELETE - Remove
 `$vjob.data.virtualMachines.includes.inventoryObject`
 
 # IE
+
+`$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name` получить имена всех Input Box \
+`$ie.document.IHTMLDocument3_getElementsByTagName("button") | select innerText` получить имена всех Button \
+`$ie.Document.documentElement.innerHTML` прочитать сырой Web Content (<input name="login" tabindex="100" class="input__control input__input" id="uniq32005644019429136" spellcheck="false" placeholder="Логин") \
+`$All_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("*")` забрать все элементы \
+`$Go_Button = $All_Elements | ? innerText -like "go"` поиск элемента по имени \
+`$Go_Button | select ie9_tagName` получить TagName (SPAN) для быстрого дальнейшего поиска \
+`$SPAN_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("SPAN")`
 ```
 $ie = New-Object -ComObject InternetExplorer.Application
 $ie.navigate("https://yandex.ru")
@@ -1743,14 +1751,6 @@ $Button_Auth.Click()
 $Result = $ie.Document.documentElement.innerHTML
 $ie.Quit()
 ```
-`$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name` получить имена всех Input Box \
-`$ie.document.IHTMLDocument3_getElementsByTagName("button") | select innerText` получить имена всех Button \
-`$ie.Document.documentElement.innerHTML` прочитать сырой Web Content (<input name="login" tabindex="100" class="input__control input__input" id="uniq32005644019429136" spellcheck="false" placeholder="Логин") \
-`$All_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("*")` забрать все элементы \
-`$Go_Button = $All_Elements | ? innerText -like "go"` поиск элемента по имени \
-`$Go_Button | select ie9_tagName` получить TagName (SPAN) для быстрого дальнейшего поиска \
-`$SPAN_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("SPAN")`
-
 # Console API
 
 `[Console] | Get-Member -Static` \
