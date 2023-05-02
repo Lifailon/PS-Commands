@@ -13,13 +13,16 @@
 - [ActiveDirectory](#ActiveDirectory)
 - [ServerManager](#ServerManager)
 - [PackageManagement](#PackageManagement)
-- [SQLite](#SQLite)
 - [PowerCLI](#PowerCLI)
 - [EMShell](#EMShell)
-- [VBR](#VBR)
+- [TrueNAS](#TrueNAS)
+- [Veeam](#Veeam)
 - [REST API](#REST-API)
+- [IE](#IE)
 - [Console API](#Console-API)
-- [Convert Language](#Convert-Language)
+- [XML](#XML)
+- [Excel](#Excel)
+- [SQLite](#SQLite)
 - [Git](#Git)
 
 ### Help
@@ -34,6 +37,15 @@
 `$PSVersionTable`
 
 # Object
+
+### History
+`Get-History` история команд текущей сессии \
+`(Get-PSReadLineOption).HistorySavePath` путь к сохраненному файлу с 4096 последних команд (из модуля PSReadLine) \
+`Get-Content (Get-PSReadlineOption).HistorySavePath | Select-String Get` поиск по содержимому файла (GREP) \
+`Set-PSReadlineOption -MaximumHistoryCount 10000` изменить количество сохраняемых команд в файл \
+`Get-PSReadLineOption | select MaximumHistoryCount` \
+`Set-PSReadlineOption -HistorySaveStyle SaveNothing` отключить ведение журнала \
+`F2` переключиться с InlineView на ListView
 
 ### Array
 `$srv = @("server-01", "server-02")`  создать массив \
@@ -408,12 +420,21 @@
 `Get-EventLog -List` отобразить все корневые журналы логов и их размер \
 `Clear-EventLog Application` очистить логи указанного журнала \
 `Get-EventLog -LogName Security -InstanceId 4624` найти логи по ID в журнале Security
-
-`function Get-Log ($count=30,$hour=-3) {` # указать значения параметров по умолчанию \
-`Get-EventLog -LogName Application -Newest $count | where-Object TimeWritten -ge (Get-Date).AddHours($hour)` # отобразить 30 новых событий за последние 3 часа \
-`}` \
-`Get-Log 10 -1` # передача параметров функции (если значения идут по порядку, то можно не указывать названия переменных)
-
+```
+function Get-Log {
+Param(
+[Parameter(Mandatory = $true, ValueFromPipeline = $true)][int]$Count,
+$Hour
+)
+if ($Hour -ne $null) {
+Get-EventLog -LogName Application -Newest $Count | ? TimeWritten -ge (Get-Date).AddHours($Hour)
+} else {
+Get-EventLog -LogName Application -Newest $Count
+}
+}
+10 | Get-Log
+Get-Log 100 -2
+```
 ### WinEvent
 `Get-WinEvent -ListLog * | where logname -match SMB | sort -Descending RecordCount` отобразить все доступные журналы логов \
 `Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity" | where` \
@@ -525,14 +546,20 @@
 `Get-NetAdapterAdvancedProperty` \
 `Get-NetAdapterStatistics`
 
+### DNSClientServerAddress
+`Get-DNSClientServerAddress`
+`Set-DNSClientServerAddress -InterfaceIndex (Get-NetIPConfiguration).InterfaceIndex -ServerAddresses 8.8.8.8`
+
 ### nslookup
+`nslookup ya.ru 8.8.8.8` \
+`nslookup -type=any ya.ru` \
 `Resolve-DnsName ya.ru -Type MX` ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)
 
 ### route
 `Get-NetRoute`
 
 ### netstat
-`Get-NetTCPConnection -State Established,Listen | where LocalAddress -match "192.168"`
+`Get-NetTCPConnection -State Established,Listen | ? LocalAddress -match "192.168"`
 
 # WinRM
 
@@ -1177,31 +1204,6 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep) \
 `(Get-Job).Information` отобразить результат всех заданий
 
-# SQLite
-
-`Install-Module -name MySQLite -Repository PSGallery` \
-`$path = "$home\desktop\Get-Service.db"` \
-`Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force` \
-`(Get-MySQLiteDB $path).Tables` \
-`New-MySQLiteDB -Path $path` создать базу \
-`Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список всех таблиц в базе \
-`Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);"` создать таблицу \
-`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');"` добавить данные в таблицу \
-`Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service"` содержимое таблицы \
-`Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
-
-`$Service = Get-Service | select Name,DisplayName,Status` \
-`foreach ($S in $Service) {` \
-`$1 = $S.Name; $2 = $S.DisplayName; $3 = $S.Status;` \
-`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$1', '$2', '$3');"` \
-`}`
-
-`Install-Module PSSQLite` \
-`$Connection = New-SQLiteConnection -DataSource $path` \
-`$Connection.ChangePassword("password")` \
-`$Connection.Close()` \
-`Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"`
-
 # PowerCLI
 
 `Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
@@ -1632,7 +1634,33 @@ CopyQueue Length - длина репликационной очереди коп
 
 `Get-MailboxDatabaseCopyStatus * | where {$_.ContentIndexState -eq "Failed" -or $_.ContentIndexState -eq "FailedAndSuspended"}` отобразить у какой БД произошел сбой работы (FailedAndSuspended) или индекса (ContentIndexState)
 
-# VBR
+# TrueNAS
+
+`import-Module TrueNas` \
+`(Get-Module TrueNas).ExportedCommands` \
+`Connect-TrueNasServer -Server tnas-01 -SkipCertificateCheck` \
+`Get-TrueNasCertificate` настройки сертификата \
+`Get-TrueNasSetting` настройки языка, time zone, syslog level и server, https port \
+`Get-TrueNasUser` список пользователей \
+`Get-TrueNasSystemVersion` характеристики (Physical Memory, Model, Cores) и Uptime \
+`Get-TrueNasSystemAlert` snmp для оповещений \
+`Get-TrueNasSystemNTP` список используемых NTP серверов \
+`Get-TrueNasDisk` список разделов физического диска \
+`Get-TrueNasInterface` сетевые интерфейсы \
+`Get-TrueNasGlobalConfig` сетевые настройки \
+`Get-TrueNasDnsServer` настроенные DNS-сервера \
+`Get-TrueNasIscsiTarget` отобразить ID группы инициаторов использующих таргет, используемый portal, authentification и authen-method \
+`Get-TrueNasIscsiInitiator` отобразить группы инициаторов \
+`Get-TrueNasIscsiPortal` слушатель (Listen) и порт \
+`Get-TrueNasIscsiExtent` список ISCSi Target (статус работы, путь) \
+`Get-TrueNasPool` список pool (Id, Path, Status, Healthy) \
+`Get-TrueNasVolume -Type FILESYSTEM` список pool файловых систем \
+`Get-TrueNasVolume -Type VOLUME` список разделов в pool и их размер \
+`Get-TrueNasService | ft` список служб и их статус \
+`Start-TrueNasService ssh` запустить службу \
+`Stop-TrueNasService ssh` остановить службу
+
+# Veeam
 
 `Set-ExecutionPolicy AllSigned` or Set-ExecutionPolicy Bypass -Scope Process \
 `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` \
@@ -1650,7 +1678,7 @@ CopyQueue Length - длина репликационной очереди коп
 `Get-VBRRestorePoint` \
 `Get-VBRViProxy`
 
-# REST-API
+# REST API
 
 `$pars = Invoke-WebRequest -Uri $url` \
 `$pars | Get-Member` \
@@ -1703,7 +1731,27 @@ DELETE - Remove
 `$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
 `$vjob.data.virtualMachines.includes.inventoryObject`
 
-# Console-API
+# IE
+```
+$ie = New-Object -ComObject InternetExplorer.Application
+$ie.navigate("https://yandex.ru")
+$ie.visible = $true
+$ie.document.IHTMLDocument3_getElementByID("login").value = "Login"
+$ie.document.IHTMLDocument3_getElementByID("passwd").value = "Password"
+$Button_Auth = ($ie.document.IHTMLDocument3_getElementsByTagName("button")) | ? innerText -match "Войти"
+$Button_Auth.Click()
+$Result = $ie.Document.documentElement.innerHTML
+$ie.Quit()
+```
+`$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name` получить имена всех Input Box \
+`$ie.document.IHTMLDocument3_getElementsByTagName("button") | select innerText` получить имена всех Button \
+`$ie.Document.documentElement.innerHTML` прочитать сырой Web Content (<input name="login" tabindex="100" class="input__control input__input" id="uniq32005644019429136" spellcheck="false" placeholder="Логин") \
+`$All_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("*")` забрать все элементы \
+`$Go_Button = $All_Elements | ? innerText -like "go"` поиск элемента по имени \
+`$Go_Button | select ie9_tagName` получить TagName (SPAN) для быстрого дальнейшего поиска \
+`$SPAN_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("SPAN")`
+
+# Console API
 
 `[Console] | Get-Member -Static` \
 `[Console]::BackgroundColor = "Blue"`
@@ -1742,7 +1790,7 @@ if ($pressed) {break}
 sleep 1
 } while ($true)
 ```
-### Windows-API 
+### Windows API 
 
 `Add-Type -AssemblyName System.Windows.Forms` \
 `[int][System.Windows.Forms.Keys]::F1`
@@ -1903,27 +1951,9 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 `-SourceIdentifier` название регистрируемого события \
 `-Action` действие при возникновении события
 
-# Convert-Language
+# XML
 
-### HTML (HyperText Markup Language)
-`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
-
-`Import-Module PSWriteHTML` \
-`(Get-Module PSWriteHTML).ExportedCommands` \
-`Get-Service | Out-GridHtml -FilePath ~\Desktop\Get-Service-Out-GridHtml.html`
-```
-Import-Module HtmlReport
-$topVM = ps | Sort PrivateMemorySize -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.PrivateMemorySize)}
-$topCPU = ps | Sort CPU -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.CPU)}
-New-Report -Title "Piggy Processes" -Input {
-New-Chart Bar "Top VM Users" -input $topVm
-New-Chart Column "Top CPU Overall" -input $topCPU
-ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Processes"
-} > ~\Desktop\Get-Process-HtmlReport.html
-```
-### XML (Extensible Markup Language)
-
-`$xml = [xml](Get-Content ~\desktop\home.rdg)` прочитать содержимое xml-файла \
+`$xml = [xml](Get-Content ~\desktop\home.rdg)` прочитать содержимое XML-файла \
 `$xml = New-Object System.Xml.XmlDocument` создать пустой xml объект \
 `$file = Resolve-Path("~\desktop\home.rdg")` забрать путь к файлу \
 `$xml.load($file)` открыть файл \
@@ -1950,7 +1980,7 @@ return
 }
 }
 ```
-### XPath
+### XPath (Query Language for Extensible Markup Language)
 ```
 $FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
 $RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath
@@ -2004,6 +2034,22 @@ network:
 $Result = ConvertFrom-Yaml $network
 $Result.Values.ethernets.ens160.nameservers
 ```
+### HTML (HyperText Markup Language)
+`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
+
+`Import-Module PSWriteHTML` \
+`(Get-Module PSWriteHTML).ExportedCommands` \
+`Get-Service | Out-GridHtml -FilePath ~\Desktop\Get-Service-Out-GridHtml.html`
+```
+Import-Module HtmlReport
+$topVM = ps | Sort PrivateMemorySize -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.PrivateMemorySize)}
+$topCPU = ps | Sort CPU -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.CPU)}
+New-Report -Title "Piggy Processes" -Input {
+New-Chart Bar "Top VM Users" -input $topVm
+New-Chart Column "Top CPU Overall" -input $topCPU
+ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Processes"
+} > ~\Desktop\Get-Process-HtmlReport.html
+```
 ### CSV (Comma-Separated Values)
 `Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
 `Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
@@ -2014,7 +2060,7 @@ $Result.Values.ethernets.ens160.nameservers
 `$null,Tennessee,466,770.67` \
 `"@`
 
-### Excel.Application.Creat
+# Excel
 ```
 $path = "$home\Desktop\Services-to-Excel.xlsx"
 $Excel = New-Object -ComObject Excel.Application
@@ -2085,6 +2131,32 @@ $Excel.Quit()
 `$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend` \
 `$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show`
 
+# SQLite
+
+`Install-Module MySQLite -Repository PSGallery` \
+`$path = "$home\desktop\Get-Service.db"` \
+`Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force` \
+`(Get-MySQLiteDB $path).Tables` \
+`New-MySQLiteDB -Path $path` создать базу \
+`Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список всех таблиц в базе \
+`Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);"` создать таблицу \
+`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');"` добавить данные в таблицу \
+`Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service"` содержимое таблицы \
+`Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
+```
+$Service = Get-Service | select Name,DisplayName,Status
+foreach ($S in $Service) {
+$1 = $S.Name; $2 = $S.DisplayName; $3 = $S.Status;
+Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$1', '$2', '$3');"
+}
+```
+### Creat password database
+```
+$Connection = New-SQLiteConnection -DataSource $path
+$Connection.ChangePassword("password")
+$Connection.Close()
+Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"
+```
 # Git
 
 `git --version`
