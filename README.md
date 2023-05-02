@@ -1667,7 +1667,7 @@ CopyQueue Length - длина репликационной очереди коп
 `choco install veeam-backup-and-replication-console` \
 `Get-Module Veeam.Backup.PowerShell` \
 `Get-Command -Module Veeam.Backup.PowerShell` or Get-VBRCommand \
-`Connect-VBRServer -Server $srv -Credential $cred` # or -User and -Password # - Port 9392 # default \
+`Connect-VBRServer -Server $srv -Credential $cred` or -User and -Password # - Port 9392 # default \
 `Get-VBRJob` \
 `Get-VBRCommand *get*backup*` \
 `Get-VBRComputerBackupJob` \
