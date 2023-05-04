@@ -4,7 +4,10 @@
 - [Regex](#Regex)
 - [Items](#Items)
 - [Event](#Event)
-- [Application](#Application)
+- [Firewall](#Firewall)
+- [Performance](#Performance)
+- [Regedit](#Regedit)
+- [Scheduled](#Scheduled)
 - [Network](#Network)
 - [SMB](#SMB)
 - [WinRM](#WinRM)
@@ -451,17 +454,8 @@ Get-Log 100 -2
 `$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}` \
 `}`
 
-# Application
+# Firewall
 
-### Local User and Group
-`Get-LocalUser` список пользователей \
-`Get-LocalGroup` список групп \
-`New-LocalUser "1C" -Password $Password -FullName "1C Domain"` создать пользователя \
-`Set-LocalUser -Password $Password 1c` изменить пароль \
-`Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
-`Get-LocalGroupMember "Administrators"` члены группы
-
-### Firewall
 `New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135` открыть in-порт \
 `Get-NetFirewallRule | Where-Object {$_.DisplayName -match "135"}` найти правило по имени \
 `Get-NetFirewallPortFilter | where LocalPort -like 80` найти действующие правило по номеру порта
@@ -478,7 +472,8 @@ Get-Log 100 -2
 `Export-FirewallRules -Name * -CSVFile $home\documents\fw.csv` -Inbound -Outbound -Enabled -Disabled -Allow -Block (фильтр правил для экспорта) \
 `Import-FirewallRules -CSVFile $home\documents\fw.csv`
 
-### Performance
+# Performance
+
 `(Get-Counter -ListSet *).CounterSetName` вывести список всех доступных счетчиков производительности в системе \
 `(Get-Counter -ListSet *memory*).Counter` все счетчики, включая дочернии, поиск по wildcard-имени \
 `Get-Counter "\Memory\Available MBytes"` объем свободной оперативной памяти \
@@ -488,7 +483,8 @@ Get-Log 100 -2
 `Get-Counter "\Процессор(_Total)\% загруженности процессора" -Continuous` непрерывно \
 `(Get-Counter "\Процессор(*)\% загруженности процессора").CounterSamples`
 
-### Regedit
+# Regedit
+
 `Get-PSDrive` список всех доступных дисков и веток реестра \
 `cd HKLM:\` HKEY_LOCAL_MACHINE \
 `cd HKCU:\` HKEY_CURRENT_USER \
@@ -508,7 +504,8 @@ Get-Log 100 -2
 `Set-ItemProperty -Path $reg_path -Name "New Signature" -Value $sig_name` изменить или добавить в корне ветки (Path) свойство (Name) со значением (Value) \
 `Set-ItemProperty -Path $reg_path -Name "Reply-Forward Signature" -Value $sig_name`
 
-### Scheduled
+# Scheduled
+
 `$Trigger = New-ScheduledTaskTrigger -At 01:00am -Daily` 1:00 ночи \
 `$Trigger = New-ScheduledTaskTrigger –AtLogon` запуск при входе пользователя в систему \
 `$Trigger = New-ScheduledTaskTrigger -AtStartup` при запуске системы \
@@ -545,7 +542,7 @@ Get-Log 100 -2
 `Get-NetAdapterStatistics`
 
 ### DNSClientServerAddress
-`Get-DNSClientServerAddress`
+`Get-DNSClientServerAddress` \
 `Set-DNSClientServerAddress -InterfaceIndex (Get-NetIPConfiguration).InterfaceIndex -ServerAddresses 8.8.8.8`
 
 ### nslookup
@@ -558,6 +555,14 @@ Get-Log 100 -2
 
 ### netstat
 `Get-NetTCPConnection -State Established,Listen | ? LocalAddress -match "192.168"`
+
+### Local User and Group
+`Get-LocalUser` список пользователей \
+`Get-LocalGroup` список групп \
+`New-LocalUser "1C" -Password $Password -FullName "1C Domain"` создать пользователя \
+`Set-LocalUser -Password $Password 1c` изменить пароль \
+`Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
+`Get-LocalGroupMember "Administrators"` члены группы
 
 # WinRM
 
