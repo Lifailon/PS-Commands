@@ -1760,11 +1760,11 @@ $ie.Quit()
 # Selenium
 
 `.\nuget.exe install Selenium.WebDriver` \
-`Copy-Item -Path .\WebDriver.dll -Destination $home\Documents\Selenium\` версия 4.9.0 для .NET 4.8
+`Copy-Item -Path .\WebDriver.dll -Destination $home\Documents\Selenium\` версия 4.9.0 для .NET 4.8 \
+`Copy-Item -Path .\ChromeDriver.exe -Destination $home\Documents\Selenium\` скачать драйвер (113.0.5672.63) https://sites.google.com/chromium.org/driver/
 
 `Choco Upgrade GoogleChrome` обновить Google Chrome \
-`Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome" | select DisplayName,DisplayVersion,InstallDate,InstallLocation` узнать версию и дату обновления \
-`Copy-Item -Path .\ChromeDriver.exe -Destination $home\Documents\Selenium\` скачать драйвер (113.0.5672.63) https://sites.google.com/chromium.org/driver/
+`Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome" | select DisplayName,DisplayVersion,InstallDate,InstallLocation` узнать версию и дату обновления
 ```
 $path = "$env:temp\ChromeSetup.exe"
 Invoke-WebRequest 'https://dl.google.com/chrome/install/latest/chrome_installer.exe'  -OutFile $path
@@ -1773,7 +1773,8 @@ Start-Process -FilePath $path -Args "/silent /install" -NoNewWindow -Wait
 `$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button')) | select TagName,Text` отобразить все Button по TagName используя CSS selector \
 `$selenium.FindElements([OpenQA.Selenium.By]::TagName('button'))` поиск по TagName \
 `$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button')) | ? Text -match "Войти"` поиск Button по содержимому Text \
-`$button = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('*')) | ? Text -like "Войти через Яндекс ID"` поиск во всех элементах по содержимому Text для получения нужного элемента (SPAN) для дальнейшего быстрого поиска \
+`$button = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('*')) | ? Text -like "Войти через Яндекс ID"` поиск во всех элементах по содержимому Text для получения нужного элемента (SPAN) для дальнейшего быстрого поиска
+
 F12 (Dev Tools) - Ctrl+Shift+C - Copy selector/full XPath \
 `$inputbox = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#passp-field-login'))` \
 `$inputbox = $selenium.FindElements([OpenQA.Selenium.By]::XPath("/html/body/div/div/div[2]/div[2]/div/div/div[2]/div[3]/div/div/div/div/form/div/div[2]/div[2]/div/div[2]/span/input"))` \
