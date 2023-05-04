@@ -25,8 +25,8 @@
 - [IE](#IE)
 - [Selenium](#Selenium)
 - [Console API](#Console-API)
-- [XML](#XML)
 - [Excel](#Excel)
+- [XML](#XML)
 - [SQLite](#SQLite)
 - [Git](#Git)
 
@@ -446,16 +446,33 @@ Get-Log 100 -2
 `Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity" | where` \
 `Get-WinEvent -LogName Security -MaxEvents 100` отобразить последние 100 событий \
 `Get-WinEvent -FilterHashtable @{LogName="Security";ID=4624}` найти логи по ID в журнале Security
-
-`$obj = @() \
-`$fw = Get-WinEvent 'Microsoft-Windows-Windows Firewall With Advanced Security/Firewall'` \
-`foreach ($temp_fw in $fw) {` \
-`if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}` \
-`$port = $temp_fw.Properties[7] | select -ExpandProperty value` \
-`$name = $temp_fw.Properties[1] | select -ExpandProperty value` \
-`$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}` \
-`}`
-
+```
+$obj = @()
+$fw = Get-WinEvent "Microsoft-Windows-Windows Firewall With Advanced Security/Firewall"
+foreach ($temp_fw in $fw) {
+if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}
+$port = $temp_fw.Properties[7] | select -ExpandProperty value
+$name = $temp_fw.Properties[1] | select -ExpandProperty value
+$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}
+}
+$obj
+```
+### XPath
+```
+$srv = "localhost"
+$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
+$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath
+[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}
+$EventData = Foreach ($event in $xml.Event) {
+New-Object PSObject -Property @{
+"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')
+"User Name" = $event.UserData.EventXML.User
+"User ID" = $event.UserData.EventXML.SessionID
+"User Address" = $event.UserData.EventXML.Address
+"Event ID" = $event.System.EventID
+}}
+$EventData | ft
+```
 # Firewall
 
 `New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135` открыть in-порт \
@@ -2019,115 +2036,6 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 `-SourceIdentifier` название регистрируемого события \
 `-Action` действие при возникновении события
 
-# XML
-
-`$xml = [xml](Get-Content ~\desktop\home.rdg)` прочитать содержимое XML-файла \
-`$xml = New-Object System.Xml.XmlDocument` создать пустой xml объект \
-`$file = Resolve-Path("~\desktop\home.rdg")` забрать путь к файлу \
-`$xml.load($file)` открыть файл \
-`$xml | Select-Xml -XPath "//RDCMan/file/group/server/properties/name[text() = '192.168.3.100']"` XPath-запрос поиска \
-`$xml.SelectNodes("//RDCMan/file/group/server/properties/name[text() = '192.168.3.100']")` \
-`$xml.RDCMan.file.group.server.properties` \
-`$xml.RDCMan.file.group.server[1].properties` \
-`$xml.RDCMan.file.group.server[1].properties.displayName = "plex-02"` изменить значение \
-`$xml.RDCMan.file.group.server[1].properties.name = "192.168.3.200"` \
-`$xml.RDCMan.file.group.server[0].RemoveAll()` \
-`$xml.Save($file)` сохранить содержимое объекта в файла
-
-`Export-CliXml` экспортировать объект powershell в xml \
-`Import-Clixml` импортировать объект xml в powershell
-```
-if (Test-Path $CredFile) {
-$Cred = Import-Clixml -path $CredFile
-} elseif (!(Test-Path $CredFile)) {
-$Cred = Get-Credential -Message "Enter credential"
-if ($Cred -ne $null) {
-$Cred | Export-CliXml -Path $CredFile
-} else {
-return
-}
-}
-```
-### XPath (Query Language for Extensible Markup Language)
-```
-$FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
-$RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath
-[xml[]]$xml = $RDPAuths | Foreach {$_.ToXml()}
-$EventData = Foreach ($event in $xml.Event) {
-New-Object PSObject -Property @{
-"Connection Time" = (Get-Date ($event.System.TimeCreated.SystemTime) -Format 'yyyy-MM-dd hh:mm K')
-"User Name" = $event.UserData.EventXML.User
-"User ID" = $event.UserData.EventXML.SessionID
-"User Address" = $event.UserData.EventXML.Address
-"Event ID" = $event.System.EventID
-}}
-$EventData
-```
-### JSON (JavaScript Object Notation)
-```
-log =
-{
-   level = 7;
-};
-
-$log = [xml]"
-<log>
-   <level>7</level>
-</log>"
-
-$log = '
-{
-  "log": {
-    "level": 7
-  }
-}' | ConvertFrom-Json
-```
-`Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" -Method Get` GET-запрос для получения объекта JSON
-
-### YAML (Yet Another Markup Language)
-```
-Import-Module PSYaml
-$network = "
-network:
-  ethernets:
-    ens160:
-      dhcp4: yes
-      dhcp6: no
-      nameservers:
-        addresses: # [8.8.8.8, 1.1.1.1]
-		  - 8.8.8.8
-		  - 1.1.1.1
-  version: 2
-"
-$Result = ConvertFrom-Yaml $network
-$Result.Values.ethernets.ens160.nameservers
-```
-### HTML (HyperText Markup Language)
-`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
-
-`Import-Module PSWriteHTML` \
-`(Get-Module PSWriteHTML).ExportedCommands` \
-`Get-Service | Out-GridHtml -FilePath ~\Desktop\Get-Service-Out-GridHtml.html`
-```
-Import-Module HtmlReport
-$topVM = ps | Sort PrivateMemorySize -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.PrivateMemorySize)}
-$topCPU = ps | Sort CPU -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.CPU)}
-New-Report -Title "Piggy Processes" -Input {
-New-Chart Bar "Top VM Users" -input $topVm
-New-Chart Column "Top CPU Overall" -input $topCPU
-ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Processes"
-} > ~\Desktop\Get-Process-HtmlReport.html
-```
-### CSV (Comma-Separated Values)
-`Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
-`Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
-
-`$data = ConvertFrom-Csv @"` \
-`Region,State,Units,Price` \
-`West,Texas,927,923.71` \
-`$null,Tennessee,466,770.67` \
-`"@`
-
 # Excel
 ```
 $path = "$home\Desktop\Services-to-Excel.xlsx"
@@ -2198,6 +2106,131 @@ $Excel.Quit()
 `$data = ps` \
 `$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend` \
 `$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show`
+
+# XML (Extensible Markup Language)
+```
+$xml = [xml](Get-Content $home\desktop\test.rdg) # прочитать содержимое XML-файла
+$xml.load("$home\desktop\test.rdg") # открыть файл
+$xml.RDCMan.file.group.properties.name # имена групп
+$xml.RDCMan.file.group.server.properties # имена всех серверов
+$xml.RDCMan.file.group[3].server.properties # список серверов в 4-й группе
+($xml.RDCMan.file.group[3].server.properties | ? name -like ADIRK).Name = "New-Name" # изменить значение
+$xml.RDCMan.file.group[3].server[0].properties.displayName = "New-displayName" 
+$xml.RDCMan.file.group[3].server[1].RemoveAll() # удалить объект (2-й сервер в списке)
+$xml.Save($file) # сохранить содержимое объекта в файла
+```
+`Export-CliXml` экспортировать объект powershell в xml \
+`Import-Clixml` импортировать объект xml в powershell
+```
+if (Test-Path $CredFile) {
+$Cred = Import-Clixml -path $CredFile
+} elseif (!(Test-Path $CredFile)) {
+$Cred = Get-Credential -Message "Enter credential"
+if ($Cred -ne $null) {
+$Cred | Export-CliXml -Path $CredFile
+} else {
+return
+}
+}
+```
+### XmlWriter
+```
+$XmlWriterSettings = New-Object System.Xml.XmlWriterSettings
+$XmlWriterSettings.Indent = $true # включить отступы
+$XmlWriterSettings.IndentChars = "    " # задать отступ
+
+$XmlFilePath = "$home\desktop\test.xml"
+$XmlObjectWriter = [System.XML.XmlWriter]::Create($XmlFilePath, $XmlWriterSettings) # создать документ
+$XmlObjectWriter.WriteStartDocument() # начать запись в документ
+
+$XmlObjectWriter.WriteComment("Comment")
+$XmlObjectWriter.WriteStartElement("Root") # создать стартовый элемент, который содержит дочерние объекты
+    $XmlObjectWriter.WriteStartElement("Configuration") # создать первый дочерний элемент для BaseSettings
+        $XmlObjectWriter.WriteElementString("Language","RU")
+        $XmlObjectWriter.WriteStartElement("Fonts")   		# <Fonts>
+            $XmlObjectWriter.WriteElementString("Name","Arial")
+            $XmlObjectWriter.WriteElementString("Size","12")
+        $XmlObjectWriter.WriteEndElement()               	# </Fonts>
+    $XmlObjectWriter.WriteEndElement() # конечный элемент </Configuration>
+$XmlObjectWriter.WriteEndElement() # конечный элемент </Root>
+
+$XmlObjectWriter.WriteEndDocument() # завершить запись в документ
+$XmlObjectWriter.Flush()
+$XmlObjectWriter.Close()
+```
+### CreateElement
+```
+$xml = [xml](gc $home\desktop\test.xml)
+$xml.Root.Configuration.Fonts
+$NewElement = $xml.CreateElement("Fonts") # выбрать элемент куда вставлять
+$NewElement.set_InnerXML("<Name>Times New Roman</Name><Size>14</Size>") # Заполнить дочерние элементы
+$xml.Root.Configuration.AppendChild($NewElement) # добавить элемент новой строкой в Configuration (родитель Fonts)
+$xml.Save("$home\desktop\test.xml")
+```
+### JSON (JavaScript Object Notation)
+```
+log =
+{
+   level = 7;
+};
+
+$log = [xml]"
+<log>
+   <level>7</level>
+</log>"
+
+$log = '
+{
+  "log": {
+    "level": 7
+  }
+}' | ConvertFrom-Json
+```
+`Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" -Method Get` GET-запрос для получения объекта JSON
+
+### YAML (Yet Another Markup Language)
+```
+Import-Module PSYaml
+$network = "
+network:
+  ethernets:
+    ens160:
+      dhcp4: yes
+      dhcp6: no
+      nameservers:
+        addresses: # [8.8.8.8, 1.1.1.1]
+		  - 8.8.8.8
+		  - 1.1.1.1
+  version: 2
+"
+$Result = ConvertFrom-Yaml $network
+$Result.Values.ethernets.ens160.nameservers
+```
+### HTML (HyperText Markup Language)
+`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
+
+`Import-Module PSWriteHTML` \
+`(Get-Module PSWriteHTML).ExportedCommands` \
+`Get-Service | Out-GridHtml -FilePath ~\Desktop\Get-Service-Out-GridHtml.html`
+```
+Import-Module HtmlReport
+$topVM = ps | Sort PrivateMemorySize -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.PrivateMemorySize)}
+$topCPU = ps | Sort CPU -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.CPU)}
+New-Report -Title "Piggy Processes" -Input {
+New-Chart Bar "Top VM Users" -input $topVm
+New-Chart Column "Top CPU Overall" -input $topCPU
+ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Processes"
+} > ~\Desktop\Get-Process-HtmlReport.html
+```
+### CSV (Comma-Separated Values)
+`Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
+`Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
+
+`$data = ConvertFrom-Csv @"` \
+`Region,State,Units,Price` \
+`West,Texas,927,923.71` \
+`$null,Tennessee,466,770.67` \
+`"@`
 
 # SQLite
 
