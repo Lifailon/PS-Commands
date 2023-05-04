@@ -3,6 +3,7 @@ PowerShell Commands
 - Object
 - Regex
 - Items
+- Credential
 - Event
 - Firewall
 - Performance
@@ -383,7 +384,8 @@ Get-Filehash -Algorithm SHA256 "$env:USERPROFILE\Documents\RSA.conf.txt"
 Set-Clipboard $srv # скопировать в буфер обмена
 Get-Clipboard # вставить
 
-### Credential
+# Credential
+
 $Cred = Get-Credential # сохраняет креды в переменные $Cred.Username и $Cred.Password
 $Cred.GetNetworkCredential().password # извлечь пароль
 cmdkey /generic:"TERMSRV/$srv" /user:"$username" /pass:"$password" # добавить указанные креды аудентификации на на терминальный сервер для подключения без пароля
