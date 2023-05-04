@@ -2253,7 +2253,7 @@ $1 = $S.Name; $2 = $S.DisplayName; $3 = $S.Status;
 Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$1', '$2', '$3');"
 }
 
-### Creat password database
+### Database password
 
 $Connection = New-SQLiteConnection -DataSource $path
 $Connection.ChangePassword("password")
