@@ -1803,6 +1803,16 @@ $inputbox.Submit()
 $selenium.Close()
 $selenium.Quit()
 ```
+### Module Selenium
+`Install-Module Selenium` \
+`Import-Module Selenium` \
+`(Get-Module Selenium).ExportedCommands` \
+`$Driver = Start-SeInternetExplorer -StartURL https://yandex.ru` \
+`$Elements = Get-SeElement -Driver $Driver -Selection *`
+```
+$path = (ls "C:\Program Files (x86)\Microsoft\Edge\Application\" | ? name -match 1).FullName
+Rename-Item "$path\BHO" "$path\BHO_" # Disable IE to Edge
+```
 ### Convert Screenshot Base64 to Image
 ```
 $Base64img = (($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#root > div > div.passp-page > div.passp-flex-wrapper > div > div > div.passp-auth-content > div.Header > div > a')))).GetScreenshot()
