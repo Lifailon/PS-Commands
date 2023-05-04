@@ -2107,7 +2107,7 @@ $Excel.Quit()
 `$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend` \
 `$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show`
 
-# XML (Extensible Markup Language)
+# XML
 ```
 $xml = [xml](Get-Content $home\desktop\test.rdg) # прочитать содержимое XML-файла
 $xml.load("$home\desktop\test.rdg") # открыть файл
@@ -2133,7 +2133,7 @@ return
 }
 }
 ```
-### XmlWriter
+### XmlWriter (Extensible Markup Language)
 ```
 $XmlWriterSettings = New-Object System.Xml.XmlWriterSettings
 $XmlWriterSettings.Indent = $true # включить отступы
@@ -2186,8 +2186,6 @@ $log = '
   }
 }' | ConvertFrom-Json
 ```
-`Invoke-RestMethod -Uri "https://jsonplaceholder.typicode.com/posts" -Method Get` GET-запрос для получения объекта JSON
-
 ### YAML (Yet Another Markup Language)
 ```
 Import-Module PSYaml
@@ -2209,9 +2207,13 @@ $Result.Values.ethernets.ens160.nameservers
 ### HTML (HyperText Markup Language)
 `Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
 
-`Import-Module PSWriteHTML` \
-`(Get-Module PSWriteHTML).ExportedCommands` \
-`Get-Service | Out-GridHtml -FilePath ~\Desktop\Get-Service-Out-GridHtml.html`
+### PSWriteHTML
+```
+Import-Module PSWriteHTML
+(Get-Module PSWriteHTML).ExportedCommands
+Get-Service | Out-GridHtml -FilePath ~\Desktop\Get-Service-Out-GridHtml.html
+```
+### HtmlReport
 ```
 Import-Module HtmlReport
 $topVM = ps | Sort PrivateMemorySize -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.PrivateMemorySize)}
@@ -2225,13 +2227,13 @@ ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Proce
 ### CSV (Comma-Separated Values)
 `Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
 `Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
-
-`$data = ConvertFrom-Csv @"` \
-`Region,State,Units,Price` \
-`West,Texas,927,923.71` \
-`$null,Tennessee,466,770.67` \
-`"@`
-
+```
+$data = ConvertFrom-Csv @"
+Region,State,Units,Price
+West,Texas,927,923.71
+$null,Tennessee,466,770.67
+"@
+```
 # SQLite
 
 `Install-Module MySQLite -Repository PSGallery` \
