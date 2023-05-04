@@ -19,6 +19,7 @@ PowerShell Commands
 - Veeam
 - REST API
 - IE
+- Selenium
 - Console API
 - XML
 - Excel
@@ -451,9 +452,6 @@ $obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $por
 }
 
 # Application
-
-### Get-Package
-Get-Package -ProviderName msi,Programs # список установленных программ
 
 ### Local User and Group
 Get-LocalUser # список пользователей
@@ -1153,6 +1151,7 @@ Start-DfsrPropagationTest # создает тестовый файл распр�
 
 # PackageManagement
 
+Get-Package -ProviderName msi,Programs # список установленных программ
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 # включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1)
 Find-PackageProvider # поиск провайдеров
 Install-PackageProvider PSGallery -force # установить источник
@@ -1750,6 +1749,57 @@ $Button_Auth = ($ie.document.IHTMLDocument3_getElementsByTagName("button")) | ? 
 $Button_Auth.Click()
 $Result = $ie.Document.documentElement.innerHTML
 $ie.Quit()
+
+# Selenium
+
+.\nuget.exe install Selenium.WebDriver
+Copy-Item -Path .\WebDriver.dll -Destination $home\Documents\Selenium\ # версия 4.9.0 для .NET 4.8
+
+Choco Upgrade GoogleChrome # обновить Google Chrome
+Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome" | select DisplayName,DisplayVersion,InstallDate,InstallLocation # узнать версию и дату обновления
+Copy-Item -Path .\ChromeDriver.exe -Destination $home\Documents\Selenium\ # скачать драйвер (113.0.5672.63) https://sites.google.com/chromium.org/driver/
+
+$path = "$env:temp\ChromeSetup.exe"
+Invoke-WebRequest 'https://dl.google.com/chrome/install/latest/chrome_installer.exe'  -OutFile $path
+Start-Process -FilePath $path -Args "/silent /install" -NoNewWindow -Wait
+
+$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button')) | select TagName,Text # отобразить все Button по TagName используя CSS selector
+$selenium.FindElements([OpenQA.Selenium.By]::TagName('button')) # поиск по TagName
+$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button')) | ? Text -match "Войти" # поиск Button по содержимому Text
+$button = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('*')) | ? Text -like "Войти через Яндекс ID" # поиск во всех элементах по содержимому Text для получения нужного элемента (SPAN) для дальнейшего быстрого поиска
+F12 (Dev Tools) - Ctrl+Shift+C - Copy selector/full XPath
+$inputbox = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#passp-field-login'))
+$inputbox = $selenium.FindElements([OpenQA.Selenium.By]::XPath("/html/body/div/div/div[2]/div[2]/div/div/div[2]/div[3]/div/div/div/div/form/div/div[2]/div[2]/div/div[2]/span/input"))
+$inputbox | gm -MemberType method
+
+$path = "$home\Documents\Selenium"
+if (($env:Path -split ';') -notcontains $path) {
+$env:Path += ";$path"
+}
+Import-Module "$path\WebDriver.dll"
+$selenium_options = New-Object OpenQA.Selenium.Chrome.ChromeOptions
+$selenium_options.AddArgument('start-maximized')
+$selenium_options.AcceptInsecureCertificates = $True
+$selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver($selenium_options)
+# $selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver
+$selenium.Navigate().GoToURL('https://yandex.ru')
+$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button'))[2].Click() # нажать на кнопку "Войти"
+$button = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('SPAN')) | ? Text -like "Войти через Яндекс ID"
+$button.Click()
+($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('Button')))[1].Click()
+$inputbox = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('input')) | ? ComputedAccessibleRole -like "textbox"
+$inputbox.Click()
+$inputbox.Clear()
+$inputbox.SendKeys("+79997772211")
+$inputbox.Submit()
+$selenium.Close()
+$selenium.Quit()
+
+### Convert Screenshot Base64 to Image
+
+$Base64img = (($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#root > div > div.passp-page > div.passp-flex-wrapper > div > div > div.passp-auth-content > div.Header > div > a')))).GetScreenshot()
+$Image = [Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($Base64img))
+$Image.Save("$home\Desktop\YaLogo.jpg")
 
 # Console API
 
