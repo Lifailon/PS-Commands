@@ -28,8 +28,8 @@
 - [Excel](#Excel)
 - [XML](#XML)
 - [SQLite](#SQLite)
-- [Git](#Git)
 - [DSC](#DSC)
+- [Git](#Git)
 
 ### Help
 `Get-Command *Service*` поиск команды по имени \
@@ -135,11 +135,12 @@
 `(Get-Process).ProcessName`
 
 ### Expression
-`ps | Sort-Object -Descending CPU | select -first 10 ProcessName,` # сортировка по CPU, вывести первых 10 значений (-first) \
-`@{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}},` # затрачено процессорного времени в минутах \
-`@{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}},` # делим байты на КБ \
-`@{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}}` # вычесть из текущего времени - время запуска, и удалить milisec
-
+```
+ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортировка по CPU, вывести первых 10 значений (-first)
+@{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}}, # затрачено процессорного времени в минутах
+@{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}}, # делим байты на КБ
+@{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}} # вычесть из текущего времени - время запуска, и удалить milisec
+```
 ### Select-String
 `ipconfig /all | Select-String dns` поиск текста
 
@@ -763,14 +764,14 @@ icm $_ {Get-LocalGroupMember "Administrators"}
 `(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections` \
 `(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP \
 `(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах
-
-`$srv = "localhost"` \
-`gwmi Win32_logicalDisk -ComputerName $srv | where {$_.Size -ne $null} | select @{` \
-`Label="Value"; Expression={$_.DeviceID}}, @{Label="AllSize"; Expression={` \
-`[string]([int]($_.Size/1Gb))+" GB"}},@{Label="FreeSize"; Expression={` \
-`[string]([int]($_.FreeSpace/1Gb))+" GB"}}, @{Label="Free%"; Expression={` \
-`[string]([int]($_.FreeSpace/$_.Size*100))+" %"}}`
-
+```
+$srv = "localhost"
+gwmi Win32_logicalDisk -ComputerName $srv | where {$_.Size -ne $null} | select @{
+Label="Value"; Expression={$_.DeviceID}}, @{Label="AllSize"; Expression={
+[string]([int]($_.Size/1Gb))+" GB"}},@{Label="FreeSize"; Expression={
+[string]([int]($_.FreeSpace/1Gb))+" GB"}}, @{Label="Free%"; Expression={
+[string]([int]($_.FreeSpace/$_.Size*100))+" %"}}
+```
 ### NLA (Network Level Authentication)
 `(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").UserAuthenticationRequired` \
 `(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(1)` включить NLA \
@@ -2257,46 +2258,6 @@ $Connection.ChangePassword("password")
 $Connection.Close()
 Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"
 ```
-# Git
-
-`git --version`
-`git config --global user.name "Lifailon"` добавить имя для коммитов \
-`git config --global user.email "lifailon@mail.com"` \
-`git config --global --edit` \
-`ssh-keygen -t rsa -b 4096 -с "lifailon@mail.com"` \
-`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
-`Get-Service | where name -match "ssh-agent" | Start-Service` \
-`ssh-agent` \
-`ssh-add C:\Users\Lifailon\.ssh\id_rsa` \
-`cat ~\.ssh\id_rsa.pub | Set-Clipboard` copy to https://github.com/settings/keys \
-`mkdir C:\Git; cd C:\Git` \
-`git clone git@github.com:Lifailon/PowerShell-Commands` \
-`cd PowerShell-Commands` \
-`git grep powershell` поиск текста в файлах \
-`git pull` синхронизировать изменения из хранилища \
-`git status` отобразить статус изменений по файлам \
-`git diff` отобразить изменения построчно \
-`git add -A` добавить (проиндексировать) изменения \
-`git commit -m "update files"` сохранить изменения с комментарием \
-`git commit --amend -m "update files and creat new file"` изменить последний комментарий коммита \
-`git push` синхронизировать локальные изменения с репозиторием \
-`git branch test` создать новую ветку \
-`git branch -d test` удалить ветку \
-`git switch test` переключиться на другую ветку \
-`git merge test` слияние текущей ветки (git branch) с указанной (test) \
-`git diff test -- myFile.txt` сравнить файл текущей ветки с тем же файлом в указанной ветки test \
-`git log --oneline --all` лог коммитов \
-`git log --graph` коммиты и следование веток \
-`git show d01f09dead3a6a8d75dda848162831c58ca0ee13` отобразить подробный лог по номеру коммита \
-`git checkout filename` откатить изменения, если не было команды add \
-`git checkout d01f09dead3a6a8d75dda848162831c58ca0ee13` переключить локальные файлы рабочей копии на указанный коммит (изменить HEAD на указанный коммит) \
-`git reset HEAD filename` откатить изменения последнего индекса, если был add но не было commit, тем самым вернуться до последней зафиксированный версии (коммита) и потом выполнить checkout \
-`git reset --mixed HEAD filename` изменения, содержащиеся в отменяемом коммите, не должны исчезнуть, они будут сохранены в виде локальных изменений в рабочей копии \
-`git restore filename` отменить все локальные изменения в рабочей копии \
-`git restore --source d01f09dead3a6a8d75dda848162831c58ca0ee13 filename` восстановить файл на указанную версию по хэшу индентификатора коммита \
-`git revert HEAD --no-edit` отменить последний коммит, без указания комментария (события записываются в git log) \
-`git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13` удалить все коммиты до указанного (и откатиться до него)
-
 # DSC
 
 `Import-Module PSDesiredStateConfiguration` \
@@ -2347,3 +2308,43 @@ Configuration DSConfigurationProxy {
 `Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
 `icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
 `icm $srv {ls C:\ | ? name -match Temp} | ft # rm`
+
+# Git
+
+`git --version`
+`git config --global user.name "Lifailon"` добавить имя для коммитов \
+`git config --global user.email "lifailon@mail.com"` \
+`git config --global --edit` \
+`ssh-keygen -t rsa -b 4096 -с "lifailon@mail.com"` \
+`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
+`Get-Service | where name -match "ssh-agent" | Start-Service` \
+`ssh-agent` \
+`ssh-add C:\Users\Lifailon\.ssh\id_rsa` \
+`cat ~\.ssh\id_rsa.pub | Set-Clipboard` copy to https://github.com/settings/keys \
+`mkdir C:\Git; cd C:\Git` \
+`git clone git@github.com:Lifailon/PowerShell-Commands` \
+`cd PowerShell-Commands` \
+`git grep powershell` поиск текста в файлах \
+`git pull` синхронизировать изменения из хранилища \
+`git status` отобразить статус изменений по файлам \
+`git diff` отобразить изменения построчно \
+`git add -A` добавить (проиндексировать) изменения \
+`git commit -m "update files"` сохранить изменения с комментарием \
+`git commit --amend -m "update files and creat new file"` изменить последний комментарий коммита \
+`git push` синхронизировать локальные изменения с репозиторием \
+`git branch test` создать новую ветку \
+`git branch -d test` удалить ветку \
+`git switch test` переключиться на другую ветку \
+`git merge test` слияние текущей ветки (git branch) с указанной (test) \
+`git diff test -- myFile.txt` сравнить файл текущей ветки с тем же файлом в указанной ветки test \
+`git log --oneline --all` лог коммитов \
+`git log --graph` коммиты и следование веток \
+`git show d01f09dead3a6a8d75dda848162831c58ca0ee13` отобразить подробный лог по номеру коммита \
+`git checkout filename` откатить изменения, если не было команды add \
+`git checkout d01f09dead3a6a8d75dda848162831c58ca0ee13` переключить локальные файлы рабочей копии на указанный коммит (изменить HEAD на указанный коммит) \
+`git reset HEAD filename` откатить изменения последнего индекса, если был add но не было commit, тем самым вернуться до последней зафиксированный версии (коммита) и потом выполнить checkout \
+`git reset --mixed HEAD filename` изменения, содержащиеся в отменяемом коммите, не должны исчезнуть, они будут сохранены в виде локальных изменений в рабочей копии \
+`git restore filename` отменить все локальные изменения в рабочей копии \
+`git restore --source d01f09dead3a6a8d75dda848162831c58ca0ee13 filename` восстановить файл на указанную версию по хэшу индентификатора коммита \
+`git revert HEAD --no-edit` отменить последний коммит, без указания комментария (события записываются в git log) \
+`git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13` удалить все коммиты до указанного (и откатиться до него)
