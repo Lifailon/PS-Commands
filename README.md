@@ -1063,51 +1063,53 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 При создании backup DC через WSB, создается копия состояния системы (System State), куда попадает база AD (NTDS.DIT), объекты групповых политик, содержимое каталога SYSVOL, реестр, метаданные IIS, база AD CS, и другие системные файлы и ресурсы. Резервная копия создается через службу теневого копирования VSS. \
 `Get-WindowsFeature Windows-Server-Backup` проверить установлена ли роль \
 `Add-Windowsfeature Windows-Server-Backup –Includeallsubfeature` установить роль
-
-`$path="\\$srv\bak-dc\dc-03\"` \
-`[string]$TargetUNC=$path+(get-date -f 'yyyy-MM-dd')` \
-`if ((Test-Path -Path $path) -eq $true) {New-Item -Path $TargetUNC -ItemType directory} # если путь доступен, создать новую директорию по дате` \
-`$WBadmin_cmd = "wbadmin.exe START BACKUP -backupTarget:$TargetUNC -systemState -noverify -vssCopy -quiet" \
-`# $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet" # Backup DB NTDS` \
-`Invoke-Expression $WBadmin_cmd`
-
+```
+$path="\\$srv\bak-dc\dc-03\"
+[string]$TargetUNC=$path+(get-date -f 'yyyy-MM-dd')
+if ((Test-Path -Path $path) -eq $true) {New-Item -Path $TargetUNC -ItemType directory} # если путь доступен, создать новую директорию по дате
+$WBadmin_cmd = "wbadmin.exe START BACKUP -backupTarget:$TargetUNC -systemState -noverify -vssCopy -quiet"
+# $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet" # Backup DB NTDS
+Invoke-Expression $WBadmin_cmd
+```
 ### DNS
-`$zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,` \
-`DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru` \
-`$zone_name = $zone.ZoneName` \
-`if ($zone_name -ne $null) {` \
-`icm $srv {Get-DnsServerResourceRecord -ZoneName $using:zone_name | sort RecordType | select RecordType,HostName, @{` \
-`Label="IPAddress"; Expression={$_.RecordData.IPv4Address.IPAddressToString}},TimeToLive,Timestamp` \
-`} | select RecordType,HostName,IPAddress,TimeToLive,Timestamp | Out-GridView -Title "DNS Server: $srv"` \
-`}`
-
+```
+$zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,
+DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru
+$zone_name = $zone.ZoneName
+if ($zone_name -ne $null) {
+icm $srv {Get-DnsServerResourceRecord -ZoneName $using:zone_name | sort RecordType | select RecordType,HostName, @{
+Label="IPAddress"; Expression={$_.RecordData.IPv4Address.IPAddressToString}},TimeToLive,Timestamp
+} | select RecordType,HostName,IPAddress,TimeToLive,Timestamp | Out-GridView -Title "DNS Server: $srv"
+}
+```
 `Sync-DnsServerZone –passthru` синхронизировать зоны с другими DC в домене \
 `Remove-DnsServerZone -Name domain.local` удалить зону \
 `Get-DnsServerResourceRecord -ZoneName domain.local -RRType A` вывести все А-записи в указанной зоне \
 `Add-DnsServerResourceRecordA -Name new-host-name -IPv4Address 192.168.1.100 -ZoneName domain.local -TimeToLive 01:00:00 -CreatePtr` создать А-запись и PTR для нее \
 `Remove-DnsServerResourceRecord -ZoneName domain.local -RRType A -Name new-host-name –Force` удалить А-запись
-
-`$DNSServer = "DC-01" \` \
-`$DNSFZone = "domain.com"` \
-`$DataFile = "C:\Scripts\DNS-Create-A-Records-from-File.csv"` \
-`# cat $DataFile` \
-`# "HostName;IP"` \
-`# "server-01;192.168.1.10"` \
-`$DNSRR = [WmiClass]"\\$DNSServer\root\MicrosoftDNS:MicrosoftDNS_ResourceRecord"` \
-`$ConvFile = $DataFile + "_unicode"` \
-`Get-Content $DataFile | Set-Content $ConvFile -Encoding Unicode` \
-`Import-CSV $ConvFile -Delimiter ";" | ForEach-Object {` \
-`$FQDN = $_.HostName + "." + $DNSFZone` \
-`$IP = $_.HostIP` \
-`$TextA = "$FQDN IN A $IP"` \
-`[Void]$DNSRR.CreateInstanceFromTextRepresentation($DNSServer,$DNSFZone,$TextA)` \
-`}`
-
+```
+$DNSServer = "DC-01"
+$DNSFZone = "domain.com"
+$DataFile = "C:\Scripts\DNS-Create-A-Records-from-File.csv"
+# cat $DataFile
+# "HostName;IP"
+# "server-01;192.168.1.10"
+$DNSRR = [WmiClass]"\\$DNSServer\root\MicrosoftDNS:MicrosoftDNS_ResourceRecord"
+$ConvFile = $DataFile + "_unicode"
+Get-Content $DataFile | Set-Content $ConvFile -Encoding Unicode
+Import-CSV $ConvFile -Delimiter ";" | ForEach-Object {
+$FQDN = $_.HostName + "." + $DNSFZone
+$IP = $_.HostIP
+$TextA = "$FQDN IN A $IP"
+[Void]$DNSRR.CreateInstanceFromTextRepresentation($DNSServer,$DNSFZone,$TextA)
+}
+```
 ### DHCP
-`$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,` \
-`HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru` \
-`(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)`
-
+```
+$mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,
+HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru
+(New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)
+```
 `Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
 
 ### RDS
@@ -1719,16 +1721,16 @@ CopyQueue Length - длина репликационной очереди коп
 `$pars.Links | fl title,innerText,href` \
 `$pars.Images.src` links on images \
 `iwr $url -OutFile $path` download
-
-`$pars = wget -Uri $url` \
-`$pars.Images.src | %{` \
-`$name = $_ -replace ".+(?<=/)"` \
-`wget $_ -OutFile "$home\Pictures\$name"` \
-`}` \
-`$count_all = $pars.Images.src.Count` \
-`$count_down = (Get-Item $path\*).count` \
-`"Downloaded $count_down of $count_all files to $path"`
-
+```
+$pars = wget -Uri $url
+$pars.Images.src | %{
+$name = $_ -replace ".+(?<=/)"
+wget $_ -OutFile "$home\Pictures\$name"
+}
+$count_all = $pars.Images.src.Count
+$count_down = (Get-Item $path\*).count
+"Downloaded $count_down of $count_all files to $path"
+```
 Methods: \
 GET - Read \
 POST - Create \
@@ -1736,31 +1738,35 @@ PATCH - Partial update/modify \
 PUT - Update/replace \
 DELETE - Remove
 
-`https://veeam-11:9419/swagger/ui/index.html` \
-`$Header = @{` \
-`"x-api-version" = "1.0-rev2"` \
-`}` \
-`$Body = @{` \
-`"grant_type" = "password"` \
-`"username" = "$login"` \
-`"password" = "$password"` \
-`}` \
-`$vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck` \
-`$vtoken = (($vpost.Content) -split '"')[3]`
+### Token
+```
+https://veeam-11:9419/swagger/ui/index.html
+$Header = @{
+"x-api-version" = "1.0-rev2"
+}
+$Body = @{
+"grant_type" = "password"
+"username" = "$login"
+"password" = "$password"
+}
+$vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck
+$vtoken = (($vpost.Content) -split '"')[3]
+```
+### GET
+```
+$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force
+$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck
 
-`$token = $vtoken | ConvertTo-SecureString -AsPlainText –Force` \
-`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck`
+$Header = @{
+"x-api-version" = "1.0-rev1"
+"Authorization" = "Bearer $vtoken"
+}
+$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
+$vjob = $vjob.Content | ConvertFrom-Json
 
-`$Header = @{` \
-`"x-api-version" = "1.0-rev1"` \
-`"Authorization" = "Bearer $vtoken"` \
-`}` \
-`$vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
-`$vjob = $vjob.Content | ConvertFrom-Json`
-
-`$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck` \
-`$vjob.data.virtualMachines.includes.inventoryObject`
-
+$vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
+$vjob.data.virtualMachines.includes.inventoryObject
+```
 # IE
 
 `$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name` получить имена всех Input Box \
