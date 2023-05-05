@@ -1826,16 +1826,6 @@ $inputbox.Submit()
 $selenium.Close()
 $selenium.Quit()
 
-### Module Selenium
-Install-Module Selenium
-Import-Module Selenium
-(Get-Module Selenium).ExportedCommands
-$Driver = Start-SeInternetExplorer -StartURL https://yandex.ru
-$Elements = Get-SeElement -Driver $Driver -Selection *
-
-$path = (ls "C:\Program Files (x86)\Microsoft\Edge\Application\" | ? name -match 1).FullName
-Rename-Item "$path\BHO" "$path\BHO_" # Disable IE to Edge
-
 ### Convert Screenshot Base64 to Image
 
 $Base64img = (($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#root > div > div.passp-page > div.passp-flex-wrapper > div > div > div.passp-auth-content > div.Header > div > a')))).GetScreenshot()
@@ -2169,8 +2159,8 @@ $XmlObjectWriter.Close()
 
 $xml = [xml](gc $home\desktop\test.xml)
 $xml.Root.Configuration.Fonts
-$NewElement = $xml.CreateElement("Fonts") # выбрать элемент куда вставлять
-$NewElement.set_InnerXML("<Name>Times New Roman</Name><Size>14</Size>") # Заполнить дочерние элементы
+$NewElement = $xml.CreateElement("Fonts") # выбрать элемент куда добавить
+$NewElement.set_InnerXML("<Name>Times New Roman</Name><Size>14</Size>") # Заполнить значениями дочерние элементы Fonts
 $xml.Root.Configuration.AppendChild($NewElement) # добавить элемент новой строкой в Configuration (родитель Fonts)
 $xml.Save("$home\desktop\test.xml")
 
@@ -2350,7 +2340,7 @@ Configuration DSConfigurationProxy {
 }
 
 $Path = (DSConfigurationProxy).DirectoryName
-Test-DscConfiguration -Path $Path | select * # ResourcesInDesiredState - уже настроено, ResourcesNotInDesiredState - не настроено (не соответствует) 
+Test-DscConfiguration -Path $Path | select * # ResourcesInDesiredState - уже настроено, ResourcesNotInDesiredState - не настроено
 Start-DscConfiguration -Path $Path
 Get-Job
 $srv = "uk-vproxy-01"
