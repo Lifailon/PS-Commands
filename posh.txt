@@ -29,6 +29,7 @@ PowerShell Commands
 - XML
 - SQLite
 - Git
+- DSC
 
 ### Help
 Get-Command *Service* # поиск команды по имени
@@ -575,13 +576,18 @@ Get-NetRoute
 ### netstat
 Get-NetTCPConnection -State Established,Listen | ? LocalAddress -match "192.168"
 
-### Local User and Group
+### LocalGroup
 Get-LocalUser # список пользователей
 Get-LocalGroup # список групп
 New-LocalUser "1C" -Password $Password -FullName "1C Domain" # создать пользователя
-Set-LocalUser -Password $Password 1c # изменить пароль
+Set-LocalUser -Password $Password 1C # изменить пароль
 Add-LocalGroupMember -Group "Administrators" -Member "1C" # добавить в группу Администраторов
 Get-LocalGroupMember "Administrators" # члены группы
+
+@("vproxy-01","vproxy-02","vproxy-03") | %{
+icm $_ {Add-LocalGroupMember -Group "Administrators" -Member "support4"}
+icm $_ {Get-LocalGroupMember "Administrators"}
+}
 
 # WinRM
 
@@ -2119,8 +2125,9 @@ $xml.RDCMan.file.group[3].server[0].properties.displayName = "New-displayName"
 $xml.RDCMan.file.group[3].server[1].RemoveAll() # удалить объект (2-й сервер в списке)
 $xml.Save($file) # сохранить содержимое объекта в файла
 
-Export-CliXml # экспортировать объект powershell в xml
-Import-Clixml # импортировать объект xml в powershell
+Get-Service | Export-Clixml -path $home\desktop\test.xml # экспортировать объект powershell в xml
+Import-Clixml -Path $home\desktop\test.xml # импортировать объект xml в powershell
+ConvertTo-Xml (Get-Service)
 
 if (Test-Path $CredFile) {
 $Cred = Import-Clixml -path $CredFile
@@ -2299,3 +2306,54 @@ git restore filename # отменить все локальные изменен
 git restore --source d01f09dead3a6a8d75dda848162831c58ca0ee13 filename # восстановить файл на указанную версию по хэшу индентификатора коммита
 git revert HEAD --no-edit # отменить последний коммит, без указания комментария (события записываются в git log)
 git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13 # удалить все коммиты до указанного (и откатиться до него)
+
+# DSC
+
+Import-Module PSDesiredStateConfiguration
+(Get-Module PSDesiredStateConfiguration).ExportedCommands
+Get-DscLocalConfigurationManager
+
+Get-DscResource
+Get-DscResource -Name File -Syntax # https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
+
+Ensure = Present # настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить)
+Ensure = Absent  # настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
+
+Configuration DSConfigurationProxy {
+    Node uk-vproxy-01 {
+        File CreateDir {
+            Ensure = "Present"
+            Type = "Directory"
+            DestinationPath = "C:\Temp"
+        }
+        Service StopW32time {
+            Name = "w32time"
+            State = "Stopped" # Running
+        }
+		WindowsProcess RunCalc {
+            Ensure = "Present"
+            Path = "C:\WINDOWS\system32\calc.exe"
+            Arguments = ""
+        }
+        Registry RegSettings {
+            Ensure = "Present"
+            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\MySoft"
+            ValueName = "TestName"
+            ValueData = "TestValue"
+            ValueType = "String"
+        }
+#		WindowsFeature IIS {
+#            Ensure = "Present"
+#            Name = "Web-Server"
+#        }
+    }
+}
+
+$Path = (DSConfigurationProxy).DirectoryName
+Test-DscConfiguration -Path $Path | select * # ResourcesInDesiredState - уже настроено, ResourcesNotInDesiredState - не настроено (не соответствует) 
+Start-DscConfiguration -Path $Path
+Get-Job
+$srv = "uk-vproxy-01"
+Get-Service -ComputerName $srv | ? name -match w32time # Start-Service
+icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force
+icm $srv {ls C:\ | ? name -match Temp} | ft # rm
