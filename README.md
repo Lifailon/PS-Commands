@@ -29,7 +29,7 @@
 - [XML](#XML)
 - [SQLite](#SQLite)
 - [Git](#Git)
-- [DSC]($DSC)
+- [DSC](#DSC)
 
 ### Help
 `Get-Command *Service*` поиск команды по имени \
