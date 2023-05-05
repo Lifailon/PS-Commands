@@ -1072,6 +1072,7 @@ $WBadmin_cmd = "wbadmin.exe START BACKUP -backupTarget:$TargetUNC -systemState -
 Invoke-Expression $WBadmin_cmd
 
 ### DNS
+
 $zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,
 DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru
 $zone_name = $zone.ZoneName
@@ -1104,6 +1105,7 @@ $TextA = "$FQDN IN A $IP"
 }
 
 ### DHCP
+
 $mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,
 HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru
 (New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)
@@ -1736,6 +1738,8 @@ PATCH - Partial update/modify
 PUT - Update/replace
 DELETE - Remove
 
+### Token
+
 https://veeam-11:9419/swagger/ui/index.html
 $Header = @{
 "x-api-version" = "1.0-rev2"
@@ -1747,6 +1751,8 @@ $Body = @{
 }
 $vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Header -Body $Body -SkipCertificateCheck
 $vtoken = (($vpost.Content) -split '"')[3]
+
+### GET
 
 $token = $vtoken | ConvertTo-SecureString -AsPlainText –Force
 $vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck
