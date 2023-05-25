@@ -12,10 +12,12 @@
 - [Network](#Network)
 - [SMB](#SMB)
 - [WinRM](#WinRM)
-- [ComObject](#ComObject)
 - [WMI](#WMI)
 - [ActiveDirectory](#ActiveDirectory)
 - [ServerManager](#ServerManager)
+- [DNS](#DNS)
+- [DHCP](#DHCP)
+- [DFS](#DFS)
 - [PackageManagement](#PackageManagement)
 - [PowerCLI](#PowerCLI)
 - [EMShell](#EMShell)
@@ -24,23 +26,26 @@
 - [REST API](#REST-API)
 - [IE](#IE)
 - [Selenium](#Selenium)
-- [Console API](#Console-API)
+- [COM Object](#COM-Object)
+- [Class .NET Win API](#Class-.NET-Win-API)
 - [Excel](#Excel)
 - [XML](#XML)
-- [SQLite](#SQLite)
 - [DSC](#DSC)
 - [Git](#Git)
+- [SQLite](#SQLite)
+- [MySQL](#MySQL)
 
 ### Help
 `Get-Command *Service*` поиск команды по имени \
 `Get-Help Get-Service` синтаксис \
-`Get-Help Stop-Process -Parameter *` описание всех параметров \
+`Get-Help Get-Service -Parameter *` описание всех параметров \
 `Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) и Alias \
 `Get-Alias ps` \
 `Get-Verb` действия, утвержденные для использования в командах \
 `Set-ExecutionPolicy Unrestricted` \
 `Get-ExecutionPolicy` \
-`$PSVersionTable`
+`$PSVersionTable` \
+`powershell -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"` NppExec
 
 # Object
 
@@ -52,6 +57,10 @@
 `Get-PSReadLineOption | select MaximumHistoryCount` \
 `Set-PSReadlineOption -HistorySaveStyle SaveNothing` отключить ведение журнала \
 `F2` переключиться с InlineView на ListView
+
+### Clipboard
+`Set-Clipboard $srv` скопировать в буфер обмена \
+`Get-Clipboard` вставить
 
 ### Array
 `$srv = @("server-01", "server-02")`  создать массив \
@@ -66,40 +75,49 @@
 `$srv[10..100]` срез
 
 ### HashTable
-`$hashtable = @{}` \
-`$User = "user"` \
-`$Server = "Computer"` \
-`$hashtable.Add($env:username,$env:computername)` \
-`$hashtable.Remove("Lifailon")`
-
-`$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"}` \
+```
+$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"} # создать
+$hashtable += @{"User2" = "$env:username"; "Server2" = "$env:computername"} # добавить ключи
+$hashtable.Keys # список всех ключей
+$hashtable["User"] # получить значение (Values) по ключу
+$hashtable["User"] = "Test" # изменить
+$hashtable.Remove("User") # удалить ключ
+```
 `$Tag = @{$true = 'dev'; $false = 'prod'}[([System.Net.Dns]::GetHostEntry("localhost").HostName) -match '.*.TestDomain$']`
 
-### Keys
-`$hashtable.Keys` список всех ключей \
-`$hashtable["User"]` получить значение (Values) по ключу
-
+### List
+```
+$Collections = New-Object System.Collections.Generic.List[System.Object]
+$Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})
+```
 ### PSCustomObject
-`$Collections = New-Object System.Collections.Generic.List[System.Object]` \
-`$Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})`
+```
+$CustomObject = [PSCustomObject][ordered]@{User = $env:username; Server = $env:computername}
+$CustomObject | Add-Member –MemberType NoteProperty –Name Arr –Value @(1,2,3) # добавить Property (свойство/стобец)
+$CustomObject.Arr = @(1,3,5) # изменить содержимое
+$CustomObject.PsObject.Properties.Remove('User') # удалить Property
+```
+### Add-Member
+```
+$ScriptBlock = {Get-Service}
+$CustomObject | Add-Member -Name "TestMethod" -MemberType ScriptMethod -Value $ScriptBlock # Добавить Method
+$CustomObject | Get-Member
+$CustomObject.TestMethod()
+```
+### Class
+```
+Class CustomClass {
+[string]$User
+[string]$Server
+Start([bool]$Param1) {
+If ($Param1) {Write-Host "Start Function"}}
+}
 
-`$object = New-Object –TypeName PSCustomObject -Property @{User = $env:username; Server = $env:computername}` \
-`$object | Get-Member` \
-`$object | Add-Member –MemberType NoteProperty –Name IP –Value "192.168.1.1"` имеет возможость добавить свойство или -MemberType ScriptMethod \
-`$object.PsObject.Properties.Remove('User')` удалить свойство (столбец)
-
-`$arr = @()` \
-`$arr += [PSCustomObject]@{User = $env:username; Server = $env:computername}` медленный метод добавления, в каждой интерации перезаписывается массив и коллекция становится фиксированного размера (без возможности удаления) \
-`$arr.Remove(0)` Exception calling "Remove" with "1" argument(s): "Collection was of a fixed size"
-
-`Class CustomClass {` \
-`[string]$User` \
-`[string]$Server` \
-`}` \
-`$Class = New-Object -TypeName CustomClass` \
-`$Class.User = $env:username` \
-`$Class.Server = $env:computername`
-
+$Class = New-Object -TypeName CustomClass
+$Class.User = $env:username
+$Class.Server = $env:computername
+$Class.Start(1)
+```
 ### Pipeline
 `$obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force` добавление объкта вывода NoteProperty \
 `$obj | Add-Member -MemberType NoteProperty -Name "User" -Value "admin" -Force` изменеие содержимого для сущности объекта User \
@@ -132,7 +150,7 @@
 `Get-Process | Select-Object -Property *` отобразить все доступные объекты вывода \
 `Get-Process | select -Unique "Name"` удалить повторяющиеся значения в массиве \
 `Get-Process | select -ExpandProperty ProcessName` преобразовать из объекта-коллекции в массив (вывести содержимое без наименовая столбца) \
-`(Get-Process).ProcessName`
+`(Get-Process | ? Name -match iperf).Modules` список используемых модулей процессом
 
 ### Expression
 ```
@@ -241,10 +259,11 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 `$char = $srv.ToCharArray()` разбить строку [string] на массив [System.Array] из букв \
 `$char.GetType()` тип данных: Char[] \
 `[Object]` массив (BaseType:System.Array) \
+`[DateTime]` формат времени (BaseType:System.ValueType) \
+`[Boolean]` логический тип ($True/$False) \
 `[int]` целое число (BaseType:System.ValueType) \
 `[String]` строка-текст (BaseType:System.Object) \
-`[DateTime]` формат времени (BaseType:System.ValueType) \
-`[Boolean]` логический тип ($True/$False)
+`(4164539/1MB).ToString(".00")` округлить до 3,97
 
 ### Property
 `$srv.Count` кол-во элементов в массиве \
@@ -382,9 +401,9 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 ### Filehash
 `Get-Filehash -Algorithm SHA256 "$env:USERPROFILE\Documents\RSA.conf.txt"`
 
-### Clipboard
-`Set-Clipboard $srv` скопировать в буфер обмена \
-`Get-Clipboard` вставить
+### Microsoft.PowerShell.Archive
+`Compress-Archive -Path $sourcepath -DestinationPath $dstpath -CompressionLevel Optimal` архивировать \
+`Expand-Archive .\powerlinefonts.zip` разархивировать
 
 # Credential
 
@@ -690,52 +709,6 @@ icm $_ {Get-LocalGroupMember "Administrators"}
 `Get-IscsiTarget | fl` \
 `Disconnect-IscsiTarget -NodeAddress ″iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target″ -Confirm:$false` отключиться
 
-# ComObject
-
-`$wshell = New-Object -ComObject Wscript.Shell` \
-`$wshell | Get-Member` \
-`$link = $wshell.CreateShortcut("$Home\Desktop\Яндекс.lnk")` создать ярлык \
-`$link.TargetPath = "https://yandex.ru"` куда ссылается (метод TargetPath объекта $link где хранится дочерний объект CreateShortcut) \
-`$link.Save()` сохранить \
-`(New-Object -ComObject wscript.shell).SendKeys([char]173)` включить/выключить звук
-
-`$wshell.Exec("notepad.exe")` запустить приложение \
-`$wshell.AppActivate("Блокнот")` развернуть запущенное приложение \
-`sleep -Milliseconds 500` \
-`$wshell.SendKeys("%")` ALT \
-`$wshell.SendKeys("{ENTER}")` \
-`$wshell.SendKeys("{DOWN}")` \
-`$wshell.SendKeys("{DOWN}")` \
-`$wshell.SendKeys("{ENTER}")` \
-`Set-WinUserLanguageList -LanguageList en-us,ru -Force` изменить языковую раскладку клавиатуры \
-`$wshell.SendKeys("login")`
-
-`$wshell = New-Object -ComObject Wscript.Shell` \
-`$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)` \
-`if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}`
-
-`Type:` \
-`0` ОК \
-`1` ОК и Отмена \
-`2` Стоп, Повтор, Пропустить \
-`3` Да, Нет, Отмена \
-`4` Да и Нет \
-`5` Повтор и Отмена \
-`16` Stop \
-`32` Question \
-`48` Exclamation \
-`64` Information
-
-`Output:` \
-`-1` Timeout \
-`1` ОК \
-`2` Отмена \
-`3` Стоп \
-`4` Повтор \
-`5` Пропустить \
-`6` Да \
-`7` Нет
-
 # WMI
 
 ### WMI/CIM (Windows Management Instrumentation/Common Information Model)	
@@ -763,7 +736,11 @@ icm $_ {Get-LocalGroupMember "Administrators"}
 `gwmi -list -Namespace root\CIMV2\Terminalservices` \
 `(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections` \
 `(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP \
-`(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах
+`(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах \
+`gwmi Win32_UserAccount` доменные пользователи \
+`(gwmi Win32_SystemUsers).PartComponent` \
+`Get-CimInstance -ClassName Win32_LogonSession` \
+`Get-CimInstance -ClassName Win32_BIOS`
 ```
 $srv = "localhost"
 gwmi Win32_logicalDisk -ComputerName $srv | where {$_.Size -ne $null} | select @{
@@ -800,12 +777,21 @@ Label="Value"; Expression={$_.DeviceID}}, @{Label="AllSize"; Expression={
 `Import-Module ActiveDirectory` \
 `Get-Command -Module ActiveDirectory`
 
-### LDAP (Lightweight Directory Access Protocol)
-`$ldapsearcher = New-Object System.DirectoryServices.DirectorySearcher` \
+### ADSI (Active Directory Service Interface)
 `$d0 = $env:userdnsdomain` \
 `$d0 = $d0 -split "\."` \
 `$d1 = $d0[0]` \
 `$d2 = $d0[1]` \
+`$group = [ADSI]"LDAP://OU=Domain Controllers,DC=$d1,DC=$d2"` \
+`$group | select *`
+
+`$Local_User = [ADSI]"WinNT://./Администратор,user"` \
+`$Local_User | Get-Member` \
+`$Local_User.Description` \
+`$Local_User.LastLogin` время последней авторизации локального пользователя
+
+### LDAP (Lightweight Directory Access Protocol)
+`$ldapsearcher = New-Object System.DirectoryServices.DirectorySearcher` \
 `$ldapsearcher.SearchRoot = "LDAP://OU=Domain Controllers,DC=$d1,DC=$d2"` \
 `$ldapsearcher.Filter = "(objectclass=computer)"` \
 `$dc = $ldapsearcher.FindAll().path`
@@ -1057,7 +1043,12 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `Install-WindowsFeature -Name DNS` установить роль \
 `Get-Command *DNS*` \
 `Get-DnsServerSetting -ALL` \
-`Uninstall-WindowsFeature -Name DNS`
+`Uninstall-WindowsFeature -Name DNS` удалить роль
+
+### PSWA
+`Install-WindowsFeature -Name WindowsPowerShellWebAccess -IncludeManagementTools` \
+`Install-PswaWebApplication -UseTestCertificate` Создать веб-приложение /pswa \
+`Add-PswaAuthorizationRule -UserGroupName "$domain\Domain Admins" -ComputerName * -ConfigurationName * -RuleName "For Admins"` добавить права авторизации
 
 ### WSB (Windows Server Backup)
 При создании backup DC через WSB, создается копия состояния системы (System State), куда попадает база AD (NTDS.DIT), объекты групповых политик, содержимое каталога SYSVOL, реестр, метаданные IIS, база AD CS, и другие системные файлы и ресурсы. Резервная копия создается через службу теневого копирования VSS. \
@@ -1071,7 +1062,18 @@ $WBadmin_cmd = "wbadmin.exe START BACKUP -backupTarget:$TargetUNC -systemState -
 # $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet" # Backup DB NTDS
 Invoke-Expression $WBadmin_cmd
 ```
-### DNS
+### RDS
+`Get-Command -Module RemoteDesktop` \
+`Get-RDServer -ConnectionBroker $broker` список всех серверов в фермеы, указывается полное доменное имя при обращение к серверу с ролью RDCB \
+`Get-RDRemoteDesktop -ConnectionBroker $broker` список коллекций \
+`(Get-RDLicenseConfiguration -ConnectionBroker $broker | select *).LicenseServer` список серверов с ролью RDL \
+`Get-RDUserSession -ConnectionBroker $broker` список всех активных пользователей \
+`Disconnect-RDUser -HostServer $srv -UnifiedSessionID $id -Force` отключить сессию пользователя \
+`Get-RDAvailableApp -ConnectionBroker $broker -CollectionName C03` список установленного ПО на серверах в коллекции \
+`(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty` use redirection server name:i:1 \
+`Get-RDConnectionBrokerHighAvailability`
+
+# DNS
 ```
 $zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,
 DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru
@@ -1104,7 +1106,7 @@ $TextA = "$FQDN IN A $IP"
 [Void]$DNSRR.CreateInstanceFromTextRepresentation($DNSServer,$DNSFZone,$TextA)
 }
 ```
-### DHCP
+# DHCP
 ```
 $mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,
 HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru
@@ -1112,18 +1114,8 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 ```
 `Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"`
 
-### RDS
-`Get-Command -Module RemoteDesktop` \
-`Get-RDServer -ConnectionBroker $broker` список всех серверов в фермеы, указывается полное доменное имя при обращение к серверу с ролью RDCB \
-`Get-RDRemoteDesktop -ConnectionBroker $broker` список коллекций \
-`(Get-RDLicenseConfiguration -ConnectionBroker $broker | select *).LicenseServer` список серверов с ролью RDL \
-`Get-RDUserSession -ConnectionBroker $broker` список всех активных пользователей \
-`Disconnect-RDUser -HostServer $srv -UnifiedSessionID $id -Force` отключить сессию пользователя \
-`Get-RDAvailableApp -ConnectionBroker $broker -CollectionName C03` список установленного ПО на серверах в коллекции \
-`(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty` use redirection server name:i:1 \
-`Get-RDConnectionBrokerHighAvailability`
+# DFS
 
-### DFSR
 `dfsutil /root:\\domain.sys\public /export:C:\export-dfs.txt` экспорт конфигурации namespace root \
 `dfsutil /AddFtRoot /Server:\\$srv /Share:public` на новой машине предварительно создать корень на основе домена \
 `dfsutil /root:\\domain.sys\public /import:C:\export-dfs.txt /<verify /set` Import (перед импортом данных в существующий корень DFS, утилита создает резервную копию конфигурации корня в текущем каталоге, из которого запускается утилита dfsutil) \
@@ -1767,26 +1759,6 @@ $vjob = $vjob.Content | ConvertFrom-Json
 $vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
 $vjob.data.virtualMachines.includes.inventoryObject
 ```
-# IE
-
-`$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name` получить имена всех Input Box \
-`$ie.document.IHTMLDocument3_getElementsByTagName("button") | select innerText` получить имена всех Button \
-`$ie.Document.documentElement.innerHTML` прочитать сырой Web Content (<input name="login" tabindex="100" class="input__control input__input" id="uniq32005644019429136" spellcheck="false" placeholder="Логин") \
-`$All_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("*")` забрать все элементы \
-`$Go_Button = $All_Elements | ? innerText -like "go"` поиск элемента по имени \
-`$Go_Button | select ie9_tagName` получить TagName (SPAN) для быстрого дальнейшего поиска \
-`$SPAN_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("SPAN")`
-```
-$ie = New-Object -ComObject InternetExplorer.Application
-$ie.navigate("https://yandex.ru")
-$ie.visible = $true
-$ie.document.IHTMLDocument3_getElementByID("login").value = "Login"
-$ie.document.IHTMLDocument3_getElementByID("passwd").value = "Password"
-$Button_Auth = ($ie.document.IHTMLDocument3_getElementsByTagName("button")) | ? innerText -match "Войти"
-$Button_Auth.Click()
-$Result = $ie.Document.documentElement.innerHTML
-$ie.Quit()
-```
 # Selenium
 
 `.\nuget.exe install Selenium.WebDriver` \
@@ -1814,7 +1786,7 @@ $path = "$home\Documents\Selenium"
 if (($env:Path -split ';') -notcontains $path) {
 $env:Path += ";$path"
 }
-Import-Module "$path\WebDriver.dll"
+Import-Module "$path\WebDriver.dll" # Add-Type -Path "$path\WebDriver.dll"
 $selenium_options = New-Object OpenQA.Selenium.Chrome.ChromeOptions
 $selenium_options.AddArgument('start-maximized')
 $selenium_options.AcceptInsecureCertificates = $True
@@ -1839,46 +1811,181 @@ $Base64img = (($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#root >
 $Image = [Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($Base64img))
 $Image.Save("$home\Desktop\YaLogo.jpg")
 ```
-# Console API
+# IE
 
-`[Console] | Get-Member -Static` \
-`[Console]::BackgroundColor = "Blue"`
+`$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name` получить имена всех Input Box \
+`$ie.document.IHTMLDocument3_getElementsByTagName("button") | select innerText` получить имена всех Button \
+`$ie.Document.documentElement.innerHTML` прочитать сырой Web Content (<input name="login" tabindex="100" class="input__control input__input" id="uniq32005644019429136" spellcheck="false" placeholder="Логин") \
+`$All_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("*")` забрать все элементы \
+`$Go_Button = $All_Elements | ? innerText -like "go"` поиск элемента по имени \
+`$Go_Button | select ie9_tagName` получить TagName (SPAN) для быстрого дальнейшего поиска \
+`$SPAN_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("SPAN")`
 ```
-do {
-if ([Console]::KeyAvailable) {
-$keyInfo = [Console]::ReadKey($true)
-break
+$ie = New-Object -ComObject InternetExplorer.Application
+$ie.navigate("https://yandex.ru")
+$ie.visible = $true
+$ie.document.IHTMLDocument3_getElementByID("login").value = "Login"
+$ie.document.IHTMLDocument3_getElementByID("passwd").value = "Password"
+$Button_Auth = ($ie.document.IHTMLDocument3_getElementsByTagName("button")) | ? innerText -match "Войти"
+$Button_Auth.Click()
+$Result = $ie.Document.documentElement.innerHTML
+$ie.Quit()
+```
+# COM Object
+
+`$wshell = New-Object -ComObject Wscript.Shell` \
+`$wshell | Get-Member` \
+`$link = $wshell.CreateShortcut("$Home\Desktop\Yandex.lnk")` создать ярлык \
+`$link | Get-Member` \
+`$link.TargetPath = "https://yandex.ru"` куда ссылается (метод TargetPath объекта $link где хранится объект CreateShortcut) \
+`$link.Save()` сохранить
+
+`Set-WinUserLanguageList -LanguageList en-us,ru -Force` изменить языковую раскладку клавиатуры
+
+### Wscript.Shell.SendKeys
+`(New-Object -ComObject Wscript.shell).SendKeys([char]173)` включить/выключить звук \
+`$wshell.Exec("notepad.exe")` запустить приложение \
+`$wshell.AppActivate("Блокнот")` развернуть запущенное приложение
+```
+$wshell.SendKeys("Login") # текст
+$wshell.SendKeys("{A 5}") # напечатать букву 5 раз подряд
+$wshell.SendKeys("%{TAB}") # ALT+TAB
+$wshell.SendKeys("^") # CTRL
+$wshell.SendKeys("%") # ALT
+$wshell.SendKeys("+") # SHIFT
+$wshell.SendKeys("{DOWN}") # вниз
+$wshell.SendKeys("{UP}") # вверх
+$wshell.SendKeys("{LEFT}") # влево
+$wshell.SendKeys("{RIGHT}") # вправо
+$wshell.SendKeys("{PGUP}") # PAGE UP
+$wshell.SendKeys("{PGDN}") # PAGE DOWN
+$wshell.SendKeys("{BACKSPACE}") # BACKSPACE/BKSP/BS
+$wshell.SendKeys("{DEL}") # DEL/DELETE
+$wshell.SendKeys("{INS}") # INS/INSERT
+$wshell.SendKeys("{PRTSC}") # PRINT SCREEN
+$wshell.SendKeys("{ENTER}")
+$wshell.SendKeys("{ESC}")
+$wshell.SendKeys("{TAB}")
+$wshell.SendKeys("{END}")
+$wshell.SendKeys("{HOME}")
+$wshell.SendKeys("{BREAK}")
+$wshell.SendKeys("{SCROLLLOCK}")
+$wshell.SendKeys("{CAPSLOCK}")
+$wshell.SendKeys("{NUMLOCK}")
+$wshell.SendKeys("{F1}")
+$wshell.SendKeys("{F12}")
+$wshell.SendKeys("{+}{^}{%}{~}{(}{)}{[}{]}{{}{}}")
+```
+### Wscript.Shell.Popup
+`$wshell = New-Object -ComObject Wscript.Shell` \
+`$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)` \
+`if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}`
+```
+Type:
+0 # ОК
+1 # ОК и Отмена
+2 # Стоп, Повтор, Пропустить
+3 # Да, Нет, Отмена
+4 # Да и Нет
+5 # Повтор и Отмена
+16 # Stop
+32 # Question
+48 # Exclamation
+64 # Information
+
+Output:
+-1 # Timeout
+1 # ОК
+2 # Отмена
+3 # Стоп
+4 # Повтор
+5 # Пропустить
+6 # Да
+7 # Нет
+```
+### WScript.Network
+`$wshell = New-Object -ComObject WScript.Network` \
+`$wshell | Get-Member` \
+`$wshell.UserName` \
+`$wshell.ComputerName` \
+`$wshell.UserDomain`
+
+### Shell.Application
+`$wshell = New-Object -ComObject Shell.Application` \
+`$wshell | Get-Member` \
+`$wshell.Explore("C:\")` \
+`$wshell.Windows() | Get-Member` получить доступ к открытым в проводнике или браузере Internet Explorer окон
+
+### Outlook.Application
+`$Outlook = New-Object -ComObject Outlook.Application` \
+`$Outlook | Get-Member` \
+`$Outlook.Version`
+
+# Class .NET Win API
+
+`[System.Diagnostics.EventLog] | select Assembly,Module` \
+`$EventLog = [System.Diagnostics.EventLog]::new("Application")` \
+`$EventLog = New-Object -TypeName System.Diagnostics.EventLog -ArgumentList Application,192.168.3.100` \
+`$EventLog | Get-Member -MemberType Method` \
+`$EventLog.MaximumKilobytes` максимальный размер журнала \
+`$EventLog.Entries` просмотреть журнал \
+`$EventLog.Clear()` очистить журнал
+
+### GeneratePassword
+`Add-Type -AssemblyName System.Web` \
+`[System.Web.Security.Membership]::GeneratePassword(10,2)`
+
+### Static Class
+`[System.Environment] | Get-Member -Static` \
+`[System.Environment]::OSVersion` \
+`[System.Environment]::Version` \
+`[System.Environment]::MachineName` \
+`[System.Environment]::UserName`
+
+### Register-ObjectEvent
+```
+$Timer = New-Object System.Timers.Timer
+$Timer.Interval = 1000
+Register-ObjectEvent -InputObject $Timer -EventName Elapsed -SourceIdentifier Timer.Output -Action {
+$Random = Get-Random -Min 0 -Max 100
+Write-Host $Random 
 }
-Write-Host "." -NoNewline
-sleep 1
-} while ($true)
-Write-Host
-$keyInfo
-
-function Get-KeyPress {
-param (
-[Parameter(Mandatory)][ConsoleKey]$Key,
-[System.ConsoleModifiers]$ModifierKey = 0
-)
-if ([Console]::KeyAvailable) {
-$pressedKey = [Console]::ReadKey($true)
-$isPressedKey = $key -eq $pressedKey.Key
-if ($isPressedKey) {
-$pressedKey.Modifiers -eq $ModifierKey
-} else {
-[Console]::Beep(1800, 200)
-$false
-}}}
-
-Write-Warning 'Press Ctrl+Shift+Q to exit'
-do {
-Write-Host "." -NoNewline
-$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
-if ($pressed) {break}
-sleep 1
-} while ($true)
+$Timer.Enabled = $True
 ```
-### Windows API 
+`$Timer.Enabled = $False` остановить \
+`$Timer | Get-Member -MemberType Event` отобразить список всех событий объекта \
+`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
+`Unregister-Event -SourceIdentifier Timer.Output` удаляет регистрацию подписки на событие по имени события (EventName) или все * \
+`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс \
+`-SupportEvent` не выводит результат регистрации события на экран (и Get-EventSubscriber и Get-Job)
+```
+Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+$date = Get-Date -f hh:mm:ss
+(New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
+}
+```
+### ShowWindowAsync (Import function dll: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync)
+Импорт функции из библитеки (dll) по средствам C#, далее с помощью Add-Type определяет класс .NET Framework, после этого можно создавать объекты соответствующего класса (New-Object) и использовать их, как любые другие объекты .NET.
+```
+$Signature = @"
+[DllImport("user32.dll")]public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+"@
+$ShowWindowAsync = Add-Type -MemberDefinition $Signature -Name "Win32ShowWindowAsync" -Namespace Win32Functions -PassThru
+$ShowWindowAsync | Get-Member -Static
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $pid).MainWindowHandle, 2)
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 3)
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 4)
+```
+### [Win32.Kernel32]::CopyFile()
+```
+$MethodDefinition = @"
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+public static extern bool CopyFile(string lpExistingFileName, string lpNewFileName, bool bFailIfExists);
+"@
+$Kernel32 = Add-Type -MemberDefinition $MethodDefinition -Name "Kernel32" -Namespace "Win32" -PassThru
+$Kernel32::CopyFile("$($Env:SystemRoot)\System32\calc.exe", "$($Env:USERPROFILE)\Desktop\calc.exe", $False) 
+```
+### [System.Windows.Forms.Keys]
 
 `Add-Type -AssemblyName System.Windows.Forms` \
 `[int][System.Windows.Forms.Keys]::F1`
@@ -2017,28 +2124,45 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 `[Audio]::Volume = 0.50` \
 `[Audio]::Mute = $true`
 
-### Register-Event
+### Console API
 
-`Register-EngineEvent` регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job) \
-`Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {` \
-`$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)` \
-`}` \
-`-SupportEvent` не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job \
-`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
+`[Console] | Get-Member -Static` \
+`[Console]::BackgroundColor = "Blue"`
+```
+do {
+if ([Console]::KeyAvailable) {
+$keyInfo = [Console]::ReadKey($true)
+break
+}
+Write-Host "." -NoNewline
+sleep 1
+} while ($true)
+Write-Host
+$keyInfo
 
-`Register-ObjectEvent` регистрирует подписку на события объектов .NET \
-`$System_Obj | Get-Member -MemberType Event` отобразить список всех событий объекта \
-`Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {` \
-`Write-Host $System_Obj.Text` \
-`}` \
-`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
-`Unregister-Event -SourceIdentifier SrvListClick` удаляет регистрацию подписки на событие по имени события (или все *) \
-`Remove-Job -Name SrvListClick` удаляет задание \
-`-InputObject` объект или переменная, хранящая объект \
-`-EventName` событие (например, Click,MouseClick) \
-`-SourceIdentifier` название регистрируемого события \
-`-Action` действие при возникновении события
+function Get-KeyPress {
+param (
+[Parameter(Mandatory)][ConsoleKey]$Key,
+[System.ConsoleModifiers]$ModifierKey = 0
+)
+if ([Console]::KeyAvailable) {
+$pressedKey = [Console]::ReadKey($true)
+$isPressedKey = $key -eq $pressedKey.Key
+if ($isPressedKey) {
+$pressedKey.Modifiers -eq $ModifierKey
+} else {
+[Console]::Beep(1800, 200)
+$false
+}}}
 
+Write-Warning 'Press Ctrl+Shift+Q to exit'
+do {
+Write-Host "." -NoNewline
+$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
+if ($pressed) {break}
+sleep 1
+} while ($true)
+```
 # Excel
 ```
 $path = "$home\Desktop\Services-to-Excel.xlsx"
@@ -2111,6 +2235,10 @@ $Excel.Quit()
 `$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show`
 
 # XML
+
+`Get-Service | Export-Clixml -path $home\desktop\test.xml` экспортировать объект PowerShell в XML \
+`Import-Clixml -Path $home\desktop\test.xml` импортировать объект XML в PowerShell \
+`ConvertTo-Xml (Get-Service)`
 ```
 $xml = [xml](Get-Content $home\desktop\test.rdg) # прочитать содержимое XML-файла
 $xml.load("$home\desktop\test.rdg") # открыть файл
@@ -2121,11 +2249,7 @@ $xml.RDCMan.file.group[3].server.properties # список серверов в 4
 $xml.RDCMan.file.group[3].server[0].properties.displayName = "New-displayName" 
 $xml.RDCMan.file.group[3].server[1].RemoveAll() # удалить объект (2-й сервер в списке)
 $xml.Save($file) # сохранить содержимое объекта в файла
-```
-`Get-Service | Export-Clixml -path $home\desktop\test.xml` экспортировать объект powershell в xml \
-`Import-Clixml -Path $home\desktop\test.xml` импортировать объект xml в powershell \
-`ConvertTo-Xml (Get-Service)`
-```
+
 if (Test-Path $CredFile) {
 $Cred = Import-Clixml -path $CredFile
 } elseif (!(Test-Path $CredFile)) {
@@ -2190,6 +2314,8 @@ $log = '
   }
 }' | ConvertFrom-Json
 ```
+`Get-Service | ConvertTo-Json`
+
 ### YAML (Yet Another Markup Language)
 ```
 Import-Module PSYaml
@@ -2237,32 +2363,6 @@ Region,State,Units,Price
 West,Texas,927,923.71
 $null,Tennessee,466,770.67
 "@
-```
-# SQLite
-
-`Install-Module MySQLite -Repository PSGallery` \
-`$path = "$home\desktop\Get-Service.db"` \
-`Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force` \
-`(Get-MySQLiteDB $path).Tables` \
-`New-MySQLiteDB -Path $path` создать базу \
-`Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список всех таблиц в базе \
-`Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);"` создать таблицу \
-`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');"` добавить данные в таблицу \
-`Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service"` содержимое таблицы \
-`Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
-```
-$Service = Get-Service | select Name,DisplayName,Status
-foreach ($S in $Service) {
-$1 = $S.Name; $2 = $S.DisplayName; $3 = $S.Status;
-Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$1', '$2', '$3');"
-}
-```
-### Database password
-```
-$Connection = New-SQLiteConnection -DataSource $path
-$Connection.ChangePassword("password")
-$Connection.Close()
-Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"
 ```
 # DSC
 
@@ -2354,3 +2454,32 @@ Configuration DSConfigurationProxy {
 `git restore --source d01f09dead3a6a8d75dda848162831c58ca0ee13 filename` восстановить файл на указанную версию по хэшу индентификатора коммита \
 `git revert HEAD --no-edit` отменить последний коммит, без указания комментария (события записываются в git log) \
 `git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13` удалить все коммиты до указанного (и откатиться до него)
+
+# SQLite
+
+`Install-Module MySQLite -Repository PSGallery` \
+`$path = "$home\desktop\Get-Service.db"` \
+`Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force` \
+`(Get-MySQLiteDB $path).Tables` список таблиц в базе \
+`New-MySQLiteDB -Path $path` создать базу \
+`Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список всех таблиц в базе \
+`Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);"` создать таблицу \
+`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');"` добавить данные в таблицу \
+`Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service"` содержимое таблицы \
+`Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
+```
+$Service = Get-Service | select Name,DisplayName,Status
+foreach ($S in $Service) {
+$Name = $S.Name
+$DName = $S.DisplayName
+$Status = $S.Status
+Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$Name', '$DName', '$Status');"
+}
+```
+### Database password
+```
+$Connection = New-SQLiteConnection -DataSource $path
+$Connection.ChangePassword("password")
+$Connection.Close()
+Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"
+```
