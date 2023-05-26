@@ -2483,3 +2483,114 @@ $Connection.ChangePassword("password")
 $Connection.Close()
 Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"
 ```
+# MySQL
+
+`apt -y install mysql-server mysql-client` \
+`mysql -V` \
+`systemctl status mysql` \
+`mysqladmin -u root password` задать пароль root
+
+`nano /etc/mysql/mysql.conf.d/mysqld.cnf` \
+`# port 3306` \
+`bind-address = 192.168.1.253` адрес прослушивания \
+`systemctl restart mysql` \
+`ufw allow 3306/tcp` \
+`tnc 192.168.1.253 -p 3306`
+
+`mysql -u root -p` \
+`SELECT user(), now(), version();` \
+`quit;`
+
+`mysql -u root -p -e 'SHOW TABLES FROM db_aduser;'` отобразить список таблиц без подключения к консоли MySQL
+```
+### DATABASE
+SHOW databases; 																	# вывести список БД
+CREATE DATABASE db_aduser;															# создать БД
+CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci; 	# создать БД с кодировкой UTF-8
+DROP DATABASE db_rep; 																# удалить БД
+USE db_aduser; 																		# выбрать БД
+SELECT database(); 																	# отобразить выбранную БД
+
+### USER
+SELECT USER,HOST FROM mysql.user; 			 							# вывести список УЗ
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с локального сервера
+CREATE USER posh@'%' IDENTIFIED BY '1qaz!QAZ@'; 						# УЗ для доступа с любого сервера
+DROP USER posh@localhost; 												# удалить пользователя
+SHOW GRANTS FOR posh@'%'; 												# отобразить права доступа пользователя
+GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'%'; 						# полный доступ для posh к БД db_aduser
+GRANT ALL PRIVILEGES ON *.* TO posh@'%'; 								# доступ к всем БД
+GRANT SELECT,DELETE ON mysql.* TO posh@'%'; 							# права SELECT и DELETE на встроенную БД mysql
+REVOKE DELETE ON mysql.* FROM posh@'%'; 								# удалить доступ DELETE
+UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%'; 	# изменить привелегии для пользователя
+SELECT USER,HOST,super_priv FROM mysql.user; 							# список УЗ и таблица с правами SUPER privilege
+FLUSH PRIVILEGES; 														# обновить права доступа
+
+### TABLE
+SHOW TABLES; 																											# отобразить список всех таблиц
+SHOW TABLES LIKE '%user'; 																								# поиск таблицы по wildcard-имени
+CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID)); 	# оздать таблицу
+DROP TABLE table_aduser; 																								# удалить таблицу
+
+CREATE TABLE fs_audit (id INT NOT NULL AUTO_INCREMENT, server VARCHAR(100), dt_time  DATETIME, user_name VARCHAR(100), file_name VARCHAR(255), PRIMARY KEY (ID));
+
+### DATA TYPE
+VARCHAR(N)			# строка переменной длины, в формате ASCII, где один символ занимает 1 байт, числом N указывается максимальная возможная длина строки
+NVARCHAR(N) 		# строка переменной длины, в формате Unicode, где один символ занимает 2 байта
+CHAR(N)/nchar(N) 	# строка фиксированной длины, которая всегда дополняется справа пробелами до длины N и в базе данных она занимает ровно N символов
+INT 				# целое число, от -2147483648 до 2147483647, занимает 4 байта
+FLOAT 				# число, в котором может присутствовать десятичная точка (запятая)
+BIT 				# флаг, Да - 1 или Нет - 0
+DATE 				# формат даты, например 25.05.2023
+TIME 				# 23:30:55.1234567
+DATETIME 			# 25.05.2023 23:30:55.1234567
+
+### COLUMN
+SHOW COLUMNS FROM table_aduser; 															# отобразить название стобцов и их свойства
+ALTER TABLE table_aduser DROP COLUMN id; 													# удалить столбец id
+ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10); 										# добавить столбец info
+ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100);									# изменить имя столбца info на new_info и его тип данных
+ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID));		# добавить столбец id
+
+### INSERT
+INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
+INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
+INSERT table_aduser (Name) VALUES ('Support');
+INSERT table_aduser (Name) VALUES ('Jack');
+
+### SELECT
+SELECT * FROM table_aduser; 					# содержимое всех стобцов в выбранной (FROM) таблице
+SELECT Name,email FROM table_aduser; 			# содержимое указанных стобцов
+SELECT DISTINCT Name,Email FROM table_aduser; 	# отобразить уникальные записи (без повторений)
+SELECT * FROM table_aduser ORDER BY Name;	 	# отсортировать по Name
+SELECT * FROM table_aduser ORDER BY Name DESC; 	# обратная сортировка
+SELECT COUNT(*) FROM table_aduser; 				# количество строк в таблице
+SELECT COUNT(new_info) FROM table_aduser; 		# количество строк в столбце
+
+### WHERE
+NOT; AND; OR 												# по приоритетам условий
+SELECT * FROM table_aduser WHERE Name = 'Alex';			    # поиск по содержимому
+SELECT * FROM table_aduser WHERE NOT Name != 'Alex';	    # условие NOT где Name не равен значению
+SELECT * FROM table_aduser WHERE email != ''; 			    # вывести строки, где содержимое email не рано null
+SELECT * FROM table_aduser WHERE email != '' OR id > 1000;	# или id выше 1000
+SELECT * FROM table_aduser WHERE Name RLIKE "support"; 		# регистронезависемый (RLIKE) поиск
+SELECT * FROM table_aduser WHERE Name RLIKE "^support"; 	# начинаются только с этого словосочетания
+
+### DELETE
+SELECT * FROM table_aduser WHERE Name RLIKE "alex";			# найти и проверить значения перед удалением
+DELETE FROM table_aduser WHERE Name RLIKE "alex";			# Query OK, 2 rows affected # удалено две строки
+DELETE FROM table_aduser; 									# удалить ВСЕ значения
+
+### UPDATE
+SELECT * FROM table_aduser WHERE Name = 'Jack';				# найти и проверить значение перед изменением
+UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack';  # изменить значение 'Jack' на 'Alex'
+
+### DUMP
+
+mysqldump -u root -p --databases db_aduser > /bak/db_aduser.sql
+mysql -u root -p db_aduser < /bak/db_aduser.sql
+
+crontab -e
+00 22 * * * /usr/bin/mysqldump -uroot -p1qaz!QAZ db_zabbix | /bin/bzip2 > `date +/dump/zabbix/zabbix-\%d-\%m-\%Y-\%H:\%M.bz2`
+00 23 * * * /usr/bin/mysqldump -uroot -p1qaz!QAZ db_zabbix > `date +/dump/smb/zabbix-\%d-\%m-\%Y-\%H:\%M.sql`
+0 0 * * * find /dump/zabbix -mtime +7 -exec rm {} \;
+```
