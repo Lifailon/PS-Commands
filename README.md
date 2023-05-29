@@ -10,6 +10,7 @@
 - [Regedit](#Regedit)
 - [Scheduled](#Scheduled)
 - [Network](#Network)
+- [Socket](#Socket)
 - [SMB](#SMB)
 - [WinRM](#WinRM)
 - [WMI](#WMI)
@@ -27,7 +28,7 @@
 - [IE](#IE)
 - [Selenium](#Selenium)
 - [COM Object](#COM-Object)
-- [Class .NET Win API](#Class-.NET-Win-API)
+- [Class NET](#Class-NET)
 - [Excel](#Excel)
 - [XML](#XML)
 - [DSC](#DSC)
@@ -36,12 +37,12 @@
 - [MySQL](#MySQL)
 
 ### Help
+`Get-Verb` действия, утвержденные для использования в командах \
 `Get-Command *Service*` поиск команды по имени \
 `Get-Help Get-Service` синтаксис \
 `Get-Help Get-Service -Parameter *` описание всех параметров \
 `Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) и Alias \
 `Get-Alias ps` \
-`Get-Verb` действия, утвержденные для использования в командах \
 `Set-ExecutionPolicy Unrestricted` \
 `Get-ExecutionPolicy` \
 `$PSVersionTable` \
@@ -594,8 +595,80 @@ $EventData | ft
 `Get-NetRoute`
 
 ### netstat
-`Get-NetTCPConnection -State Established,Listen | ? LocalAddress -match "192.168"`
+`Get-NetTCPConnection -State Established,Listen | ? LocalPort -Match 3389` \
+`Get-NetTCPConnection -State Established,Listen | ? RemotePort -Match 22` \
+`Get-NetUDPEndpoint | ? LocalPort -Match 514`
 
+# Socket
+
+### UDP Socket
+```
+function Start-UDPServer {
+param(
+$Port = 5201
+)
+$RemoteComputer = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
+Write-Host "Server is waiting for connections - $($UdpObject.Client.LocalEndPoint)"
+Write-Host "Stop with CRTL + C"
+do {
+$UdpObject = New-Object System.Net.Sockets.UdpClient($Port)
+$ReceiveBytes = $UdpObject.Receive([ref]$RemoteComputer)
+$UdpObject.Close()
+$ASCIIEncoding = New-Object System.Text.ASCIIEncoding # Convert received UDP datagram from Bytes to String
+[string]$ReturnString = $ASCIIEncoding.GetString($ReceiveBytes)
+[PSCustomObject]@{
+LocalDateTime = $(Get-Date -UFormat "%Y-%m-%d %T")
+SourceIP      = $RemoteComputer.address.ToString()
+SourcePort    = $RemoteComputer.Port.ToString()
+Payload       = $ReturnString
+}
+} while (1)
+}
+
+Start-UDPServer -Port 5201
+```
+### Test-NetUDPConnection
+```
+function Test-NetUDPConnection {
+param(
+[string]$ComputerName,
+[int32]$Port = 5201,
+[int32]$SourcePort = 5211
+)
+begin {
+$UdpObject = New-Object system.Net.Sockets.Udpclient($SourcePort)
+$UdpObject.Connect($ComputerName, $Port)
+}
+process {
+$ASCIIEncoding = New-Object System.Text.ASCIIEncoding
+$Bytes = $ASCIIEncoding.GetBytes("$(Get-Date -UFormat "%Y-%m-%d %T")")
+[void]$UdpObject.Send($Bytes, $Bytes.length)
+}
+end {
+$UdpObject.Close()
+}
+}
+
+Test-NetUDPConnection -ComputerName 127.0.0.1 -Port 5201
+```
+### TCP Socket
+```
+function Start-TCPServer {
+param(
+$Port = 5201
+)
+do {
+$TcpObject = New-Object System.Net.Sockets.TcpListener($port)
+$ReceiveBytes = $TcpObject.Start()
+$ReceiveBytes = $TcpObject.AcceptTcpClient()
+$TcpObject.Stop()
+$ReceiveBytes.Client.RemoteEndPoint
+}  while (1)
+}
+
+Start-TCPServer -Port 5201
+Test-NetConnection -ComputerName 127.0.0.1 -Port 5201
+```
 ### LocalGroup
 `Get-LocalUser` список пользователей \
 `Get-LocalGroup` список групп \
@@ -1921,7 +1994,7 @@ Output:
 `$Outlook | Get-Member` \
 `$Outlook.Version`
 
-# Class .NET Win API
+# Class NET
 
 `[System.Diagnostics.EventLog] | select Assembly,Module` \
 `$EventLog = [System.Diagnostics.EventLog]::new("Application")` \
@@ -1935,12 +2008,25 @@ Output:
 `Add-Type -AssemblyName System.Web` \
 `[System.Web.Security.Membership]::GeneratePassword(10,2)`
 
+### SoundPlayer
+```
+$CriticalSound = New-Object System.Media.SoundPlayer
+$CriticalSound.SoundLocation = "C:\WINDOWS\Media\Windows Critical Stop.wav"
+$CriticalSound.Play()
+
+$GoodSound = New-Object System.Media.SoundPlayer
+$GoodSound.SoundLocation = "C:\WINDOWS\Media\tada.wav"
+$GoodSound.Play()
+```
 ### Static Class
 `[System.Environment] | Get-Member -Static` \
 `[System.Environment]::OSVersion` \
 `[System.Environment]::Version` \
 `[System.Environment]::MachineName` \
 `[System.Environment]::UserName`
+
+`[System.Diagnostics.Process] | Get-Member -Static` \
+`[System.Diagnostics.Process]::Start('notepad.exe')`
 
 ### Register-ObjectEvent
 ```
@@ -2502,23 +2588,48 @@ Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=pa
 `quit;`
 
 `mysql -u root -p -e 'SHOW TABLES FROM db_aduser;'` отобразить список таблиц без подключения к консоли MySQL
+
+`CREATE` создать БД, пользователя, таблицу \
+`ALTER`  управление столбцами таблице \
+`DROP` удалить БД, пользователя, таблицу \
+`USE` выбрать БД \
+`SHOW` вывесли список БД, прав доступа пользователя (GRANTS), названия столбцов и их свойства \
+`GRANT` дать доступ пользователю к БД \
+`REVOKE`  удалить доступ пользователя к БД \
+`UPDATE` изменить права доступа, значения с таблице \
+`FLUSH` обновить права доступа \
+`SELECT` отобразить выбранную БД, вывести список пользователей, выборка данных в таблице \
+`INSERT` внести данные \
+`DELETE` удалить данные в (FROM) таблице
+
+### DATA TYPE
+`VARCHAR(N)` строка переменной длины, в формате ASCII, где один символ занимает 1 байт, числом N указывается максимальная возможная длина строки \
+`NVARCHAR(N)` строка переменной длины, в формате Unicode, где один символ занимает 2 байта \
+`CHAR(N)/nchar(N)` строка фиксированной длины, которая всегда дополняется справа пробелами до длины N и в базе данных она занимает ровно N символов \
+`INT` целое число, от -2147483648 до 2147483647, занимает 4 байта \
+`FLOAT` число, в котором может присутствовать десятичная точка (запятая) \
+`BIT` флаг, Да - 1 или Нет - 0 \
+`DATE` формат даты, например 25.05.2023 \
+`TIME` 23:30:55.1234567 \
+`DATETIME` 25.05.2023 23:30:55.1234567
 ```
 ### DATABASE
 SHOW databases; 																	# вывести список БД
 CREATE DATABASE db_aduser;															# создать БД
 CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci; 	# создать БД с кодировкой UTF-8
 DROP DATABASE db_rep; 																# удалить БД
-USE db_aduser; 																		# выбрать БД
+USE db_aduser; 																		# выбрать/переключиться на выбранную БД
 SELECT database(); 																	# отобразить выбранную БД
 
 ### USER
 SELECT USER,HOST FROM mysql.user; 			 							# вывести список УЗ
 CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с локального сервера
-CREATE USER posh@'%' IDENTIFIED BY '1qaz!QAZ@'; 						# УЗ для доступа с любого сервера
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с указанного сервера
+CREATE USER posh@'192.168.1.247' IDENTIFIED BY '1qaz!QAZ'; 				# УЗ для доступа с любого сервера
 DROP USER posh@localhost; 												# удалить пользователя
 SHOW GRANTS FOR posh@'%'; 												# отобразить права доступа пользователя
-GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'%'; 						# полный доступ для posh к БД db_aduser
-GRANT ALL PRIVILEGES ON *.* TO posh@'%'; 								# доступ к всем БД
+GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'192.168.1.247';			# полный доступ для posh к БД db_aduser
+GRANT ALL PRIVILEGES ON *.* TO posh@'%'; 								# доступ к всем БД c любого клиентского хоста
 GRANT SELECT,DELETE ON mysql.* TO posh@'%'; 							# права SELECT и DELETE на встроенную БД mysql
 REVOKE DELETE ON mysql.* FROM posh@'%'; 								# удалить доступ DELETE
 UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%'; 	# изменить привелегии для пользователя
@@ -2530,19 +2641,6 @@ SHOW TABLES; 																											# отобразить список вс
 SHOW TABLES LIKE '%user'; 																								# поиск таблицы по wildcard-имени
 CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID)); 	# оздать таблицу
 DROP TABLE table_aduser; 																								# удалить таблицу
-
-CREATE TABLE fs_audit (id INT NOT NULL AUTO_INCREMENT, server VARCHAR(100), dt_time  DATETIME, user_name VARCHAR(100), file_name VARCHAR(255), PRIMARY KEY (ID));
-
-### DATA TYPE
-VARCHAR(N)			# строка переменной длины, в формате ASCII, где один символ занимает 1 байт, числом N указывается максимальная возможная длина строки
-NVARCHAR(N) 		# строка переменной длины, в формате Unicode, где один символ занимает 2 байта
-CHAR(N)/nchar(N) 	# строка фиксированной длины, которая всегда дополняется справа пробелами до длины N и в базе данных она занимает ровно N символов
-INT 				# целое число, от -2147483648 до 2147483647, занимает 4 байта
-FLOAT 				# число, в котором может присутствовать десятичная точка (запятая)
-BIT 				# флаг, Да - 1 или Нет - 0
-DATE 				# формат даты, например 25.05.2023
-TIME 				# 23:30:55.1234567
-DATETIME 			# 25.05.2023 23:30:55.1234567
 
 ### COLUMN
 SHOW COLUMNS FROM table_aduser; 															# отобразить название стобцов и их свойства
@@ -2583,9 +2681,17 @@ DELETE FROM table_aduser; 									# удалить ВСЕ значения
 ### UPDATE
 SELECT * FROM table_aduser WHERE Name = 'Jack';				# найти и проверить значение перед изменением
 UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack';  # изменить значение 'Jack' на 'Alex'
+UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1;	# изменить значение в строке с ID 1
 
+### CHECK
+CHECK TABLE db_aduser.table_aduser; # проверить
+ANALYZE TABLE db_aduser.table_aduser; # анализировать
+OPTIMIZE TABLE db_aduser.table_aduser; # оптимизировать
+REPAIR TABLE db_aduser.table_aduser; # восстановить
+TRUNCATE TABLE db_aduser.table_aduser; # очистить
+```
 ### DUMP
-
+```
 mysqldump -u root -p --databases db_aduser > /bak/db_aduser.sql
 mysql -u root -p db_aduser < /bak/db_aduser.sql
 
@@ -2593,4 +2699,56 @@ crontab -e
 00 22 * * * /usr/bin/mysqldump -uroot -p1qaz!QAZ db_zabbix | /bin/bzip2 > `date +/dump/zabbix/zabbix-\%d-\%m-\%Y-\%H:\%M.bz2`
 00 23 * * * /usr/bin/mysqldump -uroot -p1qaz!QAZ db_zabbix > `date +/dump/smb/zabbix-\%d-\%m-\%Y-\%H:\%M.sql`
 0 0 * * * find /dump/zabbix -mtime +7 -exec rm {} \;
+```
+### MySQL Connector NET
+
+### Add-ADUser
+```
+$ip = "192.168.1.253"
+$user = "posh"
+$pass = "1qaz!QAZ"
+$db = "db_aduser"
+Add-Type –Path "$home\Documents\MySQL-Connector-NET\8.0.31-4.8\MySql.Data.dll"
+$Connection = [MySql.Data.MySqlClient.MySqlConnection]@{
+ConnectionString="server=$ip;uid=$user;pwd=$pass;database=$db"
+}
+$Connection.Open()
+$Command = New-Object MySql.Data.MySqlClient.MySqlCommand
+$Command.Connection = $Connection
+$UserList = Get-ADUser -filter * -properties name,EmailAddress
+foreach ($user in $UserList) {
+$uname=$user.Name
+$uemail=$user.EmailAddress
+$Command.CommandText = "INSERT INTO table_aduser (Name,Email) VALUES ('$uname','$uemail')"
+$Command.ExecuteNonQuery()
+}
+$Connection.Close()
+```
+### Get-ADUser
+```
+$ip = "192.168.1.253"
+$user = "posh"
+$pass = "1qaz!QAZ"
+$db = "db_aduser"
+Add-Type –Path "$home\Documents\MySQL-Connector-NET\8.0.31-4.8\MySql.Data.dll"
+$Connection = [MySql.Data.MySqlClient.MySqlConnection]@{
+ConnectionString = "server=$ip;uid=$user;pwd=$pass;database=$db"
+}
+$Connection.Open()
+$Command = New-Object MySql.Data.MySqlClient.MySqlCommand
+$Command.Connection = $Connection
+$MYSQLDataAdapter = New-Object MySql.Data.MySqlClient.MySqlDataAdapter
+$MYSQLDataSet = New-Object System.Data.DataSet
+$Command.CommandText = "SELECT * FROM table_aduser"
+$MYSQLDataAdapter.SelectCommand = $Command
+$NumberOfDataSets = $MYSQLDataAdapter.Fill($MYSQLDataSet, "data")
+$Collections = New-Object System.Collections.Generic.List[System.Object]
+foreach($DataSet in $MYSQLDataSet.tables[0]) {
+$Collections.Add([PSCustomObject]@{
+Name = $DataSet.name;
+Mail = $DataSet.email
+})
+}
+$Connection.Close()
+$Collections
 ```
