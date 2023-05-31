@@ -10,13 +10,17 @@ PowerShell Commands
 - Regedit
 - Scheduled
 - Network
+- Socket
 - SMB
 - WinRM
-- ComObject
 - WMI
 - ActiveDirectory
 - ServerManager
+- DNS
+- DHCP
+- DFS
 - PackageManagement
+- Jobs
 - PowerCLI
 - EMShell
 - TrueNAS
@@ -24,23 +28,31 @@ PowerShell Commands
 - REST API
 - IE
 - Selenium
+- COM Object
+- Class dotNET
 - Console API
 - Excel
 - XML
-- SQLite
 - DSC
 - Git
+- SQLite
+- MySQL
 
 ### Help
+Get-Verb # действия/глаголы, утвержденные для использования в командах
+Show-Command # вывести список команд
 Get-Command *Service* # поиск команды по имени
 Get-Help Get-Service # синтаксис
-Get-Help Stop-Process -Parameter * # описание всех параметров
-Get-Service | Get-Member # отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) и Alias
-Get-Alias ps
-Get-Verb # действия, утвержденные для использования в командах
+Get-Help Get-Service -Parameter * # описание всех параметров
+Get-Help Get-Service -ShowWindow
+Get-Help Get-Service -Online
+Get-Service | Get-Member # отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click)
+Get-Alias gsv
 Set-ExecutionPolicy Unrestricted
 Get-ExecutionPolicy
-$PSVersionTable
+powershell -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)" # NppExec
+Invoke-Expression # iex принимает параметр команды для выполнения в консоли
+$PSVersionTable # версия PowerShell
 
 # Object
 
@@ -52,6 +64,15 @@ Set-PSReadlineOption -MaximumHistoryCount 10000 # изменить количе�
 Get-PSReadLineOption | select MaximumHistoryCount
 Set-PSReadlineOption -HistorySaveStyle SaveNothing # отключить ведение журнала
 F2 # переключиться с InlineView на ListView
+
+### Clipboard
+Set-Clipboard $srv # скопировать в буфер обмена
+Get-Clipboard # вставить
+
+### Write
+Write-Host -ForegroundColor Black -BackgroundColor Green "Test" -NoNewline
+Write-Error Test
+Foreach ($n in 1..100) {Write-Progress -Activity "Test Progress" -PercentComplete $n}
 
 ### Array
 $srv = @("server-01", "server-02") # создать массив
@@ -66,39 +87,48 @@ $srv[0].Length # узнать кол-во символов первого зна
 $srv[10..100] # срез
 
 ### HashTable
-$hashtable = @{}
-$User = "user"
-$Server = "Computer"
-$hashtable.Add($env:username,$env:computername)
-$hashtable.Remove("Lifailon")
 
-$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"}
-$Tag = @{$true = 'dev'; $false = 'prod'}[([System.Net.Dns]::GetHostEntry("localhost").HostName) -match '.*.TestDomain$']
-
-### Keys
+$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"} # создать
+$hashtable += @{"User2" = "$env:username"; "Server2" = "$env:computername"} # добавить ключи
 $hashtable.Keys # список всех ключей
 $hashtable["User"] # получить значение (Values) по ключу
+$hashtable["User"] = "Test" # изменить
+$hashtable.Remove("User") # удалить ключ
 
-### PSCustomObject
+$Tag = @{$true = 'dev'; $false = 'prod'}[([System.Net.Dns]::GetHostEntry("localhost").HostName) -match '.*.TestDomain$']
+
+### List
+
 $Collections = New-Object System.Collections.Generic.List[System.Object]
 $Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})
 
-$object = New-Object –TypeName PSCustomObject -Property @{User = $env:username; Server = $env:computername}
-$object | Get-Member
-$object | Add-Member –MemberType NoteProperty –Name IP –Value "192.168.1.1" # имеет возможость добавить свойство или -MemberType ScriptMethod
-$object.PsObject.Properties.Remove('User') # удалить свойство (столбец)
+### PSCustomObject
 
-$arr = @()
-$arr += [PSCustomObject]@{User = $env:username; Server = $env:computername} # медленный метод добавления, в каждой интерации перезаписывается массив и коллекция становится фиксированного размера (без возможности удаления)
-$arr.Remove(0) # Exception calling "Remove" with "1" argument(s): "Collection was of a fixed size"
+$CustomObject = [PSCustomObject][ordered]@{User = $env:username; Server = $env:computername}
+$CustomObject | Add-Member –MemberType NoteProperty –Name Arr –Value @(1,2,3) # добавить Property (свойство/стобец)
+$CustomObject.Arr = @(1,3,5) # изменить содержимое
+$CustomObject.PsObject.Properties.Remove('User') # удалить Property
+
+### Add-Member
+
+$ScriptBlock = {Get-Service}
+$CustomObject | Add-Member -Name "TestMethod" -MemberType ScriptMethod -Value $ScriptBlock # Добавить Method
+$CustomObject | Get-Member
+$CustomObject.TestMethod()
+
+### Class
 
 Class CustomClass {
 [string]$User
 [string]$Server
+Start([bool]$Param1) {
+If ($Param1) {Write-Host "Start Function"}}
 }
+
 $Class = New-Object -TypeName CustomClass
 $Class.User = $env:username
 $Class.Server = $env:computername
+$Class.Start(1)
 
 ### Pipeline
 $obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force # добавление объкта вывода NoteProperty
@@ -132,7 +162,7 @@ $env:logonserver
 Get-Process | Select-Object -Property * # отобразить все доступные объекты вывода
 Get-Process | select -Unique "Name" # удалить повторяющиеся значения в массиве
 Get-Process | select -ExpandProperty ProcessName # преобразовать из объекта-коллекции в массив (вывести содержимое без наименовая столбца)
-(Get-Process).ProcessName
+(Get-Process | ? Name -match iperf).Modules # список используемых модулей процессом
 
 ### Expression
 
@@ -241,10 +271,11 @@ $srv -isnot [System.Object] # проверка на несоответствие
 $char = $srv.ToCharArray() # разбить строку [string] на массив [System.Array] из букв
 $char.GetType() # тип данных: Char[]
 [Object] # массив (BaseType:System.Array)
-[int] # целое число (BaseType:System.ValueType)
-[String] # строка-текст (BaseType:System.Object)
 [DateTime] # формат времени (BaseType:System.ValueType)
 [Boolean] # логический тип ($True/$False)
+[int] # целое число (BaseType:System.ValueType)
+[String] # строка-текст (BaseType:System.Object)
+(4164539/1MB).ToString("0.00") # округлить до 3,97
 
 ### Property
 $srv.Count # кол-во элементов в массиве
@@ -340,6 +371,15 @@ break # остановит цикл
 } else {Write-Host "Сайт недоступен"; sleep 1}
 }
 
+### Try
+
+try {
+While ($True) {$out += ping ya.ru -n 1; $out[3]}
+}
+finally {
+$out = $null
+}
+
 # Items
 
 Test-Path $path # проверить доступность пути
@@ -382,9 +422,9 @@ $hashtable += @{"$_.Name" = $size} # заполнить hashtable
 ### Filehash
 Get-Filehash -Algorithm SHA256 "$env:USERPROFILE\Documents\RSA.conf.txt"
 
-### Clipboard
-Set-Clipboard $srv # скопировать в буфер обмена
-Get-Clipboard # вставить
+### Microsoft.PowerShell.Archive
+Compress-Archive -Path $sourcepath -DestinationPath $dstpath -CompressionLevel Optimal # архивировать
+Expand-Archive .\powerlinefonts.zip # разархивировать
 
 # Credential
 
@@ -556,16 +596,6 @@ tnc $srv -CommonTCPPort WINRM # HTTP,RDP,SMB
 tnc ya.ru –TraceRoute -Hops 2 # TTL=2
 tnc ya.ru -DiagnoseRouting # маршрутизация до хоста, куда (DestinationPrefix: 0.0.0.0/0) через (NextHop: 192.168.1.254)
 
-### ipconfig
-Get-NetIPConfiguration
-Get-NetAdapter
-Get-NetAdapterAdvancedProperty
-Get-NetAdapterStatistics
-
-### DNSClientServerAddress
-Get-DNSClientServerAddress
-Set-DNSClientServerAddress -InterfaceIndex (Get-NetIPConfiguration).InterfaceIndex -ServerAddresses 8.8.8.8
-
 ### nslookup
 nslookup ya.ru 8.8.8.8
 nslookup -type=any ya.ru
@@ -574,8 +604,137 @@ Resolve-DnsName ya.ru -Type MX # ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)
 ### route
 Get-NetRoute
 
+### ipconfig
+Get-NetIPConfiguration
+Get-NetIPConfiguration -InterfaceIndex 14 -Detailed
+
+### Adapter
+Get-NetAdapter
+Set-NetIPInterface -InterfaceIndex 14 -Dhcp Disabled # отключить DHCP
+Get-NetAdapter -InterfaceIndex 14 | New-NetIPAddress –IPAddress 192.168.3.99 -DefaultGateway 192.168.3.1 -PrefixLength 24 # задать/добавить статический IP-адрес
+Set-NetIPAddress -InterfaceIndex 14 -IPAddress 192.168.3.98 # изменить IP-адреас на адаптере
+Remove-NetIPAddress -InterfaceIndex 14 -IPAddress 192.168.3.99 # удалить IP-адрес на адаптере
+Set-NetIPInterface -InterfaceIndex 14 -Dhcp Enabled # включить DHCP
+
+### DNSClient
+Get-DNSClientServerAddress
+Set-DNSClientServerAddress -InterfaceIndex 14 -ServerAddresses 8.8.8.8
+
+### Binding
+Get-NetAdapterBinding -Name Ethernet -IncludeHidden -AllBindings
+Get-NetAdapterBinding -Name "Беспроводная сеть" -DisplayName "IP версии 6 (TCP/IPv6)" | Set-NetAdapterBinding -Enabled $false # отключить IPv6 на адаптере
+
+### TCPSetting
+Get-NetTCPSetting
+Set-NetTCPSetting -SettingName DatacenterCustom,Datacenter -CongestionProvider DCTCP
+Set-NetTCPSetting -SettingName DatacenterCustom,Datacenter -CwndRestart True
+Set-NetTCPSetting -SettingName DatacenterCustom,Datacenter -ForceWS Disabled
+
 ### netstat
-Get-NetTCPConnection -State Established,Listen | ? LocalAddress -match "192.168"
+netstat -anop tcp # -n/-f/-b
+Get-NetTCPConnection -State Established,Listen | ? LocalPort -Match 3389
+Get-NetTCPConnection -State Established,Listen | ? RemotePort -Match 22
+Get-NetUDPEndpoint | ? LocalPort -Match 514 # netstat -ap udp
+
+### Statistics
+netstat -se
+Get-NetAdapterStatistics
+
+### hostname
+$env:computername
+hostname.exe
+(Get-CIMInstance CIM_ComputerSystem).Name
+[System.Environment]::MachineName
+[System.Net.Dns]::GetHostName()
+
+# Socket
+
+### UDP Socket
+
+function Start-UDPServer {
+param(
+$Port = 5201
+)
+$RemoteComputer = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
+do {
+$UdpObject = New-Object System.Net.Sockets.UdpClient($Port)
+$ReceiveBytes = $UdpObject.Receive([ref]$RemoteComputer)
+$UdpObject.Close()
+$ASCIIEncoding = New-Object System.Text.ASCIIEncoding
+[string]$ReturnString = $ASCIIEncoding.GetString($ReceiveBytes)
+[PSCustomObject]@{
+LocalDateTime = $(Get-Date -UFormat "%Y-%m-%d %T")
+ClientIP      = $RemoteComputer.address.ToString()
+ClientPort    = $RemoteComputer.Port.ToString()
+Message       = $ReturnString
+}
+} while (1)
+}
+
+Start-UDPServer -Port 5201
+
+### Test-NetUDPConnection
+
+function Test-NetUDPConnection {
+param(
+[string]$ComputerName = "127.0.0.1",
+[int32]$PortServer    = 5201,
+[int32]$PortClient    = 5211
+)
+begin {
+$UdpObject = New-Object system.Net.Sockets.Udpclient($PortClient)
+$UdpObject.Connect($ComputerName, $PortServer)
+}
+process {
+$ASCIIEncoding = New-Object System.Text.ASCIIEncoding
+$Message = Get-Date -UFormat "%Y-%m-%d %T"
+#$Message = "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
+$Bytes = $ASCIIEncoding.GetBytes($Message)
+[void]$UdpObject.Send($Bytes, $Bytes.length)
+}
+end {
+$UdpObject.Close()
+}
+}
+
+Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201
+
+### TCP Socket
+
+function Start-TCPServer {
+param(
+$Port = 5201
+)
+do {
+$TcpObject = New-Object System.Net.Sockets.TcpListener($port)
+$ReceiveBytes = $TcpObject.Start()
+$ReceiveBytes = $TcpObject.AcceptTcpClient()
+$TcpObject.Stop()
+$ReceiveBytes.Client.RemoteEndPoint | select Address,Port
+} while (1)
+}
+
+Start-TCPServer -Port 5201
+Test-NetConnection -ComputerName 127.0.0.1 -Port 5201
+
+### HTTP Listener
+
+$httpListener = New-Object System.Net.HttpListener
+$httpListener.Prefixes.Add("http://+:8888/")
+$httpListener.Start()
+while (!([console]::KeyAvailable)) {
+$info = Get-Service | select name,status | ConvertTo-HTML
+$context = $httpListener.GetContext()
+$context.Response.StatusCode = 200
+$context.Response.ContentType = 'text/HTML'
+$WebContent = $info
+$EncodingWebContent = [Text.Encoding]::UTF8.GetBytes($WebContent)
+$context.Response.OutputStream.Write($EncodingWebContent , 0, $EncodingWebContent.Length)
+$context.Response.Close()
+Get-NetTcpConnection -LocalPort 8888
+(Get-Date).datetime
+}
+$httpListener.Close()
 
 ### LocalGroup
 Get-LocalUser # список пользователей
@@ -690,52 +849,6 @@ Connect-IscsiTarget -NodeAddress "iqn.1995-05.com.microsoft:srv2-iscsi-target-2-
 Get-IscsiTarget | fl
 Disconnect-IscsiTarget -NodeAddress ″iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target″ -Confirm:$false # отключиться
 
-# ComObject
-
-$wshell = New-Object -ComObject Wscript.Shell
-$wshell | Get-Member
-$link = $wshell.CreateShortcut("$Home\Desktop\Яндекс.lnk") # создать ярлык
-$link.TargetPath = "https://yandex.ru" # куда ссылается (метод TargetPath объекта $link где хранится дочерний объект CreateShortcut)
-$link.Save() # сохранить
-(New-Object -ComObject wscript.shell).SendKeys([char]173) # включить/выключить звук
-
-$wshell.Exec("notepad.exe") # запустить приложение
-$wshell.AppActivate("Блокнот") # развернуть запущенное приложение
-sleep -Milliseconds 500
-$wshell.SendKeys("%") # ALT
-$wshell.SendKeys("{ENTER}")
-$wshell.SendKeys("{DOWN}")
-$wshell.SendKeys("{DOWN}")
-$wshell.SendKeys("{ENTER}")
-Set-WinUserLanguageList -LanguageList en-us,ru -Force # изменить языковую раскладку клавиатуры
-$wshell.SendKeys("login")
-
-$wshell = New-Object -ComObject Wscript.Shell
-$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)
-if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}
-
-Type:
-0 # ОК
-1 # ОК и Отмена
-2 # Стоп, Повтор, Пропустить
-3 # Да, Нет, Отмена
-4 # Да и Нет
-5 # Повтор и Отмена
-16 # Stop
-32 # Question
-48 # Exclamation
-64 # Information
-
-Output:
--1 # Timeout
-1 # ОК
-2 # Отмена
-3 # Стоп
-4 # Повтор
-5 # Пропустить
-6 # Да
-7 # Нет
-
 # WMI
 
 ### WMI/CIM (Windows Management Instrumentation/Common Information Model)
@@ -764,6 +877,10 @@ gwmi -list -Namespace root\CIMV2\Terminalservices
 (gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections
 (gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1) # включить RDP
 (Get-WmiObject win32_battery).estimatedChargeRemaining # заряд батареи в процентах
+gwmi Win32_UserAccount # доменные пользователи
+(gwmi Win32_SystemUsers).PartComponent
+Get-CimInstance -ClassName Win32_LogonSession
+Get-CimInstance -ClassName Win32_BIOS
 
 $srv = "localhost"
 gwmi Win32_logicalDisk -ComputerName $srv | where {$_.Size -ne $null} | select @{
@@ -800,12 +917,21 @@ Remove-PSSession -Session $Session
 Import-Module ActiveDirectory
 Get-Command -Module ActiveDirectory
 
-### LDAP (Lightweight Directory Access Protocol)
-$ldapsearcher = New-Object System.DirectoryServices.DirectorySearcher
+### ADSI (Active Directory Service Interface)
 $d0 = $env:userdnsdomain
 $d0 = $d0 -split "\."
 $d1 = $d0[0]
 $d2 = $d0[1]
+$group = [ADSI]"LDAP://OU=Domain Controllers,DC=$d1,DC=$d2"
+$group | select *
+
+$Local_User = [ADSI]"WinNT://./Администратор,user"
+$Local_User | Get-Member
+$Local_User.Description
+$Local_User.LastLogin # время последней авторизации локального пользователя
+
+### LDAP (Lightweight Directory Access Protocol)
+$ldapsearcher = New-Object System.DirectoryServices.DirectorySearcher
 $ldapsearcher.SearchRoot = "LDAP://OU=Domain Controllers,DC=$d1,DC=$d2"
 $ldapsearcher.Filter = "(objectclass=computer)"
 $dc = $ldapsearcher.FindAll().path
@@ -1057,7 +1183,12 @@ Get-WindowsFeature | where FeatureType -eq "Role" # отсортировать �
 Install-WindowsFeature -Name DNS # установить роль
 Get-Command *DNS*
 Get-DnsServerSetting -ALL
-Uninstall-WindowsFeature -Name DNS
+Uninstall-WindowsFeature -Name DNS # удалить роль
+
+### PSWA
+Install-WindowsFeature -Name WindowsPowerShellWebAccess -IncludeManagementTools
+Install-PswaWebApplication -UseTestCertificate # Создать веб-приложение /pswa
+Add-PswaAuthorizationRule -UserGroupName "$domain\Domain Admins" -ComputerName * -ConfigurationName * -RuleName "For Admins" # добавить права авторизации
 
 ### WSB (Windows Server Backup)
 При создании backup DC через WSB, создается копия состояния системы (System State), куда попадает база AD (NTDS.DIT), объекты групповых политик, содержимое каталога SYSVOL, реестр, метаданные IIS, база AD CS, и другие системные файлы и ресурсы. Резервная копия создается через службу теневого копирования VSS.
@@ -1071,7 +1202,18 @@ $WBadmin_cmd = "wbadmin.exe START BACKUP -backupTarget:$TargetUNC -systemState -
 # $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet" # Backup DB NTDS
 Invoke-Expression $WBadmin_cmd
 
-### DNS
+### RDS
+Get-Command -Module RemoteDesktop
+Get-RDServer -ConnectionBroker $broker # список всех серверов в фермеы, указывается полное доменное имя при обращение к серверу с ролью RDCB
+Get-RDRemoteDesktop -ConnectionBroker $broker # список коллекций
+(Get-RDLicenseConfiguration -ConnectionBroker $broker | select *).LicenseServer # список серверов с ролью RDL
+Get-RDUserSession -ConnectionBroker $broker # список всех активных пользователей
+Disconnect-RDUser -HostServer $srv -UnifiedSessionID $id -Force # отключить сессию пользователя
+Get-RDAvailableApp -ConnectionBroker $broker -CollectionName C03 # список установленного ПО на серверах в коллекции
+(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty # use redirection server name:i:1
+Get-RDConnectionBrokerHighAvailability
+
+# DNS
 
 $zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,
 DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru
@@ -1104,7 +1246,7 @@ $TextA = "$FQDN IN A $IP"
 [Void]$DNSRR.CreateInstanceFromTextRepresentation($DNSServer,$DNSFZone,$TextA)
 }
 
-### DHCP
+# DHCP
 
 $mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,
 HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru
@@ -1112,18 +1254,8 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 
 Add-DhcpServerv4Reservation -ScopeId 192.168.1.0 -IPAddress 192.168.1.10 -ClientId 00-50-56-C0-00-08 -Description "new reservation"
 
-### RDS
-Get-Command -Module RemoteDesktop
-Get-RDServer -ConnectionBroker $broker # список всех серверов в фермеы, указывается полное доменное имя при обращение к серверу с ролью RDCB
-Get-RDRemoteDesktop -ConnectionBroker $broker # список коллекций
-(Get-RDLicenseConfiguration -ConnectionBroker $broker | select *).LicenseServer # список серверов с ролью RDL
-Get-RDUserSession -ConnectionBroker $broker # список всех активных пользователей
-Disconnect-RDUser -HostServer $srv -UnifiedSessionID $id -Force # отключить сессию пользователя
-Get-RDAvailableApp -ConnectionBroker $broker -CollectionName C03 # список установленного ПО на серверах в коллекции
-(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty # use redirection server name:i:1
-Get-RDConnectionBrokerHighAvailability
+# DFS
 
-### DFSR
 dfsutil /root:\\domain.sys\public /export:C:\export-dfs.txt # экспорт конфигурации namespace root
 dfsutil /AddFtRoot /Server:\\$srv /Share:public # на новой машине предварительно создать корень на основе домена
 dfsutil /root:\\domain.sys\public /import:C:\export-dfs.txt /<verify /set # Import (перед импортом данных в существующий корень DFS, утилита создает резервную копию конфигурации корня в текущем каталоге, из которого запускается утилита dfsutil)
@@ -1222,19 +1354,79 @@ $Service_Name | Stop-Service # остановить
 & $NSSM_Path set $Service_Name description "Check performance CPU and report email" # изменить описание
 & $NSSM_Path remove $Service_Name # удалить
 
-# ThreadJob
+# Jobs
+Get-Job # получение списка задач
+Start-Job # запуск процесса
+Stop-Job # остановка процесса
+Suspend-Job # приостановка работы процесса
+Resume-Job # восстановление работы процесса
+Wait-Job # ожидание вывода команды
+Receive-Job # получение результатов выполненного процесса
+Remove-Job # удалить задачу
+
+function Start-MTPing ($Network){
+$RNetwork = $Network -replace "\.\d{1,3}$","."
+foreach ($4 in 1..254) {
+$ip = $RNetwork+$4
+# создаем задания, забираем 3-ю строку вывода и добавляем к выводу ip-адрес:
+(Start-Job {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
+}
+while ($True){
+$status_job = (Get-Job).State[-1] # забираем статус последнего задания
+if ($status_job -like "Completed"){ # проверяем на выполнение (задания выполняются по очереди сверху вниз)
+$ping_out = Get-Job | Receive-Job # если выполнен, забираем вывод всех заданий
+Get-Job | Remove-Job -Force # удаляем задания
+$ping_out
+break # завершаем цикл
+}}
+}
+
+Start-MTPing -Network 192.168.3.0
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 60 Seconds
+
+### ThreadJob
 Install-Module -Name ThreadJob
 Get-Module ThreadJob -list
-(Start-ThreadJob {ping ya.ru}) | Out-Null # создать фоновую задачу
+Start-ThreadJob {ping ya.ru} | Out-Null # создать фоновую задачу
+Get-Job | Receive-Job -Keep # отобразить и не удалять вывод
+(Get-Job).HasMoreData # если False, то вывод команы удален
+(Get-Job)[-1].Output # отобразить вывод последней задачи
+
+function Start-MTPing ($Network){
+$RNetwork = $Network -replace "\.\d{1,3}$","."
+foreach ($4 in 1..254) {
+$ip = $RNetwork+$4
+# создаем задания, забираем 3-ю строку вывода и добавляем к выводу ip-адрес:
+(Start-ThreadJob {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
+}
 while ($True){
-$status = @((Get-Job).State)[-1] # отобразить статус последней [-1] фоновой задачи
-if ($status -like "Completed"){ # если Completed
-Get-Job | Receive-Job # отобразить вывод, после каждого запроса результат удаляется (Get-Job).HasMoreData -eq $False
-Get-Job | Remove-Job -Force # удалить все задачи
-break # остановить цикл
+$status_job = (Get-Job).State[-1] # забираем статус последнего задания
+if ($status_job -like "Completed"){ # проверяем на выполнение (задания выполняются по очереди сверху вниз)
+$ping_out = Get-Job | Receive-Job # если выполнен, забираем вывод всех заданий
+Get-Job | Remove-Job -Force # удаляем задания
+$ping_out
+break # завершаем цикл
 }}
-Get-Job | Receive-Job -Keep # отобразить и не удалять вывод (-Keep)
-(Get-Job).Information # отобразить результат всех заданий
+}
+
+Start-MTPing -Network 192.168.3.0
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 24 Seconds
+
+### PoshRSJob
+
+function Start-MTPing ($Network){
+$RNetwork = $Network -replace "\.\d{1,3}$","."
+foreach ($4 in 1..254) {
+$ip = $RNetwork+$4
+(Start-RSJob {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
+}
+$ping_out = Get-RSJob | Receive-RSJob
+$ping_out
+Get-RSJob | Remove-RSJob
+}
+
+Start-MTPing -Network 192.168.3.0
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 10 Seconds
 
 # PowerCLI
 
@@ -1767,26 +1959,6 @@ $vjob = $vjob.Content | ConvertFrom-Json
 $vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
 $vjob.data.virtualMachines.includes.inventoryObject
 
-# IE
-
-$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name # получить имена всех Input Box
-$ie.document.IHTMLDocument3_getElementsByTagName("button") | select innerText # получить имена всех Button
-$ie.Document.documentElement.innerHTML # прочитать сырой Web Content (<input name="login" tabindex="100" class="input__control input__input" id="uniq32005644019429136" spellcheck="false" placeholder="Логин")
-$All_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("*") # забрать все элементы
-$Go_Button = $All_Elements | ? innerText -like "go" # поиск элемента по имени
-$Go_Button | select ie9_tagName # получить TagName (SPAN) для быстрого дальнейшего поиска
-$SPAN_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("SPAN")
-
-$ie = New-Object -ComObject InternetExplorer.Application
-$ie.navigate("https://yandex.ru")
-$ie.visible = $true
-$ie.document.IHTMLDocument3_getElementByID("login").value = "Login"
-$ie.document.IHTMLDocument3_getElementByID("passwd").value = "Password"
-$Button_Auth = ($ie.document.IHTMLDocument3_getElementsByTagName("button")) | ? innerText -match "Войти"
-$Button_Auth.Click()
-$Result = $ie.Document.documentElement.innerHTML
-$ie.Quit()
-
 # Selenium
 
 .\nuget.exe install Selenium.WebDriver
@@ -1814,7 +1986,7 @@ $path = "$home\Documents\Selenium"
 if (($env:Path -split ';') -notcontains $path) {
 $env:Path += ";$path"
 }
-Import-Module "$path\WebDriver.dll"
+Import-Module "$path\WebDriver.dll" # Add-Type -Path "$path\WebDriver.dll"
 $selenium_options = New-Object OpenQA.Selenium.Chrome.ChromeOptions
 $selenium_options.AddArgument('start-maximized')
 $selenium_options.AcceptInsecureCertificates = $True
@@ -1839,69 +2011,149 @@ $Base64img = (($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#root >
 $Image = [Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($Base64img))
 $Image.Save("$home\Desktop\YaLogo.jpg")
 
-# Console API
+# IE
 
-[Console] | Get-Member -Static
-[Console]::BackgroundColor = "Blue"
+$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name # получить имена всех Input Box
+$ie.document.IHTMLDocument3_getElementsByTagName("button") | select innerText # получить имена всех Button
+$ie.Document.documentElement.innerHTML # прочитать сырой Web Content (<input name="login" tabindex="100" class="input__control input__input" id="uniq32005644019429136" spellcheck="false" placeholder="Логин")
+$All_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("*") # забрать все элементы
+$Go_Button = $All_Elements | ? innerText -like "go" # поиск элемента по имени
+$Go_Button | select ie9_tagName # получить TagName (SPAN) для быстрого дальнейшего поиска
+$SPAN_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("SPAN")
 
-do {
-if ([Console]::KeyAvailable) {
-$keyInfo = [Console]::ReadKey($true)
-break
-}
-Write-Host "." -NoNewline
-sleep 1
-} while ($true)
-Write-Host
-$keyInfo
+$ie = New-Object -ComObject InternetExplorer.Application
+$ie.navigate("https://yandex.ru")
+$ie.visible = $true
+$ie.document.IHTMLDocument3_getElementByID("login").value = "Login"
+$ie.document.IHTMLDocument3_getElementByID("passwd").value = "Password"
+$Button_Auth = ($ie.document.IHTMLDocument3_getElementsByTagName("button")) | ? innerText -match "Войти"
+$Button_Auth.Click()
+$Result = $ie.Document.documentElement.innerHTML
+$ie.Quit()
 
-function Get-KeyPress {
-param (
-[Parameter(Mandatory)][ConsoleKey]$Key,
-[System.ConsoleModifiers]$ModifierKey = 0
-)
-if ([Console]::KeyAvailable) {
-$pressedKey = [Console]::ReadKey($true)
-$isPressedKey = $key -eq $pressedKey.Key
-if ($isPressedKey) {
-$pressedKey.Modifiers -eq $ModifierKey
-} else {
-[Console]::Beep(1800, 200)
-$false
-}}}
+# COM Object
 
-Write-Warning 'Press Ctrl+Shift+Q to exit'
-do {
-Write-Host "." -NoNewline
-$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
-if ($pressed) {break}
-sleep 1
-} while ($true)
+$wshell = New-Object -ComObject Wscript.Shell
+$wshell | Get-Member
+$link = $wshell.CreateShortcut("$Home\Desktop\Yandex.lnk") # создать ярлык
+$link | Get-Member
+$link.TargetPath = "https://yandex.ru" # куда ссылается (метод TargetPath объекта $link где хранится объект CreateShortcut)
+$link.Save() # сохранить
 
-### Windows API 
+Set-WinUserLanguageList -LanguageList en-us,ru -Force # изменить языковую раскладку клавиатуры
 
-Add-Type -AssemblyName System.Windows.Forms
-[int][System.Windows.Forms.Keys]::F1
+### Wscript.Shell.SendKeys
+(New-Object -ComObject Wscript.shell).SendKeys([char]173) # включить/выключить звук
+$wshell.Exec("notepad.exe") # запустить приложение
+$wshell.AppActivate("Блокнот") # развернуть запущенное приложение
 
-65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}
+$wshell.SendKeys("Login") # текст
+$wshell.SendKeys("{A 5}") # напечатать букву 5 раз подряд
+$wshell.SendKeys("%{TAB}") # ALT+TAB
+$wshell.SendKeys("^") # CTRL
+$wshell.SendKeys("%") # ALT
+$wshell.SendKeys("+") # SHIFT
+$wshell.SendKeys("{DOWN}") # вниз
+$wshell.SendKeys("{UP}") # вверх
+$wshell.SendKeys("{LEFT}") # влево
+$wshell.SendKeys("{RIGHT}") # вправо
+$wshell.SendKeys("{PGUP}") # PAGE UP
+$wshell.SendKeys("{PGDN}") # PAGE DOWN
+$wshell.SendKeys("{BACKSPACE}") # BACKSPACE/BKSP/BS
+$wshell.SendKeys("{DEL}") # DEL/DELETE
+$wshell.SendKeys("{INS}") # INS/INSERT
+$wshell.SendKeys("{PRTSC}") # PRINT SCREEN
+$wshell.SendKeys("{ENTER}")
+$wshell.SendKeys("{ESC}")
+$wshell.SendKeys("{TAB}")
+$wshell.SendKeys("{END}")
+$wshell.SendKeys("{HOME}")
+$wshell.SendKeys("{BREAK}")
+$wshell.SendKeys("{SCROLLLOCK}")
+$wshell.SendKeys("{CAPSLOCK}")
+$wshell.SendKeys("{NUMLOCK}")
+$wshell.SendKeys("{F1}")
+$wshell.SendKeys("{F12}")
+$wshell.SendKeys("{+}{^}{%}{~}{(}{)}{[}{]}{{}{}}")
 
-function Get-ControlKey {
-$key = 112
-$Signature = @'
-[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
-public static extern short GetAsyncKeyState(int virtualKeyCode); 
-'@
-Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
-[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
-}
+### Wscript.Shell.Popup
+$wshell = New-Object -ComObject Wscript.Shell
+$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)
+if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}
 
-Write-Warning 'Press F1 to exit'
-do {
-Write-Host '.' -NoNewline
-$pressed = Get-ControlKey
-if ($pressed) { break }
-Start-Sleep -Seconds 1
-} while ($true)
+Type:
+0 # ОК
+1 # ОК и Отмена
+2 # Стоп, Повтор, Пропустить
+3 # Да, Нет, Отмена
+4 # Да и Нет
+5 # Повтор и Отмена
+16 # Stop
+32 # Question
+48 # Exclamation
+64 # Information
+
+Output:
+-1 # Timeout
+1 # ОК
+2 # Отмена
+3 # Стоп
+4 # Повтор
+5 # Пропустить
+6 # Да
+7 # Нет
+
+### WScript.Network
+$wshell = New-Object -ComObject WScript.Network
+$wshell | Get-Member
+$wshell.UserName
+$wshell.ComputerName
+$wshell.UserDomain
+
+### Shell.Application
+$wshell = New-Object -ComObject Shell.Application
+$wshell | Get-Member
+$wshell.Explore("C:\")
+$wshell.Windows() | Get-Member # получить доступ к открытым в проводнике или браузере Internet Explorer окон
+
+### Outlook.Application
+$Outlook = New-Object -ComObject Outlook.Application
+$Outlook | Get-Member
+$Outlook.Version
+
+# Class dotNET
+
+[System.Diagnostics.EventLog] | select Assembly,Module
+$EventLog = [System.Diagnostics.EventLog]::new("Application")
+$EventLog = New-Object -TypeName System.Diagnostics.EventLog -ArgumentList Application,192.168.3.100
+$EventLog | Get-Member -MemberType Method
+$EventLog.MaximumKilobytes # максимальный размер журнала
+$EventLog.Entries # просмотреть журнал
+$EventLog.Clear() # очистить журнал
+
+### GeneratePassword
+Add-Type -AssemblyName System.Web
+[System.Web.Security.Membership]::GeneratePassword(10,2)
+
+### SoundPlayer
+
+$CriticalSound = New-Object System.Media.SoundPlayer
+$CriticalSound.SoundLocation = "C:\WINDOWS\Media\Windows Critical Stop.wav"
+$CriticalSound.Play()
+
+$GoodSound = New-Object System.Media.SoundPlayer
+$GoodSound.SoundLocation = "C:\WINDOWS\Media\tada.wav"
+$GoodSound.Play()
+
+### Static Class
+[System.Environment] | Get-Member -Static
+[System.Environment]::OSVersion
+[System.Environment]::Version
+[System.Environment]::MachineName
+[System.Environment]::UserName
+
+[System.Diagnostics.Process] | Get-Member -Static
+[System.Diagnostics.Process]::Start('notepad.exe')
 
 ### [Clicker]
 
@@ -2017,27 +2269,189 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 [Audio]::Volume = 0.50
 [Audio]::Mute = $true
 
-### Register-Event
+### NetSessionEnum (https://learn.microsoft.com/ru-ru/windows/win32/api/lmshare/nf-lmshare-netsessionenum?redirectedfrom=MSDN)
 
-Register-EngineEvent # регистрирует подписку на события PowerShell или New-Event и создает задание (Get-Job)
-Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
-$date = Get-Date -f hh:mm:ss; (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
+function Invoke-NetSessionEnum {
+param (
+[Parameter(Mandatory = $True)][string]$HostName
+)
+Add-Type -TypeDefinition @"
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+[StructLayout(LayoutKind.Sequential)]
+public struct SESSION_INFO_10
+{
+    [MarshalAs(UnmanagedType.LPWStr)]public string OriginatingHost;
+    [MarshalAs(UnmanagedType.LPWStr)]public string DomainUser;
+    public uint SessionTime;
+    public uint IdleTime;
 }
--SupportEvent # не выводит результат регистрации события на экран, в Get-EventSubscriber и Get-Job
--Forward # перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
+public static class Netapi32
+{
+[DllImport("Netapi32.dll", SetLastError=true)]
+    public static extern int NetSessionEnum(
+        [In,MarshalAs(UnmanagedType.LPWStr)] string ServerName,
+        [In,MarshalAs(UnmanagedType.LPWStr)] string UncClientName,
+        [In,MarshalAs(UnmanagedType.LPWStr)] string UserName,
+        Int32 Level,
+        out IntPtr bufptr,
+        int prefmaxlen,
+        ref Int32 entriesread,
+        ref Int32 totalentries,
+        ref Int32 resume_handle);
+         
+[DllImport("Netapi32.dll", SetLastError=true)]
+    public static extern int NetApiBufferFree(
+        IntPtr Buffer);
+}
+"@
+# Create SessionInfo10 Struct
+$SessionInfo10 = New-Object SESSION_INFO_10
+$SessionInfo10StructSize = [System.Runtime.InteropServices.Marshal]::SizeOf($SessionInfo10) # Grab size to loop bufptr
+$SessionInfo10 = $SessionInfo10.GetType() # Hacky, but we need this ;))
+# NetSessionEnum params
+$OutBuffPtr = [IntPtr]::Zero # Struct output buffer
+$EntriesRead = $TotalEntries = $ResumeHandle = 0 # Counters & ResumeHandle
+$CallResult = [Netapi32]::NetSessionEnum($HostName, "", "", 10, [ref]$OutBuffPtr, -1, [ref]$EntriesRead, [ref]$TotalEntries, [ref]$ResumeHandle)
+if ($CallResult -ne 0){
+echo "Mmm something went wrong!`nError Code: $CallResult"
+}
+else {
+if ([System.IntPtr]::Size -eq 4) {
+echo "`nNetapi32::NetSessionEnum Buffer Offset  --> 0x$("{0:X8}" -f $OutBuffPtr.ToInt32())"
+}
+else {
+echo "`nNetapi32::NetSessionEnum Buffer Offset  --> 0x$("{0:X16}" -f $OutBuffPtr.ToInt64())"
+}
+echo "Result-set contains $EntriesRead session(s)!"
+# Change buffer offset to int
+$BufferOffset = $OutBuffPtr.ToInt64()
+# Loop buffer entries and cast pointers as SessionInfo10
+for ($Count = 0; ($Count -lt $EntriesRead); $Count++){
+$NewIntPtr = New-Object System.Intptr -ArgumentList $BufferOffset
+$Info = [system.runtime.interopservices.marshal]::PtrToStructure($NewIntPtr,[type]$SessionInfo10)
+$Info
+$BufferOffset = $BufferOffset + $SessionInfo10StructSize
+}
+echo "`nCalling NetApiBufferFree, no memleaks here!"
+[Netapi32]::NetApiBufferFree($OutBuffPtr) |Out-Null
+}
+}
 
-Register-ObjectEvent # регистрирует подписку на события объектов .NET
-$System_Obj | Get-Member -MemberType Event # отобразить список всех событий объекта
-Register-ObjectEvent -InputObject $System_Obj -EventName Click -SourceIdentifier SrvListClick -Action {
-Write-Host $System_Obj.Text
+Invoke-NetSessionEnum localhost
+
+### CopyFile (https://learn.microsoft.com/ru-ru/windows/win32/api/winbase/nf-winbase-copyfile)
+
+$MethodDefinition = @"
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+public static extern bool CopyFile(string lpExistingFileName, string lpNewFileName, bool bFailIfExists);
+"@
+$Kernel32 = Add-Type -MemberDefinition $MethodDefinition -Name "Kernel32" -Namespace "Win32" -PassThru
+$Kernel32::CopyFile("$($Env:SystemRoot)\System32\calc.exe", "$($Env:USERPROFILE)\Desktop\calc.exe", $False) 
+
+### ShowWindowAsync (https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync)
+
+$Signature = @"
+[DllImport("user32.dll")]public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+"@
+$ShowWindowAsync = Add-Type -MemberDefinition $Signature -Name "Win32ShowWindowAsync" -Namespace Win32Functions -PassThru
+$ShowWindowAsync | Get-Member -Static
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $pid).MainWindowHandle, 2)
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 3)
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 4)
+
+### GetAsyncKeyState (https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-getasynckeystate)
+
+Add-Type -AssemblyName System.Windows.Forms
+[int][System.Windows.Forms.Keys]::F1
+
+65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}
+
+function Get-ControlKey {
+$key = 112
+$Signature = @'
+[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
+public static extern short GetAsyncKeyState(int virtualKeyCode); 
+'@
+Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
+[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
 }
+
+Write-Warning 'Press F1 to exit'
+do {
+Write-Host '.' -NoNewline
+$pressed = Get-ControlKey
+if ($pressed) { break }
+Start-Sleep -Seconds 1
+} while ($true)
+
+# Console API
+
+[Console] | Get-Member -Static
+[Console]::BackgroundColor = "Blue"
+[Console]::OutputEncoding # используемая кодировка в текущей сессии
+[Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding("utf-8") # изменить кодировку для отображения кириллицы
+[Console]::outputEncoding = [System.Text.Encoding]::GetEncoding("cp866") # для ISE
+[Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding("windows-1251") # для ps2exe
+Get-Service | Out-File $home\Desktop\Service.txt -Encoding oem # >
+Get-Service | Out-File $home\Desktop\Service.txt -Append # >>
+
+do {
+if ([Console]::KeyAvailable) {
+$keyInfo = [Console]::ReadKey($true)
+break
+}
+Write-Host "." -NoNewline
+sleep 1
+} while ($true)
+Write-Host
+$keyInfo
+
+function Get-KeyPress {
+param (
+[Parameter(Mandatory)][ConsoleKey]$Key,
+[System.ConsoleModifiers]$ModifierKey = 0
+)
+if ([Console]::KeyAvailable) {
+$pressedKey = [Console]::ReadKey($true)
+$isPressedKey = $key -eq $pressedKey.Key
+if ($isPressedKey) {
+$pressedKey.Modifiers -eq $ModifierKey
+} else {
+[Console]::Beep(1800, 200)
+$false
+}}}
+
+Write-Warning 'Press Ctrl+Shift+Q to exit'
+do {
+Write-Host "." -NoNewline
+$pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
+if ($pressed) {break}
+sleep 1
+} while ($true)
+
+### Register-ObjectEvent
+
+$Timer = New-Object System.Timers.Timer
+$Timer.Interval = 1000
+Register-ObjectEvent -InputObject $Timer -EventName Elapsed -SourceIdentifier Timer.Output -Action {
+$Random = Get-Random -Min 0 -Max 100
+Write-Host $Random 
+}
+$Timer.Enabled = $True
+
+$Timer.Enabled = $False # остановить
+$Timer | Get-Member -MemberType Event # отобразить список всех событий объекта
 Get-EventSubscriber # список зарегистрированных подписок на события в текущей сессии
-Unregister-Event -SourceIdentifier SrvListClick # удаляет регистрацию подписки на событие по имени события (или все *)
-Remove-Job -Name SrvListClick # удаляет задание
--InputObject # объект или переменная, хранящая объект
--EventName # событие (например, Click,MouseClick)
--SourceIdentifier # название регистрируемого события
--Action # действие при возникновении события
+Unregister-Event -SourceIdentifier Timer.Output # удаляет регистрацию подписки на событие по имени события (EventName) или все *
+-Forward # перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс
+-SupportEvent # не выводит результат регистрации события на экран (и Get-EventSubscriber и Get-Job)
+
+Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+$date = Get-Date -f hh:mm:ss
+(New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
+}
 
 # Excel
 
@@ -2112,6 +2526,10 @@ $data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show
 
 # XML
 
+Get-Service | Export-Clixml -path $home\desktop\test.xml # экспортировать объект PowerShell в XML
+Import-Clixml -Path $home\desktop\test.xml # импортировать объект XML в PowerShell
+ConvertTo-Xml (Get-Service)
+
 $xml = [xml](Get-Content $home\desktop\test.rdg) # прочитать содержимое XML-файла
 $xml.load("$home\desktop\test.rdg") # открыть файл
 $xml.RDCMan.file.group.properties.name # имена групп
@@ -2121,10 +2539,6 @@ $xml.RDCMan.file.group[3].server.properties # список серверов в 4
 $xml.RDCMan.file.group[3].server[0].properties.displayName = "New-displayName" 
 $xml.RDCMan.file.group[3].server[1].RemoveAll() # удалить объект (2-й сервер в списке)
 $xml.Save($file) # сохранить содержимое объекта в файла
-
-Get-Service | Export-Clixml -path $home\desktop\test.xml # экспортировать объект powershell в xml
-Import-Clixml -Path $home\desktop\test.xml # импортировать объект xml в powershell
-ConvertTo-Xml (Get-Service)
 
 if (Test-Path $CredFile) {
 $Cred = Import-Clixml -path $CredFile
@@ -2190,6 +2604,8 @@ $log = '
   }
 }' | ConvertFrom-Json
 
+Get-Service | ConvertTo-Json
+
 ### YAML (Yet Another Markup Language)
 
 Import-Module PSYaml
@@ -2237,32 +2653,6 @@ Region,State,Units,Price
 West,Texas,927,923.71
 $null,Tennessee,466,770.67
 "@
-
-# SQLite
-
-Install-Module MySQLite -Repository PSGallery
-$path = "$home\desktop\Get-Service.db"
-Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force
-(Get-MySQLiteDB $path).Tables
-New-MySQLiteDB -Path $path # создать базу
-Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';" # список всех таблиц в базе
-Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);" # создать таблицу
-Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');" # добавить данные в таблицу
-Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service" # содержимое таблицы
-Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;" # удалить таблицу
-
-$Service = Get-Service | select Name,DisplayName,Status
-foreach ($S in $Service) {
-$1 = $S.Name; $2 = $S.DisplayName; $3 = $S.Status;
-Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$1', '$2', '$3');"
-}
-
-### Database password
-
-$Connection = New-SQLiteConnection -DataSource $path
-$Connection.ChangePassword("password")
-$Connection.Close()
-Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"
 
 # DSC
 
@@ -2354,3 +2744,214 @@ git restore filename # отменить все локальные изменен
 git restore --source d01f09dead3a6a8d75dda848162831c58ca0ee13 filename # восстановить файл на указанную версию по хэшу индентификатора коммита
 git revert HEAD --no-edit # отменить последний коммит, без указания комментария (события записываются в git log)
 git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13 # удалить все коммиты до указанного (и откатиться до него)
+
+# SQLite
+
+Install-Module MySQLite -Repository PSGallery
+$path = "$home\desktop\Get-Service.db"
+Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force
+(Get-MySQLiteDB $path).Tables # список таблиц в базе
+New-MySQLiteDB -Path $path # создать базу
+Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';" # список всех таблиц в базе
+Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);" # создать таблицу
+Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');" # добавить данные в таблицу
+Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service" # содержимое таблицы
+Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;" # удалить таблицу
+
+$Service = Get-Service | select Name,DisplayName,Status
+foreach ($S in $Service) {
+$Name = $S.Name
+$DName = $S.DisplayName
+$Status = $S.Status
+Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$Name', '$DName', '$Status');"
+}
+
+### Database password
+
+$Connection = New-SQLiteConnection -DataSource $path
+$Connection.ChangePassword("password")
+$Connection.Close()
+Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=password"
+
+# MySQL
+
+apt -y install mysql-server mysql-client
+mysql -V
+systemctl status mysql
+mysqladmin -u root password # задать пароль root
+
+nano /etc/mysql/mysql.conf.d/mysqld.cnf
+# port 3306
+bind-address = 192.168.1.253 # адрес прослушивания
+systemctl restart mysql
+ufw allow 3306/tcp
+tnc 192.168.1.253 -p 3306
+
+mysql -u root -p
+SELECT user(), now(), version();
+quit;
+
+mysql -u root -p -e 'SHOW TABLES FROM db_aduser;' # отобразить список таблиц без подключения к консоли MySQL
+
+CREATE # создать БД, пользователя, таблицу
+ALTER #  управление столбцами таблице
+DROP # удалить БД, пользователя, таблицу
+USE # выбрать БД
+SHOW # вывесли список БД, прав доступа пользователя (GRANTS), названия столбцов и их свойства
+GRANT # дать доступ пользователю к БД
+REVOKE #  удалить доступ пользователя к БД
+UPDATE # изменить права доступа, значения с таблице
+FLUSH # обновить права доступа
+SELECT # отобразить выбранную БД, вывести список пользователей, выборка данных в таблице
+INSERT # внести данные
+DELETE # удалить данные в (FROM) таблице
+
+### DATA TYPE
+VARCHAR(N) # строка переменной длины, в формате ASCII, где один символ занимает 1 байт, числом N указывается максимальная возможная длина строки
+NVARCHAR(N) # строка переменной длины, в формате Unicode, где один символ занимает 2 байта
+CHAR(N)/nchar(N) # строка фиксированной длины, которая всегда дополняется справа пробелами до длины N и в базе данных она занимает ровно N символов
+INT # целое число, от -2147483648 до 2147483647, занимает 4 байта
+FLOAT # число, в котором может присутствовать десятичная точка (запятая)
+BIT # флаг, Да - 1 или Нет - 0
+DATE # формат даты, например 25.05.2023
+TIME # 23:30:55.1234567
+DATETIME # 25.05.2023 23:30:55.1234567
+
+### DATABASE
+SHOW databases; 																	# вывести список БД
+CREATE DATABASE db_aduser;															# создать БД
+CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci; 	# создать БД с кодировкой UTF-8
+DROP DATABASE db_rep; 																# удалить БД
+USE db_aduser; 																		# выбрать/переключиться на выбранную БД
+SELECT database(); 																	# отобразить выбранную БД
+
+### USER
+SELECT USER,HOST FROM mysql.user; 			 							# вывести список УЗ
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с локального сервера
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с указанного сервера
+CREATE USER posh@'192.168.1.247' IDENTIFIED BY '1qaz!QAZ'; 				# УЗ для доступа с любого сервера
+DROP USER posh@localhost; 												# удалить пользователя
+SHOW GRANTS FOR posh@'%'; 												# отобразить права доступа пользователя
+GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'192.168.1.247';			# полный доступ для posh к БД db_aduser
+GRANT ALL PRIVILEGES ON *.* TO posh@'%'; 								# доступ к всем БД c любого клиентского хоста
+GRANT SELECT,DELETE ON mysql.* TO posh@'%'; 							# права SELECT и DELETE на встроенную БД mysql
+REVOKE DELETE ON mysql.* FROM posh@'%'; 								# удалить доступ DELETE
+UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%'; 	# изменить привелегии для пользователя
+SELECT USER,HOST,super_priv FROM mysql.user; 							# список УЗ и таблица с правами SUPER privilege
+FLUSH PRIVILEGES; 														# обновить права доступа
+
+### TABLE
+SHOW TABLES; 																											# отобразить список всех таблиц
+SHOW TABLES LIKE '%user'; 																								# поиск таблицы по wildcard-имени
+CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID)); 	# оздать таблицу
+DROP TABLE table_aduser; 																								# удалить таблицу
+
+### COLUMN
+SHOW COLUMNS FROM table_aduser; 															# отобразить название стобцов и их свойства
+ALTER TABLE table_aduser DROP COLUMN id; 													# удалить столбец id
+ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10); 										# добавить столбец info
+ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100);									# изменить имя столбца info на new_info и его тип данных
+ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID));		# добавить столбец id
+
+### INSERT
+INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
+INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
+INSERT table_aduser (Name) VALUES ('Support');
+INSERT table_aduser (Name) VALUES ('Jack');
+
+### SELECT
+SELECT * FROM table_aduser; 					# содержимое всех стобцов в выбранной (FROM) таблице
+SELECT Name,email FROM table_aduser; 			# содержимое указанных стобцов
+SELECT DISTINCT Name,Email FROM table_aduser; 	# отобразить уникальные записи (без повторений)
+SELECT * FROM table_aduser ORDER BY Name;	 	# отсортировать по Name
+SELECT * FROM table_aduser ORDER BY Name DESC; 	# обратная сортировка
+SELECT COUNT(*) FROM table_aduser; 				# количество строк в таблице
+SELECT COUNT(new_info) FROM table_aduser; 		# количество строк в столбце
+
+### WHERE
+NOT; AND; OR 												# по приоритетам условий
+SELECT * FROM table_aduser WHERE Name = 'Alex';			    # поиск по содержимому
+SELECT * FROM table_aduser WHERE NOT Name != 'Alex';	    # условие NOT где Name не равен значению
+SELECT * FROM table_aduser WHERE email != ''; 			    # вывести строки, где содержимое email не рано null
+SELECT * FROM table_aduser WHERE email != '' OR id > 1000;	# или id выше 1000
+SELECT * FROM table_aduser WHERE Name RLIKE "support"; 		# регистронезависемый (RLIKE) поиск
+SELECT * FROM table_aduser WHERE Name RLIKE "^support"; 	# начинаются только с этого словосочетания
+
+### DELETE
+SELECT * FROM table_aduser WHERE Name RLIKE "alex";			# найти и проверить значения перед удалением
+DELETE FROM table_aduser WHERE Name RLIKE "alex";			# Query OK, 2 rows affected # удалено две строки
+DELETE FROM table_aduser; 									# удалить ВСЕ значения
+
+### UPDATE
+SELECT * FROM table_aduser WHERE Name = 'Jack';				# найти и проверить значение перед изменением
+UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack';  # изменить значение 'Jack' на 'Alex'
+UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1;	# изменить значение в строке с ID 1
+
+### CHECK
+CHECK TABLE db_aduser.table_aduser; # проверить
+ANALYZE TABLE db_aduser.table_aduser; # анализировать
+OPTIMIZE TABLE db_aduser.table_aduser; # оптимизировать
+REPAIR TABLE db_aduser.table_aduser; # восстановить
+TRUNCATE TABLE db_aduser.table_aduser; # очистить
+
+### DUMP
+
+mysqldump -u root -p --databases db_aduser > /bak/db_aduser.sql
+mysql -u root -p db_aduser < /bak/db_aduser.sql
+
+crontab -e
+00 22 * * * /usr/bin/mysqldump -uroot -p1qaz!QAZ db_zabbix | /bin/bzip2 > `date +/dump/zabbix/zabbix-\%d-\%m-\%Y-\%H:\%M.bz2`
+00 23 * * * /usr/bin/mysqldump -uroot -p1qaz!QAZ db_zabbix > `date +/dump/smb/zabbix-\%d-\%m-\%Y-\%H:\%M.sql`
+0 0 * * * find /dump/zabbix -mtime +7 -exec rm {} \;
+
+### MySQL Connector NET
+
+### Add-ADUser
+
+$ip = "192.168.1.253"
+$user = "posh"
+$pass = "1qaz!QAZ"
+$db = "db_aduser"
+Add-Type –Path "$home\Documents\MySQL-Connector-NET\8.0.31-4.8\MySql.Data.dll"
+$Connection = [MySql.Data.MySqlClient.MySqlConnection]@{
+ConnectionString="server=$ip;uid=$user;pwd=$pass;database=$db"
+}
+$Connection.Open()
+$Command = New-Object MySql.Data.MySqlClient.MySqlCommand
+$Command.Connection = $Connection
+$UserList = Get-ADUser -filter * -properties name,EmailAddress
+foreach ($user in $UserList) {
+$uname=$user.Name
+$uemail=$user.EmailAddress
+$Command.CommandText = "INSERT INTO table_aduser (Name,Email) VALUES ('$uname','$uemail')"
+$Command.ExecuteNonQuery()
+}
+$Connection.Close()
+
+### Get-ADUser
+
+$ip = "192.168.1.253"
+$user = "posh"
+$pass = "1qaz!QAZ"
+$db = "db_aduser"
+Add-Type –Path "$home\Documents\MySQL-Connector-NET\8.0.31-4.8\MySql.Data.dll"
+$Connection = [MySql.Data.MySqlClient.MySqlConnection]@{
+ConnectionString = "server=$ip;uid=$user;pwd=$pass;database=$db"
+}
+$Connection.Open()
+$Command = New-Object MySql.Data.MySqlClient.MySqlCommand
+$Command.Connection = $Connection
+$MYSQLDataAdapter = New-Object MySql.Data.MySqlClient.MySqlDataAdapter
+$MYSQLDataSet = New-Object System.Data.DataSet
+$Command.CommandText = "SELECT * FROM table_aduser"
+$MYSQLDataAdapter.SelectCommand = $Command
+$NumberOfDataSets = $MYSQLDataAdapter.Fill($MYSQLDataSet, "data")
+$Collections = New-Object System.Collections.Generic.List[System.Object]
+foreach($DataSet in $MYSQLDataSet.tables[0]) {
+$Collections.Add([PSCustomObject]@{
+Name = $DataSet.name;
+Mail = $DataSet.email
+})
+}
+$Connection.Close()
+$Collections
