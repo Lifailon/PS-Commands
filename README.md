@@ -20,6 +20,7 @@
 - [DHCP](#DHCP)
 - [DFS](#DFS)
 - [PackageManagement](#PackageManagement)
+- [Jobs]($Jobs)
 - [PowerCLI](#PowerCLI)
 - [EMShell](#EMShell)
 - [TrueNAS](#TrueNAS)
@@ -28,7 +29,8 @@
 - [IE](#IE)
 - [Selenium](#Selenium)
 - [COM Object](#COM-Object)
-- [Class NET](#Class-NET)
+- [Class dotNET](#Class-dotNET)
+- [Console API](#Console-API)
 - [Excel](#Excel)
 - [XML](#XML)
 - [DSC](#DSC)
@@ -37,16 +39,20 @@
 - [MySQL](#MySQL)
 
 ### Help
-`Get-Verb` действия, утвержденные для использования в командах \
+`Get-Verb` действия/глаголы, утвержденные для использования в командах \
+`Show-Command` вывести список команд \
 `Get-Command *Service*` поиск команды по имени \
 `Get-Help Get-Service` синтаксис \
 `Get-Help Get-Service -Parameter *` описание всех параметров \
-`Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) и Alias \
-`Get-Alias ps` \
-`Set-ExecutionPolicy Unrestricted` \
-`Get-ExecutionPolicy` \
-`$PSVersionTable` \
-`powershell -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"` NppExec
+`Get-Help Get-Service -ShowWindow \
+`Get-Help Get-Service -Online \
+`Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) \
+`Get-Alias gsv \
+`Set-ExecutionPolicy Unrestricted \
+`Get-ExecutionPolicy \
+`powershell -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"` NppExec \
+`Invoke-Expression` iex принимает параметр команды для выполнения в консоли \
+`$PSVersionTable` версия PowerShell
 
 # Object
 
@@ -62,6 +68,11 @@
 ### Clipboard
 `Set-Clipboard $srv` скопировать в буфер обмена \
 `Get-Clipboard` вставить
+
+### Write
+`Write-Host -ForegroundColor Black -BackgroundColor Green "Test" -NoNewline` \
+`Write-Error Test` \
+`Foreach ($n in 1..100) {Write-Progress -Activity "Test Progress" -PercentComplete $n}`
 
 ### Array
 `$srv = @("server-01", "server-02")`  создать массив \
@@ -360,6 +371,15 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 `} else {Write-Host "Сайт недоступен"; sleep 1}` \
 `}`
 
+### Try
+```
+try {
+While ($True) {$out += ping ya.ru -n 1; $out[3]}
+}
+finally {
+$out = $null
+}
+```
 # Items
 
 `Test-Path $path` проверить доступность пути \
@@ -576,28 +596,56 @@ $EventData | ft
 `tnc ya.ru –TraceRoute -Hops 2` TTL=2 \
 `tnc ya.ru -DiagnoseRouting` маршрутизация до хоста, куда (DestinationPrefix: 0.0.0.0/0) через (NextHop: 192.168.1.254)
 
-### ipconfig
-`Get-NetIPConfiguration` \
-`Get-NetAdapter` \
-`Get-NetAdapterAdvancedProperty` \
-`Get-NetAdapterStatistics`
-
-### DNSClientServerAddress
-`Get-DNSClientServerAddress` \
-`Set-DNSClientServerAddress -InterfaceIndex (Get-NetIPConfiguration).InterfaceIndex -ServerAddresses 8.8.8.8`
-
 ### nslookup
 `nslookup ya.ru 8.8.8.8` \
 `nslookup -type=any ya.ru` \
-`Resolve-DnsName ya.ru -Type MX` ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)
+`Resolve-DnsName ya.ru -Type MX # ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)`
 
 ### route
 `Get-NetRoute`
 
+### ipconfig
+`Get-NetIPConfiguration` \
+`Get-NetIPConfiguration -InterfaceIndex 14 -Detailed`
+
+### Adapter
+`Get-NetAdapter` \
+`Set-NetIPInterface -InterfaceIndex 14 -Dhcp Disabled` отключить DHCP` \
+`Get-NetAdapter -InterfaceIndex 14 | New-NetIPAddress –IPAddress 192.168.3.99 -DefaultGateway 192.168.3.1 -PrefixLength 24` задать/добавить статический IP-адрес \
+`Set-NetIPAddress -InterfaceIndex 14 -IPAddress 192.168.3.98` изменить IP-адреас на адаптере \
+`Remove-NetIPAddress -InterfaceIndex 14 -IPAddress 192.168.3.99` удалить IP-адрес на адаптере \
+`Set-NetIPInterface -InterfaceIndex 14 -Dhcp Enabled` включить DHCP
+
+### DNSClient
+`Get-DNSClientServerAddress` \
+`Set-DNSClientServerAddress -InterfaceIndex 14 -ServerAddresses 8.8.8.8`
+
+### Binding
+`Get-NetAdapterBinding -Name Ethernet -IncludeHidden -AllBindings` \
+`Get-NetAdapterBinding -Name "Беспроводная сеть" -DisplayName "IP версии 6 (TCP/IPv6)" | Set-NetAdapterBinding -Enabled $false` отключить IPv6 на адаптере \
+
+### TCPSetting
+`Get-NetTCPSetting` \
+`Set-NetTCPSetting -SettingName DatacenterCustom,Datacenter -CongestionProvider DCTCP` \
+`Set-NetTCPSetting -SettingName DatacenterCustom,Datacenter -CwndRestart True` \
+`Set-NetTCPSetting -SettingName DatacenterCustom,Datacenter -ForceWS Disabled`
+
 ### netstat
+`netstat -anop tcp` -n/-f/-b \
 `Get-NetTCPConnection -State Established,Listen | ? LocalPort -Match 3389` \
 `Get-NetTCPConnection -State Established,Listen | ? RemotePort -Match 22` \
-`Get-NetUDPEndpoint | ? LocalPort -Match 514`
+`Get-NetUDPEndpoint | ? LocalPort -Match 514 # netstat -ap udp`
+
+### Statistics
+`netstat -se` \
+`Get-NetAdapterStatistics`
+
+### hostname
+`$env:computername` \
+`hostname.exe` \
+`(Get-CIMInstance CIM_ComputerSystem).Name` \
+`[System.Environment]::MachineName` \
+`[System.Net.Dns]::GetHostName()`
 
 # Socket
 
@@ -608,19 +656,17 @@ param(
 $Port = 5201
 )
 $RemoteComputer = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
-Write-Host "Server is waiting for connections - $($UdpObject.Client.LocalEndPoint)"
-Write-Host "Stop with CRTL + C"
 do {
 $UdpObject = New-Object System.Net.Sockets.UdpClient($Port)
 $ReceiveBytes = $UdpObject.Receive([ref]$RemoteComputer)
 $UdpObject.Close()
-$ASCIIEncoding = New-Object System.Text.ASCIIEncoding # Convert received UDP datagram from Bytes to String
+$ASCIIEncoding = New-Object System.Text.ASCIIEncoding
 [string]$ReturnString = $ASCIIEncoding.GetString($ReceiveBytes)
 [PSCustomObject]@{
 LocalDateTime = $(Get-Date -UFormat "%Y-%m-%d %T")
-SourceIP      = $RemoteComputer.address.ToString()
-SourcePort    = $RemoteComputer.Port.ToString()
-Payload       = $ReturnString
+ClientIP      = $RemoteComputer.address.ToString()
+ClientPort    = $RemoteComputer.Port.ToString()
+Message       = $ReturnString
 }
 } while (1)
 }
@@ -631,17 +677,19 @@ Start-UDPServer -Port 5201
 ```
 function Test-NetUDPConnection {
 param(
-[string]$ComputerName,
-[int32]$Port = 5201,
-[int32]$SourcePort = 5211
+[string]$ComputerName = "127.0.0.1",
+[int32]$PortServer    = 5201,
+[int32]$PortClient    = 5211
 )
 begin {
-$UdpObject = New-Object system.Net.Sockets.Udpclient($SourcePort)
-$UdpObject.Connect($ComputerName, $Port)
+$UdpObject = New-Object system.Net.Sockets.Udpclient($PortClient)
+$UdpObject.Connect($ComputerName, $PortServer)
 }
 process {
 $ASCIIEncoding = New-Object System.Text.ASCIIEncoding
-$Bytes = $ASCIIEncoding.GetBytes("$(Get-Date -UFormat "%Y-%m-%d %T")")
+$Message = Get-Date -UFormat "%Y-%m-%d %T"
+#$Message = "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
+$Bytes = $ASCIIEncoding.GetBytes($Message)
 [void]$UdpObject.Send($Bytes, $Bytes.length)
 }
 end {
@@ -649,7 +697,7 @@ $UdpObject.Close()
 }
 }
 
-Test-NetUDPConnection -ComputerName 127.0.0.1 -Port 5201
+Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201
 ```
 ### TCP Socket
 ```
@@ -662,12 +710,31 @@ $TcpObject = New-Object System.Net.Sockets.TcpListener($port)
 $ReceiveBytes = $TcpObject.Start()
 $ReceiveBytes = $TcpObject.AcceptTcpClient()
 $TcpObject.Stop()
-$ReceiveBytes.Client.RemoteEndPoint
-}  while (1)
+$ReceiveBytes.Client.RemoteEndPoint | select Address,Port
+} while (1)
 }
 
 Start-TCPServer -Port 5201
 Test-NetConnection -ComputerName 127.0.0.1 -Port 5201
+```
+### HTTP Listener
+```
+$httpListener = New-Object System.Net.HttpListener
+$httpListener.Prefixes.Add("http://+:8888/")
+$httpListener.Start()
+while (!([console]::KeyAvailable)) {
+$info = Get-Service | select name,status | ConvertTo-HTML
+$context = $httpListener.GetContext()
+$context.Response.StatusCode = 200
+$context.Response.ContentType = 'text/HTML'
+$WebContent = $info
+$EncodingWebContent = [Text.Encoding]::UTF8.GetBytes($WebContent)
+$context.Response.OutputStream.Write($EncodingWebContent , 0, $EncodingWebContent.Length)
+$context.Response.Close()
+Get-NetTcpConnection -LocalPort 8888
+(Get-Date).datetime
+}
+$httpListener.Close()
 ```
 ### LocalGroup
 `Get-LocalUser` список пользователей \
@@ -1287,20 +1354,80 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `& $NSSM_Path set $Service_Name description "Check performance CPU and report email"` изменить описание \
 `& $NSSM_Path remove $Service_Name` удалить
 
+# Jobs
+`Get-Job` получение списка задач \
+`Start-Job` запуск процесса \
+`Stop-Job` остановка процесса \
+`Suspend-Job` приостановка работы процесса \
+`Resume-Job` восстановление работы процесса \
+`Wait-Job` ожидание вывода команды \
+`Receive-Job` получение результатов выполненного процесса \
+`Remove-Job` удалить задачу
+```
+function Start-MTPing ($Network){
+$RNetwork = $Network -replace "\.\d{1,3}$","."
+foreach ($4 in 1..254) {
+$ip = $RNetwork+$4
+# создаем задания, забираем 3-ю строку вывода и добавляем к выводу ip-адрес:
+(Start-Job {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
+}
+while ($True){
+$status_job = (Get-Job).State[-1] # забираем статус последнего задания
+if ($status_job -like "Completed"){ # проверяем на выполнение (задания выполняются по очереди сверху вниз)
+$ping_out = Get-Job | Receive-Job # если выполнен, забираем вывод всех заданий
+Get-Job | Remove-Job -Force # удаляем задания
+$ping_out
+break # завершаем цикл
+}}
+}
+
+Start-MTPing -Network 192.168.3.0
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 60 Seconds
+```
 ### ThreadJob
 `Install-Module -Name ThreadJob` \
 `Get-Module ThreadJob -list` \
-`(Start-ThreadJob {ping ya.ru}) | Out-Null` создать фоновую задачу \
-`while ($True){` \
-`$status = @((Get-Job).State)[-1]` отобразить статус последней [-1] фоновой задачи \
-`if ($status -like "Completed"){` если Completed \
-`Get-Job | Receive-Job` отобразить вывод, после каждого запроса результат удаляется (Get-Job).HasMoreData -eq $False \
-`Get-Job | Remove-Job -Force` удалить все задачи \
-`break` остановить цикл \
-`}}` \
-`Get-Job | Receive-Job -Keep` отобразить и не удалять вывод (-Keep) \
-`(Get-Job).Information` отобразить результат всех заданий
+`Start-ThreadJob {ping ya.ru} | Out-Null` создать фоновую задачу \
+`Get-Job | Receive-Job -Keep` отобразить и не удалять вывод \
+`(Get-Job).HasMoreData` если False, то вывод команы удален \
+`(Get-Job)[-1].Output` отобразить вывод последней задачи
+```
+function Start-MTPing ($Network){
+$RNetwork = $Network -replace "\.\d{1,3}$","."
+foreach ($4 in 1..254) {
+$ip = $RNetwork+$4
+# создаем задания, забираем 3-ю строку вывода и добавляем к выводу ip-адрес:
+(Start-ThreadJob {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
+}
+while ($True){
+$status_job = (Get-Job).State[-1] # забираем статус последнего задания
+if ($status_job -like "Completed"){ # проверяем на выполнение (задания выполняются по очереди сверху вниз)
+$ping_out = Get-Job | Receive-Job # если выполнен, забираем вывод всех заданий
+Get-Job | Remove-Job -Force # удаляем задания
+$ping_out
+break # завершаем цикл
+}}
+}
 
+Start-MTPing -Network 192.168.3.0
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 24 Seconds
+```
+### PoshRSJob
+```
+function Start-MTPing ($Network){
+$RNetwork = $Network -replace "\.\d{1,3}$","."
+foreach ($4 in 1..254) {
+$ip = $RNetwork+$4
+(Start-RSJob {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
+}
+$ping_out = Get-RSJob | Receive-RSJob
+$ping_out
+Get-RSJob | Remove-RSJob
+}
+
+Start-MTPing -Network 192.168.3.0
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 10 Seconds
+```
 # PowerCLI
 
 `Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
@@ -1994,7 +2121,7 @@ Output:
 `$Outlook | Get-Member` \
 `$Outlook.Version`
 
-# Class NET
+# Class dotNET
 
 `[System.Diagnostics.EventLog] | select Assembly,Module` \
 `$EventLog = [System.Diagnostics.EventLog]::new("Application")` \
@@ -2028,74 +2155,6 @@ $GoodSound.Play()
 `[System.Diagnostics.Process] | Get-Member -Static` \
 `[System.Diagnostics.Process]::Start('notepad.exe')`
 
-### Register-ObjectEvent
-```
-$Timer = New-Object System.Timers.Timer
-$Timer.Interval = 1000
-Register-ObjectEvent -InputObject $Timer -EventName Elapsed -SourceIdentifier Timer.Output -Action {
-$Random = Get-Random -Min 0 -Max 100
-Write-Host $Random 
-}
-$Timer.Enabled = $True
-```
-`$Timer.Enabled = $False` остановить \
-`$Timer | Get-Member -MemberType Event` отобразить список всех событий объекта \
-`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
-`Unregister-Event -SourceIdentifier Timer.Output` удаляет регистрацию подписки на событие по имени события (EventName) или все * \
-`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс \
-`-SupportEvent` не выводит результат регистрации события на экран (и Get-EventSubscriber и Get-Job)
-```
-Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
-$date = Get-Date -f hh:mm:ss
-(New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
-}
-```
-### ShowWindowAsync (Import function dll: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync)
-Импорт функции из библитеки (dll) по средствам C#, далее с помощью Add-Type определяет класс .NET Framework, после этого можно создавать объекты соответствующего класса (New-Object) и использовать их, как любые другие объекты .NET.
-```
-$Signature = @"
-[DllImport("user32.dll")]public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
-"@
-$ShowWindowAsync = Add-Type -MemberDefinition $Signature -Name "Win32ShowWindowAsync" -Namespace Win32Functions -PassThru
-$ShowWindowAsync | Get-Member -Static
-$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $pid).MainWindowHandle, 2)
-$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 3)
-$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 4)
-```
-### [Win32.Kernel32]::CopyFile()
-```
-$MethodDefinition = @"
-[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-public static extern bool CopyFile(string lpExistingFileName, string lpNewFileName, bool bFailIfExists);
-"@
-$Kernel32 = Add-Type -MemberDefinition $MethodDefinition -Name "Kernel32" -Namespace "Win32" -PassThru
-$Kernel32::CopyFile("$($Env:SystemRoot)\System32\calc.exe", "$($Env:USERPROFILE)\Desktop\calc.exe", $False) 
-```
-### [System.Windows.Forms.Keys]
-
-`Add-Type -AssemblyName System.Windows.Forms` \
-`[int][System.Windows.Forms.Keys]::F1`
-
-`65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}`
-```
-function Get-ControlKey {
-$key = 112
-$Signature = @'
-[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
-public static extern short GetAsyncKeyState(int virtualKeyCode); 
-'@
-Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
-[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
-}
-
-Write-Warning 'Press F1 to exit'
-do {
-Write-Host '.' -NoNewline
-$pressed = Get-ControlKey
-if ($pressed) { break }
-Start-Sleep -Seconds 1
-} while ($true)
-```
 ### [Clicker]
 ```
 $cSource = @'
@@ -2210,10 +2269,133 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 `[Audio]::Volume = 0.50` \
 `[Audio]::Mute = $true`
 
+### NetSessionEnum (https://learn.microsoft.com/ru-ru/windows/win32/api/lmshare/nf-lmshare-netsessionenum?redirectedfrom=MSDN)
+```
+function Invoke-NetSessionEnum {
+param (
+[Parameter(Mandatory = $True)][string]$HostName
+)
+Add-Type -TypeDefinition @"
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+[StructLayout(LayoutKind.Sequential)]
+public struct SESSION_INFO_10
+{
+    [MarshalAs(UnmanagedType.LPWStr)]public string OriginatingHost;
+    [MarshalAs(UnmanagedType.LPWStr)]public string DomainUser;
+    public uint SessionTime;
+    public uint IdleTime;
+}
+public static class Netapi32
+{
+[DllImport("Netapi32.dll", SetLastError=true)]
+    public static extern int NetSessionEnum(
+        [In,MarshalAs(UnmanagedType.LPWStr)] string ServerName,
+        [In,MarshalAs(UnmanagedType.LPWStr)] string UncClientName,
+        [In,MarshalAs(UnmanagedType.LPWStr)] string UserName,
+        Int32 Level,
+        out IntPtr bufptr,
+        int prefmaxlen,
+        ref Int32 entriesread,
+        ref Int32 totalentries,
+        ref Int32 resume_handle);
+         
+[DllImport("Netapi32.dll", SetLastError=true)]
+    public static extern int NetApiBufferFree(
+        IntPtr Buffer);
+}
+"@
+# Create SessionInfo10 Struct
+$SessionInfo10 = New-Object SESSION_INFO_10
+$SessionInfo10StructSize = [System.Runtime.InteropServices.Marshal]::SizeOf($SessionInfo10) # Grab size to loop bufptr
+$SessionInfo10 = $SessionInfo10.GetType() # Hacky, but we need this ;))
+# NetSessionEnum params
+$OutBuffPtr = [IntPtr]::Zero # Struct output buffer
+$EntriesRead = $TotalEntries = $ResumeHandle = 0 # Counters & ResumeHandle
+$CallResult = [Netapi32]::NetSessionEnum($HostName, "", "", 10, [ref]$OutBuffPtr, -1, [ref]$EntriesRead, [ref]$TotalEntries, [ref]$ResumeHandle)
+if ($CallResult -ne 0){
+echo "Mmm something went wrong!`nError Code: $CallResult"
+}
+else {
+if ([System.IntPtr]::Size -eq 4) {
+echo "`nNetapi32::NetSessionEnum Buffer Offset  --> 0x$("{0:X8}" -f $OutBuffPtr.ToInt32())"
+}
+else {
+echo "`nNetapi32::NetSessionEnum Buffer Offset  --> 0x$("{0:X16}" -f $OutBuffPtr.ToInt64())"
+}
+echo "Result-set contains $EntriesRead session(s)!"
+# Change buffer offset to int
+$BufferOffset = $OutBuffPtr.ToInt64()
+# Loop buffer entries and cast pointers as SessionInfo10
+for ($Count = 0; ($Count -lt $EntriesRead); $Count++){
+$NewIntPtr = New-Object System.Intptr -ArgumentList $BufferOffset
+$Info = [system.runtime.interopservices.marshal]::PtrToStructure($NewIntPtr,[type]$SessionInfo10)
+$Info
+$BufferOffset = $BufferOffset + $SessionInfo10StructSize
+}
+echo "`nCalling NetApiBufferFree, no memleaks here!"
+[Netapi32]::NetApiBufferFree($OutBuffPtr) |Out-Null
+}
+}
+```
+`Invoke-NetSessionEnum localhost`
+
+### CopyFile (https://learn.microsoft.com/ru-ru/windows/win32/api/winbase/nf-winbase-copyfile)
+```
+$MethodDefinition = @"
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+public static extern bool CopyFile(string lpExistingFileName, string lpNewFileName, bool bFailIfExists);
+"@
+$Kernel32 = Add-Type -MemberDefinition $MethodDefinition -Name "Kernel32" -Namespace "Win32" -PassThru
+$Kernel32::CopyFile("$($Env:SystemRoot)\System32\calc.exe", "$($Env:USERPROFILE)\Desktop\calc.exe", $False) 
+```
+### ShowWindowAsync (https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync)
+```
+$Signature = @"
+[DllImport("user32.dll")]public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+"@
+$ShowWindowAsync = Add-Type -MemberDefinition $Signature -Name "Win32ShowWindowAsync" -Namespace Win32Functions -PassThru
+$ShowWindowAsync | Get-Member -Static
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $pid).MainWindowHandle, 2)
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 3)
+$ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 4)
+```
+### GetAsyncKeyState (https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-getasynckeystate)
+
+`Add-Type -AssemblyName System.Windows.Forms` \
+`[int][System.Windows.Forms.Keys]::F1`
+
+`65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}`
+```
+function Get-ControlKey {
+$key = 112
+$Signature = @'
+[DllImport("user32.dll", CharSet=CharSet.Auto, ExactSpelling=true)] 
+public static extern short GetAsyncKeyState(int virtualKeyCode); 
+'@
+Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
+[bool]([PsOneApi.Keyboard]::GetAsyncKeyState($key) -eq -32767)
+}
+
+Write-Warning 'Press F1 to exit'
+do {
+Write-Host '.' -NoNewline
+$pressed = Get-ControlKey
+if ($pressed) { break }
+Start-Sleep -Seconds 1
+} while ($true)
+```
 ### Console API
 
 `[Console] | Get-Member -Static` \
-`[Console]::BackgroundColor = "Blue"`
+`[Console]::BackgroundColor = "Blue"` \
+`[Console]::OutputEncoding` используемая кодировка в текущей сессии \
+`[Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding("utf-8")` изменить кодировку для отображения кириллицы \
+`[Console]::outputEncoding = [System.Text.Encoding]::GetEncoding("cp866")` для ISE \
+`[Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding("windows-1251")` для ps2exe \
+`Get-Service | Out-File $home\Desktop\Service.txt -Encoding oem` > \
+`Get-Service | Out-File $home\Desktop\Service.txt -Append` >>
 ```
 do {
 if ([Console]::KeyAvailable) {
@@ -2248,6 +2430,28 @@ $pressed = Get-KeyPress -Key Q -ModifierKey 'Control,Shift'
 if ($pressed) {break}
 sleep 1
 } while ($true)
+```
+### Register-ObjectEvent
+```
+$Timer = New-Object System.Timers.Timer
+$Timer.Interval = 1000
+Register-ObjectEvent -InputObject $Timer -EventName Elapsed -SourceIdentifier Timer.Output -Action {
+$Random = Get-Random -Min 0 -Max 100
+Write-Host $Random 
+}
+$Timer.Enabled = $True
+```
+`$Timer.Enabled = $False` остановить \
+`$Timer | Get-Member -MemberType Event` отобразить список всех событий объекта \
+`Get-EventSubscriber` список зарегистрированных подписок на события в текущей сессии \
+`Unregister-Event -SourceIdentifier Timer.Output` удаляет регистрацию подписки на событие по имени события (EventName) или все * \
+`-Forward` перенаправляет события из удаленного сеанса (New-PSSession) в локальный сеанс \
+`-SupportEvent` не выводит результат регистрации события на экран (и Get-EventSubscriber и Get-Job)
+```
+Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
+$date = Get-Date -f hh:mm:ss
+(New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
+}
 ```
 # Excel
 ```
