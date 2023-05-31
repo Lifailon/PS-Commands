@@ -2386,7 +2386,7 @@ if ($pressed) { break }
 Start-Sleep -Seconds 1
 } while ($true)
 ```
-### Console API
+# Console API
 
 `[Console] | Get-Member -Static` \
 `[Console]::BackgroundColor = "Blue"` \
