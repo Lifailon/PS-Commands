@@ -10,7 +10,6 @@
 - [Regedit](#Regedit)
 - [Scheduled](#Scheduled)
 - [Network](#Network)
-- [Socket](#Socket)
 - [SMB](#SMB)
 - [WinRM](#WinRM)
 - [WMI](#WMI)
@@ -31,6 +30,7 @@
 - [COM Object](#COM-Object)
 - [Class dotNET](#Class-dotNET)
 - [Console API](#Console-API)
+- [Socket](#Socket)
 - [Excel](#Excel)
 - [XML](#XML)
 - [DSC](#DSC)
@@ -373,13 +373,17 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 
 ### Try
 ```
-try {
-While ($True) {$out += ping ya.ru -n 1; $out[3]}
-}
-finally {
-$out = $null
-}
+Try {$out = pping 192.168.3.1}
+Catch {Write-Warning "$($error[0])"} # выводит в случае ошибки (вместо ошибки)
+finally {$out = "End"} # выполняется в конце в любом случае
 ```
+### Error
+`$Error` выводит все ошибки текущего сеанса \
+`$Error[0].InvocationInfo` развернутый отчет об ошибке \
+`$Error.clear()` \
+`$LASTEXITCODE` результат выполнения последней команды (0 - успех) \
+`exit 1` код завершения, который возвращается $LASTEXITCODE
+
 # Items
 
 `Test-Path $path` проверить доступность пути \
@@ -536,7 +540,7 @@ $EventData | ft
 # Performance
 
 `(Get-Counter -ListSet *).CounterSetName` вывести список всех доступных счетчиков производительности в системе \
-`(Get-Counter -ListSet *memory*).Counter` все счетчики, включая дочернии, поиск по wildcard-имени \
+`(Get-Counter -ListSet *memory*).Counter` поиск по wildcard-имени во всех счетчиках (включая дочернии) \
 `Get-Counter "\Memory\Available MBytes"` объем свободной оперативной памяти \
 `Get-Counter -cn $srv "\LogicalDisk(*)\% Free Space"` % свободного места на всех разделах дисков \
 `(Get-Counter "\Process(*)\ID Process").CounterSamples` \
@@ -544,6 +548,25 @@ $EventData | ft
 `Get-Counter "\Процессор(_Total)\% загруженности процессора" -Continuous` непрерывно \
 `(Get-Counter "\Процессор(*)\% загруженности процессора").CounterSamples`
 
+`(Get-Counter -ListSet *интерфейс*).Counter` найти все счетчики \
+`Get-Counter "\Сетевой интерфейс(*)\Всего байт/с"` отобразить все адаптеры (выбрать действующий по трафику)
+```
+$WARNING = 25
+$CRITICAL = 50
+$TransferRate = ((Get-Counter "\\huawei-mb-x-pro\сетевой интерфейс(intel[r] wi-fi 6e ax211 160mhz)\всего байт/с"
+).countersamples | select -ExpandProperty CookedValue)*8
+$NetworkUtilisation = [math]::round($TransferRate/1000000000*100,2)
+if ($NetworkUtilisation -gt $CRITICAL){
+Write-Output "CRITICAL: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"   
+#exit 2		
+}
+if ($NetworkUtilisation -gt $WARNING){
+Write-Output "WARNING: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"
+#exit 1
+}
+Write-Output "OK: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"   
+#exit 0
+```
 # Regedit
 
 `Get-PSDrive` список всех доступных дисков и веток реестра \
@@ -610,7 +633,7 @@ $EventData | ft
 
 ### Adapter
 `Get-NetAdapter` \
-`Set-NetIPInterface -InterfaceIndex 14 -Dhcp Disabled` отключить DHCP` \
+`Set-NetIPInterface -InterfaceIndex 14 -Dhcp Disabled` отключить DHCP \
 `Get-NetAdapter -InterfaceIndex 14 | New-NetIPAddress –IPAddress 192.168.3.99 -DefaultGateway 192.168.3.1 -PrefixLength 24` задать/добавить статический IP-адрес \
 `Set-NetIPAddress -InterfaceIndex 14 -IPAddress 192.168.3.98` изменить IP-адреас на адаптере \
 `Remove-NetIPAddress -InterfaceIndex 14 -IPAddress 192.168.3.99` удалить IP-адрес на адаптере \
@@ -622,7 +645,7 @@ $EventData | ft
 
 ### Binding
 `Get-NetAdapterBinding -Name Ethernet -IncludeHidden -AllBindings` \
-`Get-NetAdapterBinding -Name "Беспроводная сеть" -DisplayName "IP версии 6 (TCP/IPv6)" | Set-NetAdapterBinding -Enabled $false` отключить IPv6 на адаптере \
+`Get-NetAdapterBinding -Name "Беспроводная сеть" -DisplayName "IP версии 6 (TCP/IPv6)" | Set-NetAdapterBinding -Enabled $false` отключить IPv6 на адаптере
 
 ### TCPSetting
 `Get-NetTCPSetting` \
@@ -647,95 +670,52 @@ $EventData | ft
 `[System.Environment]::MachineName` \
 `[System.Net.Dns]::GetHostName()`
 
-# Socket
-
-### UDP Socket
+### arp
 ```
-function Start-UDPServer {
-param(
-$Port = 5201
+function Get-ARP {
+Param (
+$proxy,
+$search
 )
-$RemoteComputer = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
-do {
-$UdpObject = New-Object System.Net.Sockets.UdpClient($Port)
-$ReceiveBytes = $UdpObject.Receive([ref]$RemoteComputer)
-$UdpObject.Close()
-$ASCIIEncoding = New-Object System.Text.ASCIIEncoding
-[string]$ReturnString = $ASCIIEncoding.GetString($ReceiveBytes)
-[PSCustomObject]@{
-LocalDateTime = $(Get-Date -UFormat "%Y-%m-%d %T")
-ClientIP      = $RemoteComputer.address.ToString()
-ClientPort    = $RemoteComputer.Port.ToString()
-Message       = $ReturnString
+if (!$proxy) {
+$arp = arp -a
 }
-} while (1)
+if ($proxy) {
+$arp = icm $proxy {arp -a}
 }
+$mac = $arp[3..260]
+$mac = $mac -replace "^\s\s"
+$mac = $mac -replace "\s{1,50}"," "
+$mac_coll = New-Object System.Collections.Generic.List[System.Object]
+foreach ($m in $mac) {
+$smac = $m -split " "
+$mac_coll.Add([PSCustomObject]@{
+IP = $smac[0];
+MAC = $smac[1];
+Type = $smac[2]
+})
+}
+if ($search) {
+if ($search -NotMatch "\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}") {
+#$ns = nslookup $search
+#$ns = $ns[-2]
+#$global:ns = $ns -replace "Address:\s{1,10}"
+$rdns = Resolve-DnsName $search -ErrorAction Ignore
+$ns = $rdns.IPAddress
+if ($ns -eq $null) {
+return
+}
+} else {
+$ns = $search
+}
+$mac_coll = $mac_coll | ? ip -Match $ns
+}
+$mac_coll
+}
+```
+`Get-ARP -search 192.168.3.100` \
+`Get-ARP -search 192.168.3.100 -proxy dc-01`
 
-Start-UDPServer -Port 5201
-```
-### Test-NetUDPConnection
-```
-function Test-NetUDPConnection {
-param(
-[string]$ComputerName = "127.0.0.1",
-[int32]$PortServer    = 5201,
-[int32]$PortClient    = 5211
-)
-begin {
-$UdpObject = New-Object system.Net.Sockets.Udpclient($PortClient)
-$UdpObject.Connect($ComputerName, $PortServer)
-}
-process {
-$ASCIIEncoding = New-Object System.Text.ASCIIEncoding
-$Message = Get-Date -UFormat "%Y-%m-%d %T"
-#$Message = "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
-$Bytes = $ASCIIEncoding.GetBytes($Message)
-[void]$UdpObject.Send($Bytes, $Bytes.length)
-}
-end {
-$UdpObject.Close()
-}
-}
-
-Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201
-```
-### TCP Socket
-```
-function Start-TCPServer {
-param(
-$Port = 5201
-)
-do {
-$TcpObject = New-Object System.Net.Sockets.TcpListener($port)
-$ReceiveBytes = $TcpObject.Start()
-$ReceiveBytes = $TcpObject.AcceptTcpClient()
-$TcpObject.Stop()
-$ReceiveBytes.Client.RemoteEndPoint | select Address,Port
-} while (1)
-}
-
-Start-TCPServer -Port 5201
-Test-NetConnection -ComputerName 127.0.0.1 -Port 5201
-```
-### HTTP Listener
-```
-$httpListener = New-Object System.Net.HttpListener
-$httpListener.Prefixes.Add("http://+:8888/")
-$httpListener.Start()
-while (!([console]::KeyAvailable)) {
-$info = Get-Service | select name,status | ConvertTo-HTML
-$context = $httpListener.GetContext()
-$context.Response.StatusCode = 200
-$context.Response.ContentType = 'text/HTML'
-$WebContent = $info
-$EncodingWebContent = [Text.Encoding]::UTF8.GetBytes($WebContent)
-$context.Response.OutputStream.Write($EncodingWebContent , 0, $EncodingWebContent.Length)
-$context.Response.Close()
-Get-NetTcpConnection -LocalPort 8888
-(Get-Date).datetime
-}
-$httpListener.Close()
-```
 ### LocalGroup
 `Get-LocalUser` список пользователей \
 `Get-LocalGroup` список групп \
@@ -1173,6 +1153,18 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `compact to C:\Windows\NTDS\TEMP` \
 `copy C:\Windows\NTDS\TEMP\ntds.dit C:\Windows\NTDS\ntds.dit` заменить оригинальный файл ntds.dit \
 `Del C:\Windows\NTDS\*.log` удалить все лог файлы из каталога NTDS
+
+### GPO
+`Get-Command -Module GroupPolicy` \
+`Get-GPO -Domain domain.local -All | ft` \
+`Get-GPO -Name LAPS` \
+`[xml](Get-GPOReport LAPS -ReportType Xml)` \
+`Get-GPPermission -Name LAPS -All` \
+`Get-GPO LAPS | New-GPLink -Target "ou=servers,dc=domain,dc=local"` \
+`Set-GPLink -Name LAPS -Target "ou=servers,dc=domain,dc=local" -LinkEnabled No` \
+`Backup-GPO -Name LAPS -Path "$home\Desktop"` \
+`Backup-GPO -All -Path "$home\Desktop"` \
+`Restore-GPO -Name LAPS -Path C:\Backup\GPOs\`
 
 # ServerManager
 
@@ -2269,7 +2261,9 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 `[Audio]::Volume = 0.50` \
 `[Audio]::Mute = $true`
 
-### NetSessionEnum (https://learn.microsoft.com/ru-ru/windows/win32/api/lmshare/nf-lmshare-netsessionenum?redirectedfrom=MSDN)
+### NetSessionEnum
+Function: https://learn.microsoft.com/ru-ru/windows/win32/api/lmshare/nf-lmshare-netsessionenum?redirectedfrom=MSDN \
+Source: https://fuzzysecurity.com/tutorials/24.html
 ```
 function Invoke-NetSessionEnum {
 param (
@@ -2341,7 +2335,9 @@ echo "`nCalling NetApiBufferFree, no memleaks here!"
 ```
 `Invoke-NetSessionEnum localhost`
 
-### CopyFile (https://learn.microsoft.com/ru-ru/windows/win32/api/winbase/nf-winbase-copyfile)
+### CopyFile
+Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winbase/nf-winbase-copyfile \
+Source: https://devblogs.microsoft.com/scripting/use-powershell-to-interact-with-the-windows-api-part-1/
 ```
 $MethodDefinition = @"
 [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
@@ -2350,7 +2346,8 @@ public static extern bool CopyFile(string lpExistingFileName, string lpNewFileNa
 $Kernel32 = Add-Type -MemberDefinition $MethodDefinition -Name "Kernel32" -Namespace "Win32" -PassThru
 $Kernel32::CopyFile("$($Env:SystemRoot)\System32\calc.exe", "$($Env:USERPROFILE)\Desktop\calc.exe", $False) 
 ```
-### ShowWindowAsync (https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync)
+### ShowWindowAsync
+Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync
 ```
 $Signature = @"
 [DllImport("user32.dll")]public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
@@ -2361,7 +2358,8 @@ $ShowWindowAsync::ShowWindowAsync((Get-Process -Id $pid).MainWindowHandle, 2)
 $ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 3)
 $ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 4)
 ```
-### GetAsyncKeyState (https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-getasynckeystate)
+### GetAsyncKeyState
+Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-getasynckeystate
 
 `Add-Type -AssemblyName System.Windows.Forms` \
 `[int][System.Windows.Forms.Keys]::F1`
@@ -2387,6 +2385,7 @@ Start-Sleep -Seconds 1
 } while ($true)
 ```
 # Console API
+Source: https://powershell.one/tricks/input-devices/detect-key-press
 
 `[Console] | Get-Member -Static` \
 `[Console]::BackgroundColor = "Blue"` \
@@ -2452,6 +2451,128 @@ Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
 $date = Get-Date -f hh:mm:ss
 (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
 }
+```
+# Socket
+
+### UDP Socket
+Source: https://cloudbrothers.info/en/test-udp-connection-powershell/
+```
+function Start-UDPServer {
+param(
+$Port = 5201
+)
+$RemoteComputer = New-Object System.Net.IPEndPoint([System.Net.IPAddress]::Any, 0)
+do {
+$UdpObject = New-Object System.Net.Sockets.UdpClient($Port)
+$ReceiveBytes = $UdpObject.Receive([ref]$RemoteComputer)
+$UdpObject.Close()
+$ASCIIEncoding = New-Object System.Text.ASCIIEncoding
+[string]$ReturnString = $ASCIIEncoding.GetString($ReceiveBytes)
+[PSCustomObject]@{
+LocalDateTime = $(Get-Date -UFormat "%Y-%m-%d %T")
+ClientIP      = $RemoteComputer.address.ToString()
+ClientPort    = $RemoteComputer.Port.ToString()
+Message       = $ReturnString
+}
+} while (1)
+}
+
+Start-UDPServer -Port 5201
+```
+### Test-NetUDPConnection
+```
+function Test-NetUDPConnection {
+param(
+[string]$ComputerName = "127.0.0.1",
+[int32]$PortServer    = 5201,
+[int32]$PortClient    = 5211
+)
+begin {
+$UdpObject = New-Object system.Net.Sockets.Udpclient($PortClient)
+$UdpObject.Connect($ComputerName, $PortServer)
+}
+process {
+$ASCIIEncoding = New-Object System.Text.ASCIIEncoding
+$Message = Get-Date -UFormat "%Y-%m-%d %T"
+#$Message = "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
+$Bytes = $ASCIIEncoding.GetBytes($Message)
+[void]$UdpObject.Send($Bytes, $Bytes.length)
+}
+end {
+$UdpObject.Close()
+}
+}
+
+Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201
+```
+### TCP Socket
+```
+function Start-TCPServer {
+param(
+$Port = 5201
+)
+do {
+$TcpObject = New-Object System.Net.Sockets.TcpListener($port)
+$ReceiveBytes = $TcpObject.Start()
+$ReceiveBytes = $TcpObject.AcceptTcpClient()
+$TcpObject.Stop()
+$ReceiveBytes.Client.RemoteEndPoint | select Address,Port
+} while (1)
+}
+
+Start-TCPServer -Port 5201
+Test-NetConnection -ComputerName 127.0.0.1 -Port 5201
+```
+### WakeOnLan
+```
+function Send-WOL {
+[CmdletBinding()]param(
+[Parameter(Mandatory = $True, Position = 1)]
+[string]$mac,
+[string]$ip = "255.255.255.255", 
+[int]$port = 9
+)
+$address = [Net.IPAddress]::Parse($ip)
+$mac = $mac.replace("-", ":")
+$target = $mac.split(':') | %{ [byte]('0x' + $_) }
+$packet = [byte[]](,0xFF * 6) + ($target * 16)
+$UDPclient = new-Object System.Net.Sockets.UdpClient
+$UDPclient.Connect($address, $port)
+[void]$UDPclient.Send($packet, $packet.Length) 
+}
+```
+`Send-WOL -mac D8:BB:C1:70:A3:4E` \
+`Send-WOL -mac D8:BB:C1:70:A3:4E -ip 192.168.3.100`
+
+### HTTP Listener
+```
+$httpListener = New-Object System.Net.HttpListener
+$httpListener.Prefixes.Add("http://+:8888/")
+$httpListener.Start()
+while (!([console]::KeyAvailable)) {
+$info = Get-Service | select name,status | ConvertTo-HTML
+$context = $httpListener.GetContext()
+$context.Response.StatusCode = 200
+$context.Response.ContentType = 'text/HTML'
+$WebContent = $info
+$EncodingWebContent = [Text.Encoding]::UTF8.GetBytes($WebContent)
+$context.Response.OutputStream.Write($EncodingWebContent , 0, $EncodingWebContent.Length)
+$context.Response.Close()
+Get-NetTcpConnection -LocalPort 8888
+(Get-Date).datetime
+}
+$httpListener.Close()
+```
+### WebClient
+`[System.Net.WebClient] | Get-Member` \
+`(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/Lifailon/PowerShell-Commands/rsa/README.md")`
+
+### Certificate
+```
+$spm = [System.Net.ServicePointManager]::FindServicePoint("https://google.com")
+$spm.Certificate.GetExpirationDateString()
+($spm.Certificate.Subject) -replace "CN="
+((($spm.Certificate.Issuer) -split ", ") | where {$_ -match "O="}) -replace "O="
 ```
 # Excel
 ```
