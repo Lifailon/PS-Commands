@@ -44,12 +44,12 @@
 `Get-Command *Service*` поиск команды по имени \
 `Get-Help Get-Service` синтаксис \
 `Get-Help Get-Service -Parameter *` описание всех параметров \
-`Get-Help Get-Service -ShowWindow \
-`Get-Help Get-Service -Online \
+`Get-Help Get-Service -ShowWindow` \
+`Get-Help Get-Service -Online` \
 `Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) \
-`Get-Alias gsv \
-`Set-ExecutionPolicy Unrestricted \
-`Get-ExecutionPolicy \
+`Get-Alias gsv` \
+`Set-ExecutionPolicy Unrestricted` \
+`Get-ExecutionPolicy` \
 `powershell -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"` NppExec \
 `Invoke-Expression` iex принимает параметр команды для выполнения в консоли \
 `$PSVersionTable` версия PowerShell
