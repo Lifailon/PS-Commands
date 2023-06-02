@@ -716,6 +716,9 @@ $mac_coll
 `Get-ARP -search 192.168.3.100` \
 `Get-ARP -search 192.168.3.100 -proxy dc-01`
 
+### shutdown
+`shutdown /r /o` безопасный режим
+
 ### LocalGroup
 `Get-LocalUser` список пользователей \
 `Get-LocalGroup` список групп \
@@ -1997,12 +2000,6 @@ $inputbox.Submit()
 $selenium.Close()
 $selenium.Quit()
 ```
-### Convert Screenshot Base64 to Image
-```
-$Base64img = (($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#root > div > div.passp-page > div.passp-flex-wrapper > div > div > div.passp-auth-content > div.Header > div > a')))).GetScreenshot()
-$Image = [Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($Base64img))
-$Image.Save("$home\Desktop\YaLogo.jpg")
-```
 # IE
 
 `$ie.document.IHTMLDocument3_getElementsByTagName("input")  | select name` получить имена всех Input Box \
@@ -2524,26 +2521,46 @@ Start-TCPServer -Port 5201
 Test-NetConnection -ComputerName 127.0.0.1 -Port 5201
 ```
 ### WakeOnLan
+Broadcast package consisting of 6 byte filled "0xFF" and then 96 byte where the mac address is repeated 16 times
 ```
 function Send-WOL {
-[CmdletBinding()]param(
-[Parameter(Mandatory = $True, Position = 1)]
-[string]$mac,
-[string]$ip = "255.255.255.255", 
-[int]$port = 9
+param (
+[Parameter(Mandatory = $True)]$Mac,
+$IP,
+[int]$Port = 9
 )
-$address = [Net.IPAddress]::Parse($ip)
-$mac = $mac.replace("-", ":")
-$target = $mac.split(':') | %{ [byte]('0x' + $_) }
-$packet = [byte[]](,0xFF * 6) + ($target * 16)
-$UDPclient = new-Object System.Net.Sockets.UdpClient
-$UDPclient.Connect($address, $port)
-[void]$UDPclient.Send($packet, $packet.Length) 
+$Mac = $Mac.replace(":", "-")
+if (!$IP) {$IP = [System.Net.IPAddress]::Broadcast}
+$SynchronizationChain = [byte[]](,0xFF * 6)
+$ByteMac = $Mac.Split("-") | %{[byte]("0x" + $_)}
+$Package = $SynchronizationChain + ($ByteMac * 16)
+$UdpClient = New-Object System.Net.Sockets.UdpClient
+$UdpClient.Connect($IP, $port)
+$UdpClient.Send($Package, $Package.Length)
+$UdpClient.Close()
 }
 ```
-`Send-WOL -mac D8:BB:C1:70:A3:4E` \
-`Send-WOL -mac D8:BB:C1:70:A3:4E -ip 192.168.3.100`
+`Send-WOL -Mac "D8-BB-C1-70-A3-4E"` \
+`Send-WOL -Mac "D8-BB-C1-70-A3-4E" -IP 192.168.3.100`
 
+### Encoding
+`$ByteText = [System.Text.Encoding]::UTF8.GetBytes("password")` \
+`$Text = [System.Text.Encoding]::UTF8.GetString($ByteText)`
+
+### Base64
+```
+$text = "password"
+$byte = [System.Text.Encoding]::Unicode.GetBytes($text)
+$base64 = [System.Convert]::ToBase64String($byte)
+$decode_base64 = [System.Convert]::FromBase64String($base64)
+$decode_string = [System.Text.Encoding]::Unicode.GetString($decode_base64)
+
+$path_image = "$home\Documents\1200x800.jpg"
+$BBase64 = [System.Convert]::ToBase64String((Get-Content $path_image -Encoding Byte))
+Add-Type -assembly System.Drawing
+$Image = [System.Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($BBase64))
+$Image.Save("$home\Desktop\1200x800.jpg")
+```
 ### HTTP Listener
 ```
 $httpListener = New-Object System.Net.HttpListener
