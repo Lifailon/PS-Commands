@@ -2482,7 +2482,8 @@ function Test-NetUDPConnection {
 param(
 [string]$ComputerName = "127.0.0.1",
 [int32]$PortServer    = 5201,
-[int32]$PortClient    = 5211
+[int32]$PortClient    = 5211,
+$Message
 )
 begin {
 $UdpObject = New-Object system.Net.Sockets.Udpclient($PortClient)
@@ -2490,8 +2491,7 @@ $UdpObject.Connect($ComputerName, $PortServer)
 }
 process {
 $ASCIIEncoding = New-Object System.Text.ASCIIEncoding
-$Message = Get-Date -UFormat "%Y-%m-%d %T"
-#$Message = "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
+if (!$Message) {$Message = Get-Date -UFormat "%Y-%m-%d %T"}
 $Bytes = $ASCIIEncoding.GetBytes($Message)
 [void]$UdpObject.Send($Bytes, $Bytes.length)
 }
@@ -2501,6 +2501,7 @@ $UdpObject.Close()
 }
 
 Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201
+Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201 -Message "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
 
 ### TCP Socket
 
@@ -2548,7 +2549,6 @@ $ByteText = [System.Text.Encoding]::UTF8.GetBytes("password")
 $Text = [System.Text.Encoding]::UTF8.GetString($ByteText)
 
 ### Base64
-
 $text = "password"
 $byte = [System.Text.Encoding]::Unicode.GetBytes($text)
 $base64 = [System.Convert]::ToBase64String($byte)
