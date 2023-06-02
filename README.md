@@ -2473,16 +2473,17 @@ Message       = $ReturnString
 }
 } while (1)
 }
-
-Start-UDPServer -Port 5201
 ```
+`Start-UDPServer -Port 5201`
+
 ### Test-NetUDPConnection
 ```
 function Test-NetUDPConnection {
 param(
 [string]$ComputerName = "127.0.0.1",
 [int32]$PortServer    = 5201,
-[int32]$PortClient    = 5211
+[int32]$PortClient    = 5211,
+$Message
 )
 begin {
 $UdpObject = New-Object system.Net.Sockets.Udpclient($PortClient)
@@ -2490,8 +2491,7 @@ $UdpObject.Connect($ComputerName, $PortServer)
 }
 process {
 $ASCIIEncoding = New-Object System.Text.ASCIIEncoding
-$Message = Get-Date -UFormat "%Y-%m-%d %T"
-#$Message = "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
+if (!$Message) {$Message = Get-Date -UFormat "%Y-%m-%d %T"}
 $Bytes = $ASCIIEncoding.GetBytes($Message)
 [void]$UdpObject.Send($Bytes, $Bytes.length)
 }
@@ -2499,9 +2499,10 @@ end {
 $UdpObject.Close()
 }
 }
-
-Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201
 ```
+`Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201` \
+`Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201 -Message "<30>May 31 00:00:00 HostName multipathd[784]: Test message"`
+
 ### TCP Socket
 ```
 function Start-TCPServer {
@@ -2516,10 +2517,10 @@ $TcpObject.Stop()
 $ReceiveBytes.Client.RemoteEndPoint | select Address,Port
 } while (1)
 }
-
-Start-TCPServer -Port 5201
-Test-NetConnection -ComputerName 127.0.0.1 -Port 5201
 ```
+`Start-TCPServer -Port 5201` \
+`Test-NetConnection -ComputerName 127.0.0.1 -Port 5201`
+
 ### WakeOnLan
 Broadcast package consisting of 6 byte filled "0xFF" and then 96 byte where the mac address is repeated 16 times
 ```
@@ -2548,19 +2549,18 @@ $UdpClient.Close()
 `$Text = [System.Text.Encoding]::UTF8.GetString($ByteText)`
 
 ### Base64
-```
-$text = "password"
-$byte = [System.Text.Encoding]::Unicode.GetBytes($text)
-$base64 = [System.Convert]::ToBase64String($byte)
-$decode_base64 = [System.Convert]::FromBase64String($base64)
-$decode_string = [System.Text.Encoding]::Unicode.GetString($decode_base64)
+`$text = "password"` \
+`$byte = [System.Text.Encoding]::Unicode.GetBytes($text)` \
+`$base64 = [System.Convert]::ToBase64String($byte)` \
+`$decode_base64 = [System.Convert]::FromBase64String($base64)` \
+`$decode_string = [System.Text.Encoding]::Unicode.GetString($decode_base64)`
 
-$path_image = "$home\Documents\1200x800.jpg"
-$BBase64 = [System.Convert]::ToBase64String((Get-Content $path_image -Encoding Byte))
-Add-Type -assembly System.Drawing
-$Image = [System.Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($BBase64))
-$Image.Save("$home\Desktop\1200x800.jpg")
-```
+`$path_image = "$home\Documents\1200x800.jpg"` \
+`$BBase64 = [System.Convert]::ToBase64String((Get-Content $path_image -Encoding Byte))` \
+`Add-Type -assembly System.Drawing` \
+`$Image = [System.Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($BBase64))` \
+`$Image.Save("$home\Desktop\1200x800.jpg")`
+
 ### HTTP Listener
 ```
 $httpListener = New-Object System.Net.HttpListener
