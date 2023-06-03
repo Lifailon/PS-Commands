@@ -28,7 +28,7 @@ PowerShell Commands
 - IE
 - Selenium
 - COM Object
-- Class dotNET
+- dotNET Object
 - Console API
 - Socket
 - Excel
@@ -667,6 +667,7 @@ Get-NetAdapterStatistics
 $env:computername
 hostname.exe
 (Get-CIMInstance CIM_ComputerSystem).Name
+(New-Object -ComObject WScript.Network).ComputerName
 [System.Environment]::MachineName
 [System.Net.Dns]::GetHostName()
 
@@ -2105,12 +2106,20 @@ $wshell | Get-Member
 $wshell.Explore("C:\")
 $wshell.Windows() | Get-Member # получить доступ к открытым в проводнике или браузере Internet Explorer окон
 
-### Outlook.Application
+### Outlook
 $Outlook = New-Object -ComObject Outlook.Application
 $Outlook | Get-Member
 $Outlook.Version
 
-# Class dotNET
+$Outlook = New-Object -ComObject Outlook.Application
+$Namespace = $Outlook.GetNamespace("MAPI")
+$Folder = $namespace.GetDefaultFolder(4) # исходящие
+$Folder = $namespace.GetDefaultFolder(6) # входящие
+$Explorer = $Folder.GetExplorer()
+$Explorer.Display()	
+$Outlook.Quit()
+
+# dotNET Object
 
 [System.Diagnostics.EventLog] | select Assembly,Module
 $EventLog = [System.Diagnostics.EventLog]::new("Application")
@@ -2501,7 +2510,7 @@ $UdpObject.Close()
 }
 
 Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201
-Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 5201 -Message "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
+Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 514 -Message "<30>May 31 00:00:00 HostName multipathd[784]: Test message"
 
 ### TCP Socket
 
@@ -2586,10 +2595,29 @@ $httpListener.Close()
 
 ### Certificate
 
-$spm = [System.Net.ServicePointManager]::FindServicePoint("https://google.com")
-$spm.Certificate.GetExpirationDateString()
-($spm.Certificate.Subject) -replace "CN="
-((($spm.Certificate.Issuer) -split ", ") | where {$_ -match "O="}) -replace "O="
+function Get-Certificate ($srv) {
+$iwr = iwr $srv
+$status_code = $iwr.StatusCode
+$status = $iwr.BaseResponse.StatusCode
+$info = $iwr.BaseResponse.Server
+$spm = [System.Net.ServicePointManager]::FindServicePoint($srv)
+$date_end = $spm.Certificate.GetExpirationDateString()
+$cert_name = ($spm.Certificate.Subject) -replace "CN="
+$cert_owner = ((($spm.Certificate.Issuer) -split ", ") | where {$_ -match "O="}) -replace "O="
+$Collections = New-Object System.Collections.Generic.List[System.Object]
+$Collections.Add([PSCustomObject]@{
+Host = $srv;
+Server = $info;
+Status =  $status;
+StatusCode = $status_code;
+Certificate = $cert_name;
+Issued = $cert_owner;
+End = $date_end
+})
+$Collections
+}
+
+Get-Certificate https://google.com
 
 # Excel
 
@@ -2847,30 +2875,31 @@ icm $srv {ls C:\ | ? name -match Temp} | ft # rm
 
 git --version
 git config --global user.name "Lifailon" # добавить имя для коммитов
-git config --global user.email "lifailon@mail.com"
+git config --global user.email "lifailon@yandex.ru"
 git config --global --edit
-ssh-keygen -t rsa -b 4096 -с "lifailon@mail.com"
+ssh-keygen -t rsa -b 4096
 Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic
 Get-Service | where name -match "ssh-agent" | Start-Service
+Get-Service | where name -match "ssh-agent" | select Name,Status,StartType
 ssh-agent
 ssh-add C:\Users\Lifailon\.ssh\id_rsa
 cat ~\.ssh\id_rsa.pub | Set-Clipboard # copy to https://github.com/settings/keys
-mkdir C:\Git; cd C:\Git
+cd $home\Documents\Git
 git clone git@github.com:Lifailon/PowerShell-Commands
 cd PowerShell-Commands
 git grep powershell # поиск текста в файлах
 git pull # синхронизировать изменения из хранилища
 git status # отобразить статус изменений по файлам
 git diff # отобразить изменения построчно
-git add -A # добавить (проиндексировать) изменения
-git commit -m "update files" # сохранить изменения с комментарием
-git commit --amend -m "update files and creat new file" # изменить последний комментарий коммита
+git add . # добавить (проиндексировать) изменения во всех файлах
+git commit -m "added file and changed file" # сохранить изменения с комментарием
 git push # синхронизировать локальные изменения с репозиторием
-git branch test # создать новую ветку
-git branch -d test # удалить ветку
-git switch test # переключиться на другую ветку
-git merge test # слияние текущей ветки (git branch) с указанной (test)
-git diff test -- myFile.txt # сравнить файл текущей ветки с тем же файлом в указанной ветки test
+git branch dev # создать новую ветку
+git switch dev # переключиться на другую ветку
+git push --set-upstream origin dev # добавить ветку
+git branch -d dev # удалить ветку
+git diff rsa # сравнить файлы текущей ветки с файлами в указанной ветки rsa
+git merge dev # слияние текущей ветки (rsa/master) с указанной (dev)
 git log --oneline --all # лог коммитов
 git log --graph # коммиты и следование веток
 git show d01f09dead3a6a8d75dda848162831c58ca0ee13 # отобразить подробный лог по номеру коммита
