@@ -58,7 +58,6 @@
 `$PSVersionTable` версия PowerShell \
 `Set-ExecutionPolicy Unrestricted` \
 `Get-ExecutionPolicy` \
-`powershell -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)" -NoExit`
 
 # Object
 
@@ -216,7 +215,9 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 `Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
 `Get-Process | Sort-Object -Descending CPU | select -Last 10` вывести последних 10 объектов
 
-### Regex NPP/Excel
+# NPP
+
+`pwsh -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"`
 ```
 .		# Точка. Обозначает любой символ
 \		# Экранирующий символ. Символы которые экранируются: ^, [, ., $, {, *, (, ), \, +, |, ?, <, >
