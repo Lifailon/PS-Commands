@@ -39,22 +39,52 @@
 - [MySQL](#MySQL)
 
 ### Help
-`Get-Verb` действия/глаголы, утвержденные для использования в командах \
-`Show-Command` вывести список команд \
+`Get-Verb` действия/глаголы, утвержденные для использования в командлетах \
 `Get-Command *Service*` поиск команды по имени \
+`Get-Command Get-Content | fl Module,DLL` узнать принадлежность команды к модулю и dll \
+`Import-Module PackageManagement` импортировать модуль \
+`Get-Module PackageManagement` информация о модуле \
+`Get-Command -Module PackageManagement` отобразить все командлеты модуля \
+`Get-Package` отобразить все установленные пакеты PowerShellGallery \
+`Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) \
+`Get-Alias gsv` \
 `Get-Help Get-Service` синтаксис \
 `Get-Help Get-Service -Parameter *` описание всех параметров \
 `Get-Help Get-Service -ShowWindow` \
 `Get-Help Get-Service -Online` \
-`Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) \
-`Get-Alias gsv` \
+`Show-Command` вывести список команд \
+`Show-Command Get-Service` список параметров \
+`Invoke-Expression` iex принимает текст в виде команды для выполнения в консоли \
+`$PSVersionTable` версия PowerShell \
 `Set-ExecutionPolicy Unrestricted` \
 `Get-ExecutionPolicy` \
-`powershell -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"` NppExec \
-`Invoke-Expression` iex принимает параметр команды для выполнения в консоли \
-`$PSVersionTable` версия PowerShell
+`powershell -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)" -NoExit`
 
 # Object
+
+### Variable
+`$var = Read-Host "Enter"` ручной ввод \
+`$pass = Read-Host "Enter Password" -AsSecureString` скрывать набор \
+`$global:path = "\\path"` задать глобальную переменную, например в функции \
+`$using:srv` использовать переменную текущей сесси в Invoke-сессии \
+`Get-Variable` отобразить все переменные \
+`ls variable:/` отобразить все переменные \
+`Get-Variable *srv*` найти переменную по имени \
+`Get-Variable -Scope Global` отобразить все глобальные переменные \
+`Get-Variable Error` последняя команда с ошибкой \
+`Remove-Variable -Name *` очистить все переменные \
+`$LASTEXITCODE` содержит код вывода последней запущенной программы, например ping. Если код возврата положительный (True), то $LastExitCode = 0
+
+### ENV
+`Get-ChildItem Env:` отобразить все переменные окружения \
+`$env:PSModulePath` директории импорта модулей \
+`$env:userprofile` \
+`$env:computername` \
+`$env:username` \
+`$env:userdnsdomain` \
+`$env:logonserver` \
+`([DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()).Name` \
+`[Environment]::GetFolderPath('ApplicationData')`
 
 ### History
 `Get-History` история команд текущей сессии \
@@ -135,29 +165,6 @@ $Class.Start(1)
 `$obj | Add-Member -MemberType NoteProperty -Name "User" -Value "admin" -Force` изменеие содержимого для сущности объекта User \
 `ping $srv | Out-Null` перенаправить результат вывода в Out-Null
 
-### Variable
-`$var = Read-Host "Enter"` ручной ввод \
-`$pass = Read-Host "Enter Password" -AsSecureString` скрывать набор \
-`$global:path = "\\path"` задать глобальную переменную, например в функции \
-`$using:srv` использовать переменную текущей сесси в Invoke-сессии \
-`Get-Variable` отобразить все переменные \
-`Get-Variable *srv*` найти переменную по имени \
-`Get-Variable -Scope Global` отобразить все глобальные переменные \
-`Get-Variable Error` последняя команда с ошибкой \
-`Remove-Variable -Name *` очистить все переменные \
-`$LASTEXITCODE` содержит код вывода последней запущенной программы, например ping. Если код возврата положительный (True), то $LastExitCode = 0
-
-### ENV
-`Get-ChildItem Env:` отобразить все переменные окружения \
-`$env:PSModulePath` директории импорта модулей \
-`$env:userprofile` \
-`$env:computername` \
-`$env:username` \
-`$env:userdnsdomain` \
-`$env:logonserver` \
-`([DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()).Name` \
-`[Environment]::GetFolderPath('ApplicationData')`
-
 ### Select-Object
 `Get-Process | Select-Object -Property *` отобразить все доступные объекты вывода \
 `Get-Process | select -Unique "Name"` удалить повторяющиеся значения в массиве \
@@ -209,6 +216,34 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 `Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
 `Get-Process | Sort-Object -Descending CPU | select -Last 10` вывести последних 10 объектов
 
+### Regex NPP/Excel
+```
+.	 # Точка. Обозначает любой символ
+\	 # Экранирующий символ. Символы которые экранируются: ^, [, ., $, {, *, (, ), \, +, |, ?, <, >
+^	 # Крышка. Начало строки
+$	 # Конец строки
+\d	 # Любая цифра
+\D	 # Не цифра
+\s	 # Пробел, табуляция, перенос строки
+\S	 # Не пробел
+\w	 # Любая буква латиницы, цифра, или знак подчёркивания
+\W	 # Не латиница, не цифра, не подчёркивание
+|	 # Или. Соединяет несколько вариантов
+\b	 # Граница слова. Применяется когда нужно выделить, что искомые символы являются словом, а не частью другого слова
+\B	 # Не граница слова
+\<	 # Начало слова
+\>	 # Конец слова
+\A	 # Начало текста
+\Z	 # Конец текста
+*	 # Повторитель. Означает что предшествующий символ может работать 0 и более раз
++	 # Количество предшествующего не менее 1-го.
+?	 # Ограничитель. Не более одного раза
+[ ]	 # В квадратных скобках задаются символы к поиску, например [a-яА-Я], или [0-9]
+[^ ] # 	Исключает из поиска символы указанные в квадратных скобках
+()	 # В круглые скобки заключаются все комбинации с "или" и поиск начала и конца строк
+{ }	 # В фигурных скобках указывается точное количество вхождений, например если надо две цифры, то \d{2}, если две или четыре, то \d{2,4}, если четыре и более, то {4,}
+\n	 # Новая строка
+```
 # Regex
 
 `-replace "1","2"` замена элементов в индексах массива (везде где присутствует 1, заменить на 2), для удаления используется только первое значение \
@@ -612,7 +647,10 @@ Write-Output "OK: $($NetworkUtilisation) % Network utilisation, $($TransferRate.
 `Test-Connection -Count 1 $srv1, $srv2` отправить icmp-пакет двум хостам \
 `Test-Connection $srv -ErrorAction SilentlyContinue` не выводить ошибок, если хост не отвечает \
 `Test-Connection -Source $srv1 -ComputerName $srv2` пинг с удаленного компьютера
-
+```
+$ping = New-Object System.Net.Networkinformation.Ping
+1..254 | % {$ping.send("192.168.3.$_") | select address, status}
+```
 ### port
 `tnc $srv -p 5985` \
 `tnc $srv -CommonTCPPort WINRM` HTTP,RDP,SMB \
@@ -672,6 +710,7 @@ Write-Output "OK: $($NetworkUtilisation) % Network utilisation, $($TransferRate.
 `[System.Net.Dns]::GetHostName()`
 
 ### arp
+`Get-NetNeighbor -AddressFamily IPv4`
 ```
 function Get-ARP {
 Param (
@@ -717,8 +756,12 @@ $mac_coll
 `Get-ARP -search 192.168.3.100` \
 `Get-ARP -search 192.168.3.100 -proxy dc-01`
 
+### Windows-Update
+`Get-Hotfix -Description "Security update"` \
+`Get-WindowsUpdateLog`
+
 ### shutdown
-`shutdown /r /o` безопасный режим
+`shutdown /r /o` перезагрузка в безопасный режим
 
 ### LocalGroup
 `Get-LocalUser` список пользователей \
@@ -2106,6 +2149,10 @@ Output:
 `$wshell.Explore("C:\")` \
 `$wshell.Windows() | Get-Member` получить доступ к открытым в проводнике или браузере Internet Explorer окон
 
+`$shell = New-Object -Com Shell.Application` \
+`$RecycleBin = $shell.Namespace(10)` \
+`$RecycleBin.Items()`
+
 ### Outlook
 `$Outlook = New-Object -ComObject Outlook.Application` \
 `$Outlook | Get-Member` \
@@ -2691,10 +2738,6 @@ $Excel.Quit()
 `$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show`
 
 # XML
-
-`Get-Service | Export-Clixml -path $home\desktop\test.xml` экспортировать объект PowerShell в XML \
-`Import-Clixml -Path $home\desktop\test.xml` импортировать объект XML в PowerShell \
-`ConvertTo-Xml (Get-Service)`
 ```
 $xml = [xml](Get-Content $home\desktop\test.rdg) # прочитать содержимое XML-файла
 $xml.load("$home\desktop\test.rdg") # открыть файл
@@ -2705,7 +2748,11 @@ $xml.RDCMan.file.group[3].server.properties # список серверов в 4
 $xml.RDCMan.file.group[3].server[0].properties.displayName = "New-displayName" 
 $xml.RDCMan.file.group[3].server[1].RemoveAll() # удалить объект (2-й сервер в списке)
 $xml.Save($file) # сохранить содержимое объекта в файла
-
+```
+`Get-Service | Export-Clixml -path $home\desktop\test.xml` экспортировать объект PowerShell в XML \
+`Import-Clixml -Path $home\desktop\test.xml` импортировать объект XML в PowerShell \
+`ConvertTo-Xml (Get-Service)`
+```
 if (Test-Path $CredFile) {
 $Cred = Import-Clixml -path $CredFile
 } elseif (!(Test-Path $CredFile)) {
@@ -2985,40 +3032,40 @@ Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=pa
 `DATETIME` 25.05.2023 23:30:55.1234567
 ```
 ### DATABASE
-SHOW databases; 																	# вывести список БД
-CREATE DATABASE db_aduser;															# создать БД
-CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci; 	# создать БД с кодировкой UTF-8
-DROP DATABASE db_rep; 																# удалить БД
-USE db_aduser; 																		# выбрать/переключиться на выбранную БД
-SELECT database(); 																	# отобразить выбранную БД
+SHOW databases; # вывести список БД
+CREATE DATABASE db_aduser; # создать БД
+CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci; # создать БД с кодировкой UTF-8
+DROP DATABASE db_rep; # удалить БД
+USE db_aduser; # выбрать/переключиться на выбранную БД
+SELECT database(); # отобразить выбранную БД
 
 ### USER
-SELECT USER,HOST FROM mysql.user; 			 							# вывести список УЗ
-CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с локального сервера
-CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с указанного сервера
-CREATE USER posh@'192.168.1.247' IDENTIFIED BY '1qaz!QAZ'; 				# УЗ для доступа с любого сервера
-DROP USER posh@localhost; 												# удалить пользователя
-SHOW GRANTS FOR posh@'%'; 												# отобразить права доступа пользователя
-GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'192.168.1.247';			# полный доступ для posh к БД db_aduser
-GRANT ALL PRIVILEGES ON *.* TO posh@'%'; 								# доступ к всем БД c любого клиентского хоста
-GRANT SELECT,DELETE ON mysql.* TO posh@'%'; 							# права SELECT и DELETE на встроенную БД mysql
-REVOKE DELETE ON mysql.* FROM posh@'%'; 								# удалить доступ DELETE
-UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%'; 	# изменить привелегии для пользователя
-SELECT USER,HOST,super_priv FROM mysql.user; 							# список УЗ и таблица с правами SUPER privilege
-FLUSH PRIVILEGES; 														# обновить права доступа
+SELECT USER,HOST FROM mysql.user; # вывести список УЗ
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; # создать УЗ, которая будет подключаться с локального сервера
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; # создать УЗ, которая будет подключаться с указанного сервера
+CREATE USER posh@'192.168.1.247' IDENTIFIED BY '1qaz!QAZ'; # УЗ для доступа с любого сервера
+DROP USER posh@localhost; # удалить пользователя
+SHOW GRANTS FOR posh@'%'; # отобразить права доступа пользователя
+GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'192.168.1.247'; # полный доступ для posh к БД db_aduser
+GRANT ALL PRIVILEGES ON *.* TO posh@'%'; # доступ к всем БД c любого клиентского хоста
+GRANT SELECT,DELETE ON mysql.* TO posh@'%'; # права SELECT и DELETE на встроенную БД mysql
+REVOKE DELETE ON mysql.* FROM posh@'%'; # удалить доступ DELETE
+UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%'; # изменить привелегии для пользователя
+SELECT USER,HOST,super_priv FROM mysql.user; # список УЗ и таблица с правами SUPER privilege
+FLUSH PRIVILEGES; # обновить права доступа
 
 ### TABLE
-SHOW TABLES; 																											# отобразить список всех таблиц
-SHOW TABLES LIKE '%user'; 																								# поиск таблицы по wildcard-имени
-CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID)); 	# оздать таблицу
-DROP TABLE table_aduser; 																								# удалить таблицу
+SHOW TABLES; # отобразить список всех таблиц
+SHOW TABLES LIKE '%user'; # поиск таблицы по wildcard-имени
+CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID)); # оздать таблицу
+DROP TABLE table_aduser; # удалить таблицу
 
 ### COLUMN
-SHOW COLUMNS FROM table_aduser; 															# отобразить название стобцов и их свойства
-ALTER TABLE table_aduser DROP COLUMN id; 													# удалить столбец id
-ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10); 										# добавить столбец info
-ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100);									# изменить имя столбца info на new_info и его тип данных
-ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID));		# добавить столбец id
+SHOW COLUMNS FROM table_aduser; # отобразить название стобцов и их свойства
+ALTER TABLE table_aduser DROP COLUMN id; # удалить столбец id
+ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10); # добавить столбец info
+ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100); # изменить имя столбца info на new_info и его тип данных
+ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID)); # добавить столбец id
 
 ### INSERT
 INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
@@ -3027,32 +3074,32 @@ INSERT table_aduser (Name) VALUES ('Support');
 INSERT table_aduser (Name) VALUES ('Jack');
 
 ### SELECT
-SELECT * FROM table_aduser; 					# содержимое всех стобцов в выбранной (FROM) таблице
-SELECT Name,email FROM table_aduser; 			# содержимое указанных стобцов
-SELECT DISTINCT Name,Email FROM table_aduser; 	# отобразить уникальные записи (без повторений)
-SELECT * FROM table_aduser ORDER BY Name;	 	# отсортировать по Name
-SELECT * FROM table_aduser ORDER BY Name DESC; 	# обратная сортировка
-SELECT COUNT(*) FROM table_aduser; 				# количество строк в таблице
-SELECT COUNT(new_info) FROM table_aduser; 		# количество строк в столбце
+SELECT * FROM table_aduser; # содержимое всех стобцов в выбранной (FROM) таблице
+SELECT Name,email FROM table_aduser; # содержимое указанных стобцов
+SELECT DISTINCT Name,Email FROM table_aduser; # отобразить уникальные записи (без повторений)
+SELECT * FROM table_aduser ORDER BY Name; # отсортировать по Name
+SELECT * FROM table_aduser ORDER BY Name DESC; # обратная сортировка
+SELECT COUNT(*) FROM table_aduser; # количество строк в таблице
+SELECT COUNT(new_info) FROM table_aduser; # количество строк в столбце
 
 ### WHERE
-NOT; AND; OR 												# по приоритетам условий
-SELECT * FROM table_aduser WHERE Name = 'Alex';			    # поиск по содержимому
-SELECT * FROM table_aduser WHERE NOT Name != 'Alex';	    # условие NOT где Name не равен значению
-SELECT * FROM table_aduser WHERE email != ''; 			    # вывести строки, где содержимое email не рано null
-SELECT * FROM table_aduser WHERE email != '' OR id > 1000;	# или id выше 1000
-SELECT * FROM table_aduser WHERE Name RLIKE "support"; 		# регистронезависемый (RLIKE) поиск
-SELECT * FROM table_aduser WHERE Name RLIKE "^support"; 	# начинаются только с этого словосочетания
+NOT; AND; OR # по приоритетам условий
+SELECT * FROM table_aduser WHERE Name = 'Alex'; # поиск по содержимому
+SELECT * FROM table_aduser WHERE NOT Name != 'Alex'; # условие NOT где Name не равен значению
+SELECT * FROM table_aduser WHERE email != ''; # вывести строки, где содержимое email не рано null
+SELECT * FROM table_aduser WHERE email != '' OR id > 1000; # или id выше 1000
+SELECT * FROM table_aduser WHERE Name RLIKE "support"; # регистронезависемый (RLIKE) поиск
+SELECT * FROM table_aduser WHERE Name RLIKE "^support"; # начинаются только с этого словосочетания
 
 ### DELETE
-SELECT * FROM table_aduser WHERE Name RLIKE "alex";			# найти и проверить значения перед удалением
-DELETE FROM table_aduser WHERE Name RLIKE "alex";			# Query OK, 2 rows affected # удалено две строки
-DELETE FROM table_aduser; 									# удалить ВСЕ значения
+SELECT * FROM table_aduser WHERE Name RLIKE "alex"; # найти и проверить значения перед удалением
+DELETE FROM table_aduser WHERE Name RLIKE "alex"; # Query OK, 2 rows affected # удалено две строки
+DELETE FROM table_aduser; # удалить ВСЕ значения
 
 ### UPDATE
-SELECT * FROM table_aduser WHERE Name = 'Jack';				# найти и проверить значение перед изменением
-UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack';  # изменить значение 'Jack' на 'Alex'
-UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1;	# изменить значение в строке с ID 1
+SELECT * FROM table_aduser WHERE Name = 'Jack'; # найти и проверить значение перед изменением
+UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack'; # изменить значение 'Jack' на 'Alex'
+UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1; # изменить значение в строке с ID 1
 
 ### CHECK
 CHECK TABLE db_aduser.table_aduser; # проверить
