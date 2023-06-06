@@ -39,22 +39,51 @@ PowerShell Commands
 - MySQL
 
 ### Help
-Get-Verb # действия/глаголы, утвержденные для использования в командах
-Show-Command # вывести список команд
+Get-Verb # действия/глаголы, утвержденные для использования в командлетах
 Get-Command *Service* # поиск команды по имени
+Get-Command Get-Content | fl Module,DLL # узнать принадлежность команды к модулю и dll
+Import-Module PackageManagement # импортировать модуль
+Get-Module PackageManagement # информация о модуле
+Get-Command -Module PackageManagement # отобразить все командлеты модуля
+Get-Package # отобразить все установленные пакеты PowerShellGallery
+Get-Service | Get-Member # отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click)
+Get-Alias gsv
 Get-Help Get-Service # синтаксис
 Get-Help Get-Service -Parameter * # описание всех параметров
 Get-Help Get-Service -ShowWindow
 Get-Help Get-Service -Online
-Get-Service | Get-Member # отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click)
-Get-Alias gsv
+Show-Command # вывести список команд
+Show-Command Get-Service # список параметров
+Invoke-Expression # iex принимает текст в виде команды для выполнения в консоли
+$PSVersionTable # версия PowerShell
 Set-ExecutionPolicy Unrestricted
 Get-ExecutionPolicy
-powershell -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)" # NppExec
-Invoke-Expression # iex принимает параметр команды для выполнения в консоли
-$PSVersionTable # версия PowerShell
 
 # Object
+
+### Variable
+$var = Read-Host "Enter" # ручной ввод
+$pass = Read-Host "Enter Password" -AsSecureString # скрывать набор
+$global:path = "\\path" # задать глобальную переменную, например в функции
+$using:srv # использовать переменную текущей сесси в Invoke-сессии
+Get-Variable # отобразить все переменные
+ls variable:/ # отобразить все переменные
+Get-Variable *srv* # найти переменную по имени
+Get-Variable -Scope Global # отобразить все глобальные переменные
+Get-Variable Error # последняя команда с ошибкой
+Remove-Variable -Name * # очистить все переменные
+$LASTEXITCODE # содержит код вывода последней запущенной программы, например ping. Если код возврата положительный (True), то $LastExitCode = 0
+
+### ENV
+Get-ChildItem Env: # отобразить все переменные окружения
+$env:PSModulePath # директории импорта модулей
+$env:userprofile
+$env:computername
+$env:username
+$env:userdnsdomain
+$env:logonserver
+([DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()).Name
+[Environment]::GetFolderPath('ApplicationData')
 
 ### History
 Get-History # история команд текущей сессии
@@ -135,29 +164,6 @@ $obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force # �
 $obj | Add-Member -MemberType NoteProperty -Name "User" -Value "admin" -Force # изменеие содержимого для сущности объекта User
 ping $srv | Out-Null # перенаправить результат вывода в Out-Null
 
-### Variable
-$var = Read-Host "Enter" # ручной ввод
-$pass = Read-Host "Enter Password" -AsSecureString # скрывать набор
-$global:path = "\\path" # задать глобальную переменную, например в функции
-$using:srv # использовать переменную текущей сесси в Invoke-сессии
-Get-Variable # отобразить все переменные
-Get-Variable *srv* # найти переменную по имени
-Get-Variable -Scope Global # отобразить все глобальные переменные
-Get-Variable Error # последняя команда с ошибкой
-Remove-Variable -Name * # очистить все переменные
-$LASTEXITCODE # содержит код вывода последней запущенной программы, например ping. Если код возврата положительный (True), то $LastExitCode = 0
-
-### ENV
-Get-ChildItem Env: # отобразить все переменные окружения
-$env:PSModulePath # директории импорта модулей
-$env:userprofile
-$env:computername
-$env:username
-$env:userdnsdomain
-$env:logonserver
-([DirectoryServices.ActiveDirectory.Forest]::GetCurrentForest()).Name
-[Environment]::GetFolderPath('ApplicationData')
-
 ### Select-Object
 Get-Process | Select-Object -Property * # отобразить все доступные объекты вывода
 Get-Process | select -Unique "Name" # удалить повторяющиеся значения в массиве
@@ -208,6 +214,36 @@ $path[-1..-10] # обратная сборка массива без сорти�
 ### Last/First
 Get-Process | Sort-Object -Descending CPU | select -First 10 # вывести первых 10 объектов
 Get-Process | Sort-Object -Descending CPU | select -Last 10 # вывести последних 10 объектов
+
+### NPP
+
+pwsh -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"
+
+.		# Точка. Обозначает любой символ
+\		# Экранирующий символ. Символы которые экранируются: ^, [, ., $, {, *, (, ), \, +, |, ?, <, >
+^		# Крышка. Начало строки
+$		# Конец строки
+\d		# Любая цифра
+\D		# Не цифра
+\s		# Пробел, табуляция, перенос строки
+\S		# Не пробел
+\w		# Любая буква латиницы, цифра, или знак подчёркивания
+\W		# Не латиница, не цифра, не подчёркивание
+|		# Или. Соединяет несколько вариантов
+\b		# Граница слова. Применяется когда нужно выделить, что искомые символы являются словом, а не частью другого слова
+\B		# Не граница слова
+\<		# Начало слова
+\>		# Конец слова
+\A		# Начало текста
+\Z		# Конец текста
+*		# Повторитель. Означает что предшествующий символ может работать 0 и более раз
++		# Количество предшествующего не менее 1-го.
+?		# Ограничитель. Не более одного раза
+[ ]	 	# В квадратных скобках задаются символы к поиску, например [a-яА-Я], или [0-9]
+[^ ]	# Исключает из поиска символы указанные в квадратных скобках
+()		# В круглые скобки заключаются все комбинации с "или" и поиск начала и конца строк
+{ }		# В фигурных скобках указывается точное количество вхождений, например если надо две цифры, то \d{2}, если две или четыре, то \d{2,4}, если четыре и более, то {4,}
+\n		# Новая строка
 
 # Regex
 
@@ -613,6 +649,9 @@ Test-Connection -Count 1 $srv1, $srv2 # отправить icmp-пакет дв�
 Test-Connection $srv -ErrorAction SilentlyContinue # не выводить ошибок, если хост не отвечает
 Test-Connection -Source $srv1 -ComputerName $srv2 # пинг с удаленного компьютера
 
+$ping = New-Object System.Net.Networkinformation.Ping
+1..254 | % {$ping.send("192.168.3.$_") | select address, status}
+
 ### port
 tnc $srv -p 5985
 tnc $srv -CommonTCPPort WINRM # HTTP,RDP,SMB
@@ -672,6 +711,7 @@ hostname.exe
 [System.Net.Dns]::GetHostName()
 
 ### arp
+Get-NetNeighbor -AddressFamily IPv4
 
 function Get-ARP {
 Param (
@@ -717,8 +757,12 @@ $mac_coll
 Get-ARP -search 192.168.3.100
 Get-ARP -search 192.168.3.100 -proxy dc-01
 
+### Windows-Update
+Get-Hotfix -Description "Security update"
+Get-WindowsUpdateLog
+
 ### shutdown
-shutdown /r /o # безопасный режим
+shutdown /r /o # перезагрузка в безопасный режим
 
 ### LocalGroup
 Get-LocalUser # список пользователей
@@ -2106,6 +2150,10 @@ $wshell | Get-Member
 $wshell.Explore("C:\")
 $wshell.Windows() | Get-Member # получить доступ к открытым в проводнике или браузере Internet Explorer окон
 
+$shell = New-Object -Com Shell.Application
+$RecycleBin = $shell.Namespace(10)
+$RecycleBin.Items()
+
 ### Outlook
 $Outlook = New-Object -ComObject Outlook.Application
 $Outlook | Get-Member
@@ -2692,10 +2740,6 @@ $data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show
 
 # XML
 
-Get-Service | Export-Clixml -path $home\desktop\test.xml # экспортировать объект PowerShell в XML
-Import-Clixml -Path $home\desktop\test.xml # импортировать объект XML в PowerShell
-ConvertTo-Xml (Get-Service)
-
 $xml = [xml](Get-Content $home\desktop\test.rdg) # прочитать содержимое XML-файла
 $xml.load("$home\desktop\test.rdg") # открыть файл
 $xml.RDCMan.file.group.properties.name # имена групп
@@ -2705,6 +2749,10 @@ $xml.RDCMan.file.group[3].server.properties # список серверов в 4
 $xml.RDCMan.file.group[3].server[0].properties.displayName = "New-displayName" 
 $xml.RDCMan.file.group[3].server[1].RemoveAll() # удалить объект (2-й сервер в списке)
 $xml.Save($file) # сохранить содержимое объекта в файла
+
+Get-Service | Export-Clixml -path $home\desktop\test.xml # экспортировать объект PowerShell в XML
+Import-Clixml -Path $home\desktop\test.xml # импортировать объект XML в PowerShell
+ConvertTo-Xml (Get-Service)
 
 if (Test-Path $CredFile) {
 $Cred = Import-Clixml -path $CredFile
