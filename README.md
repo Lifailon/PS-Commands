@@ -3218,7 +3218,7 @@ go
 $user = "itinvent"
 $pass = "itinvent"
 $db   = "itinvent"
-$srv = "192.168.3.103"
+$srv  = "192.168.3.103"
 $SqlConnection = New-Object System.Data.SqlClient.SqlConnection
 $SqlConnection.ConnectionString = "server=$srv;database=$db;user id=$user;password=$pass;Integrated Security=false"
 
@@ -3235,12 +3235,12 @@ $SqlConnection.Close()
 $Data = $DataSet.Tables
 $Data[0] | ft
 ```
-### INSERT
+### SqlClient INSERT
 ```
 $user = "itinvent"
 $pass = "itinvent"
-$db = "db_test"
-$srv = "192.168.3.103"
+$db   = "db_test"
+$srv  = "192.168.3.103"
 $sql = "INSERT INTO table_test (column_user) VALUES ('lifailon')" # добавить данные в таблицу table_test в колонку column_user
 $SqlConnection = New-Object System.Data.SqlClient.SqlConnection
 $SqlConnection.ConnectionString = "server=$srv;database=$db;user id=$user;password=$pass;Integrated Security=false"
@@ -3251,7 +3251,7 @@ $SqlConnection.Open()
 $rowsAffected = $SqlCommand.ExecuteNonQuery(); # для запросов INSERT/UPDATE/DELETE не используется SqlDataAdapter
 $SqlConnection.Close()
 ```
-### SSMS
+### SSMS INSERT
 ```
 USE [db_test]
 GO
