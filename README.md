@@ -37,6 +37,7 @@
 - [Git](#Git)
 - [SQLite](#SQLite)
 - [MySQL](#MySQL)
+- [MSSQL](#MSSQL)
 
 ### Help
 `Get-Verb` действия/глаголы, утвержденные для использования в командлетах \
@@ -87,6 +88,7 @@
 
 ### History
 `Get-History` история команд текущей сессии \
+`(Get-History)[-1].Duration.TotalSeconds` время выполнения последней команды \
 `(Get-PSReadLineOption).HistorySavePath` путь к сохраненному файлу с 4096 последних команд (из модуля PSReadLine) \
 `Get-Content (Get-PSReadlineOption).HistorySavePath | Select-String Get` поиск по содержимому файла (GREP) \
 `Set-PSReadlineOption -MaximumHistoryCount 10000` изменить количество сохраняемых команд в файл \
@@ -308,9 +310,15 @@ $		# Конец строки
 `$char.GetType()` тип данных: Char[] \
 `[Object]` массив (BaseType:System.Array) \
 `[DateTime]` формат времени (BaseType:System.ValueType) \
-`[Boolean]` логический тип ($True/$False) \
-`[int]` целое число (BaseType:System.ValueType) \
-`[String]` строка-текст (BaseType:System.Object) \
+`[Boolean]` логическое значение ($True/$False) \
+`[Single]` число с плавающей запятой (32-разрядное) \
+`[Double]` число с плавающей запятой с двойной точностью (64-разрядное) \
+`[Char]` cимвол Юникода (16-разрядный) \
+`[Decimal]` десятичное значение (128-битовое) \
+`[Byte]` 8-разрядное целое число без знака \
+`[int16]` 16-разрядное знаковое целое число \
+`[int]` 32-разрядное знаковое целое число. (BaseType:System.ValueType) \
+`[String]` неизменяемая строка символов Юникода фиксированной длины (BaseType:System.Object) \
 `(4164539/1MB).ToString(".00")` округлить до 3,97
 
 ### Property
@@ -764,7 +772,8 @@ $mac_coll
 ### shutdown
 `shutdown /r /o` перезагрузка в безопасный режим
 
-### LocalGroup
+### LocalAccounts
+`Get-Command -Module Microsoft.PowerShell.LocalAccounts`
 `Get-LocalUser` список пользователей \
 `Get-LocalGroup` список групп \
 `New-LocalUser "1C" -Password $Password -FullName "1C Domain"` создать пользователя \
@@ -2177,6 +2186,16 @@ $Outlook.Quit()
 `$EventLog.Entries` просмотреть журнал \
 `$EventLog.Clear()` очистить журнал
 
+`Join-Path C: Install Test` \
+`[System.IO.Path]::Combine("C:", "Install", "Test")`
+
+### Match
+`[System.Math] | Get-Member -Static -MemberType Methods` \
+`[System.Math]::Max(2,7)` \
+`[System.Math]::Min(2,7)` \
+`[System.Math]::Floor(3.9)` \
+`[System.Math]::Truncate(3.9)`
+
 ### GeneratePassword
 `Add-Type -AssemblyName System.Web` \
 `[System.Web.Security.Membership]::GeneratePassword(10,2)`
@@ -3171,3 +3190,358 @@ Mail = $DataSet.email
 $Connection.Close()
 $Collections
 ```
+# MSSQL
+
+`wget -qO- https://packages.microsoft.com/keys/microsoft.asc | apt-key add -` импортировать GPG-ключ для репозитория \
+`https://packages.microsoft.com/config/ubuntu/` выбрать репозиторий и скопировать URL \
+`add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/mssql-server-2019.list)"` \
+`apt-get update` обновить список пакетов \
+`apt-get install mssql-server` \
+`/opt/mssql/bin/mssql-conf setup` скрипт начальной конфигурации (выбрать редакцию, 3 - express и русский язык 9 из 11) \
+`systemctl status mssql-server` \
+`curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -` установить клиент \
+`curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | tee /etc/apt/sources.list.d/msprod.list` \
+`apt-get update` \
+`apt-get install mssql-tools` \
+`echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc` добавить в домашний каталог файла bashrc, что бы не писать путь к исполняемому файлу \
+`export PATH="$PATH:/opt/mssql-tools/bin"` \
+`iptables -I INPUT 1 -p tcp --dport 1433 -j ACCEPT`
+```
+sqlcmd -S localhost -U SA
+CREATE DATABASE itinvent
+go
+SELECT name FROM master.dbo.sysdatabases
+go
+```
+### System.Data.SqlClient
+```
+$user = "itinvent"
+$pass = "itinvent"
+$db   = "itinvent"
+$srv = "192.168.3.103"
+$SqlConnection = New-Object System.Data.SqlClient.SqlConnection
+$SqlConnection.ConnectionString = "server=$srv;database=$db;user id=$user;password=$pass;Integrated Security=false"
+
+$SqlCommand = New-Object System.Data.SqlClient.SqlCommand # класс формата команды
+$SqlCommand.CommandText = "SELECT * FROM ITINVENT.dbo.USERS" # отобразить содержимое таблицы
+#$SqlCommand.CommandText = "SELECT LICENCE_DATE,DESCR,MODEL_NO,TYPE_NO FROM ITINVENT.dbo.ITEMS where LICENCE_DATE IS NOT NULL"
+$SqlCommand.Connection = $SqlConnection # передать формат подключения
+$SqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter # создать адаптер подключения для выполнения для SELECT запросов к БД
+$SqlAdapter.SelectCommand = $SqlCommand # передать команду
+
+$DataSet = New-Object System.Data.DataSet # создать объект приема данных формата XML
+$SqlAdapter.Fill($DataSet) # заполнить данными полученные от адаптера (возвращает кол-во объектов)
+$SqlConnection.Close()
+$Data = $DataSet.Tables
+$Data[0] | ft
+```
+### INSERT
+```
+$user = "itinvent"
+$pass = "itinvent"
+$db = "db_test"
+$srv = "192.168.3.103"
+$sql = "INSERT INTO table_test (column_user) VALUES ('lifailon')" # добавить данные в таблицу table_test в колонку column_user
+$SqlConnection = New-Object System.Data.SqlClient.SqlConnection
+$SqlConnection.ConnectionString = "server=$srv;database=$db;user id=$user;password=$pass;Integrated Security=false"
+$SqlCommand = New-Object System.Data.SqlClient.SqlCommand
+$SqlCommand.CommandText = $sql
+$SqlCommand.Connection = $SqlConnection
+$SqlConnection.Open()
+$rowsAffected = $SqlCommand.ExecuteNonQuery(); # для запросов INSERT/UPDATE/DELETE не используется SqlDataAdapter
+$SqlConnection.Close()
+```
+### SSMS
+```
+USE [db_test]
+GO
+INSERT INTO [dbo].[table_test]
+           ([column_user])
+     VALUES
+           ('lifailon')
+GO
+SELECT TOP (1000) [column_user]
+FROM [db_test].[dbo].[table_test]
+```
+### T-SQL
+```
+-- Переменные
+DECLARE @text NVARCHAR(20), @int INT;
+SET @text='Test';
+SET @int = 21;
+select @text,@int
+
+-- Имена сервера и экземпляра 
+Select @@SERVERNAME as [Server\Instance]; 
+
+-- версия SQL Server 
+Select @@VERSION as SQLServerVersion; 
+
+-- Текущая БД (БД, в контексте которой выполняется запрос)
+Select DB_NAME() AS CurrentDB_Name;
+
+-- Время работы с момента запуска сервера
+SELECT  @@Servername AS ServerName ,
+        create_date AS  ServerStarted ,
+        DATEDIFF(s, create_date, GETDATE()) / 86400.0 AS DaysRunning ,
+        DATEDIFF(s, create_date, GETDATE()) AS SecondsRunnig
+FROM    sys.databases
+WHERE   name = 'tempdb';
+
+-- Количество активных соединений
+SELECT  @@Servername AS Server ,
+        DB_NAME(database_id) AS DatabaseName ,
+        COUNT(database_id) AS Connections ,
+        Login_name AS  LoginName ,
+        MIN(Login_Time) AS Login_Time ,
+        MIN(COALESCE(last_request_end_time, last_request_start_time))
+                                                         AS  Last_Batch
+FROM    sys.dm_exec_sessions
+WHERE   database_id > 0
+        AND DB_NAME(database_id) NOT IN ( 'master', 'msdb' )
+GROUP BY database_id ,
+         login_name
+ORDER BY DatabaseName;
+
+-- Статус Backup
+SELECT  @@Servername AS ServerName ,
+        d.Name AS DBName ,
+        MAX(b.backup_finish_date) AS LastBackupCompleted
+FROM    sys.databases d
+        LEFT OUTER JOIN msdb..backupset b
+                    ON b.database_name = d.name
+                       AND b.[type] = 'D'
+GROUP BY d.Name
+ORDER BY d.Name;
+
+-- Путь к Backup
+SELECT  @@Servername AS ServerName ,
+        d.Name AS DBName ,
+        b.Backup_finish_date ,
+        bmf.Physical_Device_name
+FROM    sys.databases d
+        INNER JOIN msdb..backupset b ON b.database_name = d.name
+                                        AND b.[type] = 'D'
+        INNER JOIN msdb.dbo.backupmediafamily bmf ON b.media_set_id = bmf.media_set_id
+ORDER BY d.NAME ,
+        b.Backup_finish_date DESC; 
+
+-- Вывести список всех БД, модели восстановления и путь к mdf/ldf
+EXEC sp_helpdb; 
+SELECT  @@SERVERNAME AS Server ,
+        d.name AS DBName ,
+        create_date ,
+        recovery_model_Desc AS RecoveryModel ,
+        m.physical_name AS FileName
+FROM    sys.databases d
+        JOIN sys.master_files m ON d.database_id = m.database_id
+ORDER BY d.name;
+
+-- Размер БД
+with fs
+as
+(
+    select database_id, type, size * 8.0 / 1024 size
+    from sys.master_files
+)
+select 
+    name,
+    (select sum(size) from fs where type = 0 and fs.database_id = db.database_id) DataFileSizeMB,
+    (select sum(size) from fs where type = 1 and fs.database_id = db.database_id) LogFileSizeMB
+from sys.databases 
+
+-- Поиск таблицы по маске имени (вывод: названия схемы где распологается объект, тип объекта, дата создания и последней модификации):
+select [object_id], [schema_id],
+	   schema_name([schema_id]) as [schema_name], 
+	   [name], 
+	   [type], 
+	   [type_desc], 
+	   [create_date], 
+	   [modify_date]
+from sys.all_objects
+-- where [name]='INVENT';
+where [name] like '%INVENT%';
+
+-- Кол-во строк в таблицах
+SELECT  @@ServerName AS Server ,
+        DB_NAME() AS DBName ,
+        OBJECT_SCHEMA_NAME(p.object_id) AS SchemaName ,
+        OBJECT_NAME(p.object_id) AS TableName ,
+        i.Type_Desc ,
+        i.Name AS IndexUsedForCounts ,
+        SUM(p.Rows) AS Rows
+FROM    sys.partitions p
+        JOIN sys.indexes i ON i.object_id = p.object_id
+                              AND i.index_id = p.index_id
+WHERE   i.type_desc IN ( 'CLUSTERED', 'HEAP' )
+                             -- This is key (1 index per table) 
+        AND OBJECT_SCHEMA_NAME(p.object_id) <> 'sys'
+GROUP BY p.object_id ,
+        i.type_desc ,
+        i.Name
+ORDER BY SchemaName ,
+        TableName; 
+
+-- Найти строковое (nvarchar) значение 2023 по всем таблицам базы данных
+-- Отображается в какой таблице и столбце хранится значение, а также количество найденных пары таблица-колонка
+set nocount on
+declare @name varchar(128), @substr nvarchar(4000), @column varchar(128)
+set @substr = '%2023%'
+declare @sql nvarchar(max);
+create table #rslt 
+(table_name varchar(128), field_name varchar(128), [value] nvarchar(max))
+declare s cursor for select table_name as table_name from information_schema.tables where table_type = 'BASE TABLE' order by table_name
+open s
+fetch next from s into @name
+while @@fetch_status = 0
+begin
+declare c cursor for 
+select quotename(column_name) as column_name from information_schema.columns 
+where data_type in ('text', 'ntext', 'varchar', 'char', 'nvarchar', 'char', 'sysname', 'int', 'tinyint') and table_name  = @name
+set @name = quotename(@name)
+open c
+fetch next from c into @column
+while @@fetch_status = 0
+begin
+--print 'Processing table - ' + @name + ', column - ' + @column
+set @sql='insert into #rslt select ''' + @name + ''' as Table_name, ''' + @column + ''', cast(' + @column + 
+' as nvarchar(max)) from' + @name + ' where cast(' + @column + ' as nvarchar(max)) like ''' + @substr + '''';
+print @sql;
+exec(@sql);
+fetch next from c into @column;
+end
+close c
+deallocate c
+fetch next from s into @name
+end
+select table_name as [Table Name], field_name as [Field Name], count(*) as [Found Mathes] from #rslt
+group by table_name, field_name
+order by table_name, field_name
+drop table #rslt
+close s
+deallocate s
+
+-- Поиск в таблице [CI_HISTORY] и столбцу [HIST_ID]:
+SELECT * FROM ITINVENT.dbo.CI_HISTORY where [HIST_ID] like '%2023%';
+
+-- Узнать фрагментацию индексов
+DECLARE @db_id SMALLINT;
+SET @db_id = DB_ID(N'itinvent');
+IF @db_id IS NULL
+BEGIN;
+    PRINT N'Неправильное имя базы';
+END;
+ELSE
+BEGIN;
+	SELECT
+		object_id AS [ID объекта],
+		index_id AS [ID индекса],
+		index_type_desc AS [Тип индекса],
+		avg_fragmentation_in_percent AS [Фрагментация в %]
+		
+	FROM sys.dm_db_index_physical_stats(@db_id, NULL, NULL, NULL , 'LIMITED')
+	 
+	ORDER BY [avg_fragmentation_in_percent] DESC;
+END;
+GO
+
+-- TempDB
+-- Initial size - начальный размер БД (1024 MB)
+-- Autogrowh - прирост (512MB)
+-- По умолчанию tempdb настроена на авто-расширение (Autogrow) и при каждой перезагрузке SQL Server пересоздаёт файлы этой БД с минимальным размером инициализации (Initial Size). Увеличив размер инициализации файлов tempdb, можно свести к минимуму затраты системных ресурсов на операции авто-расширения.
+
+-- Изменить путь к БД:
+USE master;
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = tempdev, FILENAME = 'F:\tempdb.mdf');
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = temp2, FILENAME = 'F:\tempdb_mssql_2.ndf');
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = temp3, FILENAME = 'F:\tempdb_mssql_3.ndf');
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = temp4, FILENAME = 'F:\tempdb_mssql_4.ndf');
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = temp5, FILENAME = 'F:\tempdb_mssql_5.ndf');
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = temp6, FILENAME = 'F:\tempdb_mssql_6.ndf');
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = temp7, FILENAME = 'F:\tempdb_mssql_7.ndf');
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = temp8, FILENAME = 'F:\tempdb_mssql_8.ndf');
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME = templog, FILENAME = 'F:\templog.ldf');
+GO
+
+-- Указать размер файла:
+MODIFY FILE (NAME = temp2, FILENAME = 'F:\tempdb_mssql_2.ndf' , SIZE = 1048576KB , FILEGROWTH = 524288KB);
+```
+### Тип резервной копии
+
+- Full (Полная копия). Когда стартует полное резервирование, записывается Log Sequence Number (LSN - последовательный номер журнала), а так же LSN записывается и при завершении полного резервирования. Этот LSN является механизмом, используемым SQL Server, чтобы знать, в каком порядке выполнялись операторы INSERT, UPDATE или DELETE. При этом наличие записанных LSN начала и окончания, как части полного бэкапа, обеспечивает согласованное с точки зрения транзакций резервное копирование, поскольку при полном резервном копировании учитываются изменения, произошедшие во время резервного копирования. Это обеспечивает обработку таких транзакций в процессе восстановления бэкапа.
+- Differential (дифференциальная/разностная копия). Хранит данных, изменившиеся с момента последней Полной резервной копии. При восстановлении нужно сначала восстановить Полную резервную копию в режиме NORECOVERY, потом можно применить любую из последующих Разностных копий, без предыдущей Полной резервной копии Разностная копия бесполезна. Каждая последующая Разностная копия будет хранить все данные, входящие в предыдущую Разностную резервную копию, сделанную после предыдущей Полной копии.
+- Incremental (инкрементальная/копия журналов транзакций). Резервное копирования журнала транзакций копирует все транзакции, которые произошли с момента последнего резервного копирования, а затем урезает журнал транзакций для освобождения дискового пространства. Транзакции происходят в определенном порядке (LSN), бэкап журнала поддерживает этот порядок транзакций. Бэкапы журналов транзакций должны восстанавливаться по порядку. Для восстановления базы данных потребуется вся цепочка резервных копий: полная и все последующие инкрементальные журнала транзакций.
+
+### Модели восстановления
+
+- Simple (Простая). Хранится только необходимый для жизни остаток журнала транзакций. Журнал транзакций (лог) автоматически очищается. Создание резервных копий журнала транзакций невозможна, поэтому остается самое ограниченное число опций по восстановлению. Недоступен функционал: Always On, Point-In-Time восстановление, Резервные копии журнала транзакций.
+- Full (Полная). Хранится журнал транзакций всех изменений в БД с момента последнего резервного копирования журнала транзакций. Журнал транзакций не будет очищаться до тех пор, пока не будет сделана резервная копия журнала транзакций.
+- Bulk logged (С неполным протоколированием). Идентична Full, за исключение: SELECT INTO, BULK INSERT и BCP, INSERT INTO SELECT, операции с индексами (CREATE INDEX, ALTER INDEX REBUILD, DROP INDEX)
+
+### Системные БД
+
+- master. Хранятся все данные системного уровня (конфигурация системы, сведенья об учетных записях входа, информация обо всех других базах данных) для экземпляра SQL Server.
+- tempdb. Рабочее пространство для временных объектов, таких как глобальные или локальные временные таблицы, временные хранимые процедуры, табличные переменные и курсоры. Пересоздаётся при каждом запуске SQL Server.
+- model. Используется в качестве шаблона для всех баз данных, создаваемых в экземпляре SQL Server, все содержимое базы данных model, включая параметры базы данных, копируется в создаваемую базу данных. Так как база данных tempdb создается каждый раз при запуске SQL Server, база данных model всегда должна существовать в системе SQL Server. 
+- msdb. Используется агентом SQL Server для создания расписания предупреждений (оператор) и выполнение заданий, а также другими компонентами. SQL Server хранит полный журнал резервного копирования и восстановления в базе данных msdb. Для отправки почты оператору используется: USE [msdb].
+- resource. Доступная только для чтения база данных, которая содержит все системные объекты, например sys.objects, физически хранятся в базе данных resource, но логически присутствуют в схеме sys каждой базы данных.
+
+### Регламентные операции
+
+- Проверка целостности базы данных
+
+DBCC CHECKDB
+
+- Индексы. Индексы используются для быстрого поиска данных без необходимости поиска/просмотра всех строк в таблице базы данных при каждом обращении к таблице базы данных. Индекс ускоряет процесс запроса, предоставляя быстрый доступ к строкам данных в таблице, аналогично тому, как указатель в книге помогает вам быстро найти необходимую информацию. Индексы предоставляют путь для быстрого поиска данных на основе значений в этих столбцах. Для каждого индекса обязательно хранится его статистика. MS SQL Server самостоятельно создает и изменяет индексы при работе с базой. С течением времени данные в индексе становятся фрагментированными, т.е. разбросанными по базе данных, что серьезно снижает производительность запросов. Если фрагментация составляет от 5 до 30% (стандартно в задании 15%), то рекомендуется ее устранить с помощью реорганизации, при фрагментации выше 30% (по умолчанию в задаче > 30% фрагментации и число страниц > 1000) необходимо полное перестроение индексов. После перестроения планово используется только реорганизация.
+
+- Реорганизация (Reorganize) или дефрагментация индекса — это серия небольших локальных перемещений страниц так, чтобы индекс не был фрагментирован. После реорганизации статистика не обновляется. Во время выполнения почти все данные доступны, пользователи смогут работать.
+
+sp_msforeachtable N'DBCC INDEXDEFRAG (<имя базы данных>, ''?'')'
+
+- Перестроение (Rebuild) индексов (или задача в мастере планов обслуживания: Восстановить индекс) запускает процесс полного построения индексов. В версии MS SQL Server Standard происходит отключение всех клиентов от базы на время выполнения операции. После перестроения обязательно обновляется статистика.
+
+sp_msforeachtable N'DBCC DBREINDEX (''?'')'
+
+- Обновление статистики. Статистика — небольшая таблица (обычно до 200 строк), в которой хранится обобщенная информация о том, какие значения и как часто встречаются в таблице. На основании статистики сервер принимает решение, как лучше построить запрос. Когда происходят запросы к БД (например, SELECT) вы получаете данные, но не описываете то, как эти данные должны быть извлечены. В получении и обработке данных помогает статистика. Во время выполнения процедуры обновления статистики данные не блокируются.
+
+exec sp_msforeachtable N'UPDATE STATISTICS ? WITH FULLSCAN'
+
+- Очистка процедурного кэша, выполняется после обновления статистики. Оптимизатор MS SQL Server кэширует планы запросов для их повторного выполнения. Это делается для того, чтобы экономить время, затрачиваемое на компиляцию запроса в том случае, если такой же запрос уже выполнялся и его план известен. После обновия статистики, не будет очищен процедурный кэш, то SQL Server может выбрать старый (неоптимальный) план запроса из кэша вместо того, чтобы построить новый (более оптимальный) план.
+
+DBCC FREEPROCCACHE
+
+### Типы SQL:
+
+- DDL (Data Definition Language / Язык определения данных). К этому типу относятся различные команды, которые создают базу данных, таблицы, индексы, хранимые процедуры и т.д. В общем определяют данные. К этому типу мы можем отнести следующие команды
+`CREATE` создает объекты базы данных (саму базу даных, таблицы, индексы и т.д.) \
+`ALTER` изменяет объекты базы данных \
+`DROP` удаляет объекты базы данных \
+`TRUNCATE` удаляет все данные из таблиц
+
+- DML (Data Manipulation Language / Язык манипуляции данными). К этому типу относят команды на выбору данных, их обновление, добавление, удаление - в общем все те команды, с помощью которыми мы можем управлять данными. К этому типу относятся следующие команды`
+`SELECT` извлекает данные из БД \
+`UPDATE` обновляет данные \
+`INSERT` добавляет новые данные \
+`DELETE` удаляет данные
+
+- DCL (Data Control Language / Язык управления доступа к данным). К этому типу относят команды, которые управляют правами по доступу к данным. Команды`
+`GRANT` предоставляет права для доступа к данным \
+`REVOKE` отзывает права на доступ к данным
