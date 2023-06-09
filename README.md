@@ -1156,7 +1156,7 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 
 Перенос БД AD (ntds.dit): \
 `Get-Acl C:\Windows\NTDS | Set-Acl D:\AD-DB` скопировать NTFS разрешения на новый каталог \
-`Stop-Service -ComputerName uk-dc -name NTDS` остановить службу Active Directory Domain Services \
+`Stop-Service -ComputerName dc -name NTDS` остановить службу Active Directory Domain Services \
 `ntdsutil` запустить утилиту ntdsutil \
 `activate instance NTDS` выбрать активный экземпляр базы AD \
 `files` перейдем в контекст files, в котором возможно выполнение операция с файлами базы ntds.dit \
@@ -1164,7 +1164,7 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `info` проверить, что БД находится в новом каталоге \
 `move logs to D:\AD-DB\` переместим в тот же каталог файлы с журналами транзакций \
 `quit` \
-`Start-Service -ComputerName uk-dc -name NTDS`
+`Start-Service -ComputerName dc -name NTDS`
 
 Сброс пароля DSRM (режим восстановления служб каталогов):  \
 `ntdsutil` \
@@ -1658,7 +1658,7 @@ UseDatabaseQuotaDefaults — используется ли квота БД ил�
 `Move-Databasepath $db_name –EdbFilepath "F:\DB\$db_name\$db_name.edb" –LogFolderpath "E:\DB\$db_name\logs\"` переместить БД и транзакционные логи на другой диск \
 `Set-MailboxDatabase -CircularLoggingEnabled $true -Identity $db_name` включить циклическое ведение журнала (Circular Logging), где последовательно пишутся 4 файла логов по 5 МБ, после чего первый лог-файл перезаписывается \
 `Set-MailboxDatabase -CircularLoggingEnabled $false -Identity $db_name` отключить циклическое ведение журнала \
-`Get-MailboxDatabase -Server "ukh-exch-mx-01" -Status | select EdbFilePath,LogFolderPath,LogFilePrefix` путь к БД, логам, имя текущего актуального лог-файла
+`Get-MailboxDatabase -Server "exch-mx-01" -Status | select EdbFilePath,LogFolderPath,LogFilePrefix` путь к БД, логам, имя текущего актуального лог-файла
 
 ### MailboxRepairRequest
 `New-MailboxRepairRequest -Database it2 -CorruptionType ProvisionedFolder, SearchFolder, AggregateCounts, Folderview` запустить последовательный тест (в конкретный момент времени не доступен один почтовый ящик) и исправление ошибок на прикладном уровне \
@@ -1686,7 +1686,7 @@ ContentIndexState : Failed \
 Status            : Dismounted \
 ContentIndexState : Failed
 
-`Get-MailboxDatabase -Server ukh-exch-mx-01 -Status | fl Name,EdbFilePath,LogFolderPath` проверить расположение базы и транзакционных логов \
+`Get-MailboxDatabase -Server exch-mx-01 -Status | fl Name,EdbFilePath,LogFolderPath` проверить расположение базы и транзакционных логов \
 LogFolderPath - директория логов \
 E18 - имя транкзакционного лога (из него читаются остальные логи) \
 `dismount-Database db_name` отмантировать БД \
@@ -3508,7 +3508,7 @@ DBCC FREEPROCCACHE
 `Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
 ```
 Configuration DSConfigurationProxy {
-    Node uk-vproxy-01 {
+    Node vproxy-01 {
         File CreateDir {
             Ensure = "Present"
             Type = "Directory"
@@ -3541,7 +3541,7 @@ Configuration DSConfigurationProxy {
 `Test-DscConfiguration -Path $Path | select *` ResourcesInDesiredState - уже настроено, ResourcesNotInDesiredState - не настроено (не соответствует) \
 `Start-DscConfiguration -Path $Path` \
 `Get-Job` \
-`$srv = "uk-vproxy-01"` \
+`$srv = "vproxy-01"` \
 `Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
 `icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
 `icm $srv {ls C:\ | ? name -match Temp} | ft # rm`
