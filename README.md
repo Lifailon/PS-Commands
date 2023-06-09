@@ -33,11 +33,12 @@
 - [Socket](#Socket)
 - [Excel](#Excel)
 - [XML](#XML)
-- [DSC](#DSC)
 - [Git](#Git)
 - [SQLite](#SQLite)
 - [MySQL](#MySQL)
 - [MSSQL](#MSSQL)
+- [DSC](#DSC)
+- [Ansible](#Ansible)
 
 ### Help
 `Get-Verb` действия/глаголы, утвержденные для использования в командлетах \
@@ -2887,57 +2888,6 @@ West,Texas,927,923.71
 $null,Tennessee,466,770.67
 "@
 ```
-# DSC
-
-`Import-Module PSDesiredStateConfiguration` \
-`(Get-Module PSDesiredStateConfiguration).ExportedCommands` \
-`Get-DscLocalConfigurationManager`
-
-`Get-DscResource` \
-`Get-DscResource -Name File -Syntax` # https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
-
-`Ensure = Present` настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить) \
-`Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
-```
-Configuration DSConfigurationProxy {
-    Node uk-vproxy-01 {
-        File CreateDir {
-            Ensure = "Present"
-            Type = "Directory"
-            DestinationPath = "C:\Temp"
-        }
-        Service StopW32time {
-            Name = "w32time"
-            State = "Stopped" # Running
-        }
-		WindowsProcess RunCalc {
-            Ensure = "Present"
-            Path = "C:\WINDOWS\system32\calc.exe"
-            Arguments = ""
-        }
-        Registry RegSettings {
-            Ensure = "Present"
-            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\MySoft"
-            ValueName = "TestName"
-            ValueData = "TestValue"
-            ValueType = "String"
-        }
-#		WindowsFeature IIS {
-#            Ensure = "Present"
-#            Name = "Web-Server"
-#        }
-    }
-}
-```
-`$Path = (DSConfigurationProxy).DirectoryName` \
-`Test-DscConfiguration -Path $Path | select *` ResourcesInDesiredState - уже настроено, ResourcesNotInDesiredState - не настроено (не соответствует) \
-`Start-DscConfiguration -Path $Path` \
-`Get-Job` \
-`$srv = "uk-vproxy-01"` \
-`Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
-`icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
-`icm $srv {ls C:\ | ? name -match Temp} | ft # rm`
-
 # Git
 
 `git --version`
@@ -3544,3 +3494,149 @@ exec sp_msforeachtable N'UPDATE STATISTICS ? WITH FULLSCAN'
 - Очистка процедурного кэша, выполняется после обновления статистики. Оптимизатор MS SQL Server кэширует планы запросов для их повторного выполнения. Это делается для того, чтобы экономить время, затрачиваемое на компиляцию запроса в том случае, если такой же запрос уже выполнялся и его план известен. После обновия статистики, не будет очищен процедурный кэш, то SQL Server может выбрать старый (неоптимальный) план запроса из кэша вместо того, чтобы построить новый (более оптимальный) план.
 
 DBCC FREEPROCCACHE
+
+# DSC
+
+`Import-Module PSDesiredStateConfiguration` \
+`(Get-Module PSDesiredStateConfiguration).ExportedCommands` \
+`Get-DscLocalConfigurationManager`
+
+`Get-DscResource` \
+`Get-DscResource -Name File -Syntax` # https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
+
+`Ensure = Present` настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить) \
+`Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
+```
+Configuration DSConfigurationProxy {
+    Node uk-vproxy-01 {
+        File CreateDir {
+            Ensure = "Present"
+            Type = "Directory"
+            DestinationPath = "C:\Temp"
+        }
+        Service StopW32time {
+            Name = "w32time"
+            State = "Stopped" # Running
+        }
+		WindowsProcess RunCalc {
+            Ensure = "Present"
+            Path = "C:\WINDOWS\system32\calc.exe"
+            Arguments = ""
+        }
+        Registry RegSettings {
+            Ensure = "Present"
+            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\MySoft"
+            ValueName = "TestName"
+            ValueData = "TestValue"
+            ValueType = "String"
+        }
+#		WindowsFeature IIS {
+#            Ensure = "Present"
+#            Name = "Web-Server"
+#        }
+    }
+}
+```
+`$Path = (DSConfigurationProxy).DirectoryName` \
+`Test-DscConfiguration -Path $Path | select *` ResourcesInDesiredState - уже настроено, ResourcesNotInDesiredState - не настроено (не соответствует) \
+`Start-DscConfiguration -Path $Path` \
+`Get-Job` \
+`$srv = "uk-vproxy-01"` \
+`Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
+`icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
+`icm $srv {ls C:\ | ? name -match Temp} | ft # rm`
+
+# Ansible
+
+`apt-get install ansible`
+
+`nano /etc/ansible/ansible.cfg` \
+`#inventory = /etc/ansible/hosts`
+
+`nano /etc/ansible/hosts`
+```
+[elk]
+devlog-01.domain.local ansible_host=192.168.11.230
+netbox-01.domain.local ansible_host=192.168.11.245
+
+[all:vars]
+path_user=/home/us
+ansible_user=us
+ansible_ssh_port=22
+
+[ws_vproxy]
+vproxy-01 ansible_host=192.168.11.196
+vproxy-03 ansible_host=192.168.11.188
+vproxy-04 ansible_host=192.168.11.64
+
+[ws_vproxy:vars]
+ansible_user=winrm
+#ansible_user=support4@DOMAIN.LOCAL
+ansible_password=123098
+ansible_port=5986
+ansible_connection=winrm
+ansible_winrm_transport=basic
+#ansible_winrm_transport=kerberos
+ansible_winrm_server_cert_validation=ignore
+validate_certs=false
+```
+`ansible-inventory --list -y`
+
+### Modules
+```
+ansible-doc -l | grep windows # оф. документация модулей
+ansible elk -m ping
+#ansible all -m ping -u us
+ansible all -m shell -a "lsblk " -vvvvv # debug выполнения команды, чем больше "v"  тем больше отображение
+ansible elk -m setup | grep -iP "mem|proc" # информация о железе
+ansible elk -m apt -a "name=mc"
+ansible elk -m service -a "name=ssh state=restarted enabled=yes" -b # перезапустить службу
+# -b - повысить привилегии (sudo)
+```
+### Copy
+```
+echo "21" > test.txt
+ansible elk -m copy -a "src=test.txt dest=/root mode=777" -b
+ansible elk -a "ls /root" -b
+ansible elk -a "cat /root/test.txt" -b
+```
+### Args
+```
+ansible elk -m shell -a "uptime"
+ansible elk -a "mkdir /home/us/test"
+ansible elk -a "ls $path_user"
+```
+### Windows Modules
+```
+ansible ws_vproxy -m win_ping
+ansible ws_vproxy -m raw -a "ipconfig"
+ansible ws_vproxy -m win_shell -a "Get-Service | select name,status"
+ansible ws_vproxy -m win_service -a "name=Spooler state=started"
+```
+### Playbook
+
+`nano /etc/ansible/elk.yml`
+```
+- hosts: elk
+  become: yes
+  tasks:
+    - name: Create group tester
+      action: group name=tester state=present
+    - name: Add user to system
+      user: name=tester shell=/bin/bash groups=tester append=yes
+```
+`ansible-playbook /etc/ansible/elk.yml # -i /etc/ansible/hosts`
+
+### Обновить и установить пакет
+```
+- hosts: all
+  become: yes
+  tasks:
+  - name: Run apt-get update
+    apt:
+      update_cache: yes
+  - name: Install latest version nmap
+    apt:
+      name: nmap
+      state: latest
+```
