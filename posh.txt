@@ -4,8 +4,9 @@ PowerShell Commands
 - Regex
 - Items
 - Credential
-- Event
+- WinEvent
 - Firewall
+- Defender
 - Performance
 - Regedit
 - Scheduled
@@ -220,19 +221,19 @@ Get-Process | Sort-Object -Descending CPU | select -Last 10 # вывести п�
 
 ### NPP
 
-pwsh -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"
+pwsh -NoExit -ExecutionPolicy Unrestricted -WindowStyle Maximized -File "$(FULL_CURRENT_PATH)"
 
-.		# Точка. Обозначает любой символ
+.		# Обозначает любой символ
 \		# Экранирующий символ. Символы которые экранируются: ^, [, ., $, {, *, (, ), \, +, |, ?, <, >
-^		# Крышка. Начало строки
+^		# Начало строки
 $		# Конец строки
+\n		# Новая строка
 \d		# Любая цифра
 \D		# Не цифра
-\s		# Пробел, табуляция, перенос строки
-\S		# Не пробел
 \w		# Любая буква латиницы, цифра, или знак подчёркивания
 \W		# Не латиница, не цифра, не подчёркивание
-|		# Или. Соединяет несколько вариантов
+\s		# Пробел, табуляция, перенос строки
+\S		# Не пробел
 \b		# Граница слова. Применяется когда нужно выделить, что искомые символы являются словом, а не частью другого слова
 \B		# Не граница слова
 \<		# Начало слова
@@ -242,11 +243,14 @@ $		# Конец строки
 *		# Повторитель. Означает что предшествующий символ может работать 0 и более раз
 +		# Количество предшествующего не менее 1-го.
 ?		# Ограничитель. Не более одного раза
+|		# Или. Соединяет несколько вариантов
+()		# В круглые скобки заключаются все комбинации с "или" и поиск начала и конца строк
 [ ]	 	# В квадратных скобках задаются символы к поиску, например [a-яА-Я], или [0-9]
 [^ ]	# Исключает из поиска символы указанные в квадратных скобках
-()		# В круглые скобки заключаются все комбинации с "или" и поиск начала и конца строк
-{ }		# В фигурных скобках указывается точное количество вхождений, например если надо две цифры, то \d{2}, если две или четыре, то \d{2,4}, если четыре и более, то {4,}
-\n		# Новая строка
+{ }		# В фигурных скобках указывается точное количество вхождений
+\d{2}	# Найти две цифры
+\d{2,4}	# Найти две или четыре
+{4,}	# Найти четыре и более
 
 # Regex
 
@@ -511,44 +515,73 @@ $AESKey | Out-File "C:\password.key"
 $Cred.Password | ConvertFrom-SecureString -Key (Get-Content "C:\password.key") | Set-Content "C:\password.txt" # сохранить пароль в файл используя внешний ключ
 $pass = Get-Content "C:\password.txt" | ConvertTo-SecureString -Key (Get-Content "\\Server\Share\password.key") # расшифровать пароль на втором компьютере
 
-# Event
+# WinEvent
 
-### EventLog
-Get-EventLog -List # отобразить все корневые журналы логов и их размер
-Clear-EventLog Application # очистить логи указанного журнала
-Get-EventLog -LogName Security -InstanceId 4624 # найти логи по ID в журнале Security
+Get-WinEvent -ListLog * # отобразить все доступные журналы логов
+Get-WinEvent -ListLog * | where RecordCount -ne 0 | where RecordCount -ne $null | sort -Descending RecordCount # отобразить не пустые журналы с сортировкой по кол-ву записей
+Get-WinEvent -ListProvider * | ft # отобразить всех провайдеров приложений
+Get-WinEvent -ListProvider GroupPolicy # найти в какой журнал LogLinks {Application} пишутся логи приложения
+Get-WinEvent -ListProvider *smb*
+Get-WinEvent -ListLog * | where logname -match SMB | sort -Descending RecordCount # найти все журналы по имени
+Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity"
+Get-WinEvent -ListProvider *firewall*
 
-function Get-Log {
-Param(
-[Parameter(Mandatory = $true, ValueFromPipeline = $true)][int]$Count,
-$Hour
-)
-if ($Hour -ne $null) {
-Get-EventLog -LogName Application -Newest $Count | ? TimeWritten -ge (Get-Date).AddHours($Hour)
-} else {
-Get-EventLog -LogName Application -Newest $Count
-}
-}
-10 | Get-Log
-Get-Log 100 -2
+### Filter XPath/Hashtable
 
-### WinEvent
-Get-WinEvent -ListLog * | where logname -match SMB | sort -Descending RecordCount # отобразить все доступные журналы логов
-Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity" | where 
-Get-WinEvent -LogName Security -MaxEvents 100 # отобразить последние 100 событий
 Get-WinEvent -FilterHashtable @{LogName="Security";ID=4624} # найти логи по ID в журнале Security
+Get-WinEvent -FilterHashtable @{LogName="System";Level=2} # найти все записи ошибки (1 - критический, 3 - предупреждение, 4 - сведения)
+Get-WinEvent -FilterHashtable @{LogName="System";Level=2;ProviderName="Service Control Manager"} # отфильтровать по имени провайдера
 
-$obj = @()
-$fw = Get-WinEvent "Microsoft-Windows-Windows Firewall With Advanced Security/Firewall"
-foreach ($temp_fw in $fw) {
-if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}
-$port = $temp_fw.Properties[7] | select -ExpandProperty value
-$name = $temp_fw.Properties[1] | select -ExpandProperty value
-$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}
-}
-$obj
+([xml](Get-WinEvent -FilterHashtable @{LogName="Security";ID=4688} -MaxEvents 1).ToXml()).Event.EventData.Data # отобразить все свойства, хранимые в EventData (Message)
+Get-WinEvent -FilterHashtable @{logname="security";ID=4688} -MaxEvents 1 | select timecreated,{$_.Properties[5].value} # отфильтровать время события и имя запущенного процесса
 
-### XPath
+$query = '
+<QueryList>
+    <Query Id="0" Path="Security">
+        <Select Path="Security">
+		    *[System[EventID=4688]] and 
+            *[EventData[Data[@Name="NewProcessName"]="C:\Windows\System32\autochk.exe" or Data[@Name="NewProcessName"]="C:\Windows\System32\services.exe"]]
+        </Select>
+    </Query>
+</QueryList>
+'
+
+Get-WinEvent -LogName Security -FilterXPath $query
+
+### Reboot
+
+$query = '
+<QueryList>
+    <Query Id="0" Path="System">
+        <Select Path="System">
+		    *[
+			System[
+			EventID=41 or
+			EventID=1074 or
+			EventID=1076 or
+			EventID=6005 or
+			EventID=6006 or
+			EventID=6008 or
+			EventID=6009 or
+			EventID=6013
+			]
+			]
+        </Select>
+    </Query>
+</QueryList>
+'
+Get-WinEvent -LogName System -FilterXPath $query
+
+41   # Система была перезагружена без корректного завершения работы.
+1074 # Система была корректного выключена пользователем или процессом.
+1076 # Следует за Event ID 6008 и означает, что первый пользователь (с правом выключения системы) подключившийся к серверу после неожиданной перезагрузки или выключения, указал причину этого события.
+6005 # Запуск "Журнала событий Windows" (Event Log). Указывает на включение системы.
+6006 # Остановка «Журнала событий Windows». Указывает на выключение системы.
+6008 # Предыдущее выключение системы было неожиданным.
+6009 # Версия операционной системы, зафиксированная при загрузке системы.
+6013 # Время работы системы (system uptime) в секундах.
+
+### Logon
 
 $srv = "localhost"
 $FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
@@ -564,7 +597,23 @@ New-Object PSObject -Property @{
 }}
 $EventData | ft
 
+### EventLog
+
+Get-EventLog -List # отобразить все корневые журналы логов и их размер
+Clear-EventLog Application # очистить логи указанного журнала
+Get-EventLog -LogName Security -InstanceId 4624 # найти логи по ID в журнале Security
+
 # Firewall
+
+$obj = @()
+$fw = Get-WinEvent "Microsoft-Windows-Windows Firewall With Advanced Security/Firewall"
+foreach ($temp_fw in $fw) {
+if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}
+$port = $temp_fw.Properties[7] | select -ExpandProperty value
+$name = $temp_fw.Properties[1] | select -ExpandProperty value
+$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}
+}
+$obj
 
 New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135 # открыть in-порт
 Get-NetFirewallRule | Where-Object {$_.DisplayName -match "135"} # найти правило по имени
@@ -578,9 +627,52 @@ Get-NetFirewallRule -Enabled True -Direction Inbound | select -Property DisplayN
 Enabled,Profile
 
 ### Firewall-Manager
+
 Install-Module Firewall-Manager
 Export-FirewallRules -Name * -CSVFile $home\documents\fw.csv # -Inbound -Outbound -Enabled -Disabled -Allow -Block (фильтр правил для экспорта)
 Import-FirewallRules -CSVFile $home\documents\fw.csv
+
+# Defender
+
+Import-Module Defender
+Get-Command -Module Defender
+Get-MpComputerStatus
+(Get-MpComputerStatus).AntivirusEnabled # статус работы антивируса
+
+$session = NewCimSession -ComputerName hostname # подключиться к удаленному компьютеру, используется WinRM
+Get-MpComputerStatus -CimSession $session | fl fullscan* # узнать дату последнего сканирования на удаленном компьютере
+
+Get-MpPreference # настройки
+(Get-MpPreference).ScanPurgeItemsAfterDelay # время хранения записей журнала защитника в днях
+Set-MpPreference -ScanPurgeItemsAfterDelay 30 # изменить время хранения
+ls "C:\ProgramData\Microsoft\Windows Defender\Scans\History"
+Get-MpPreference | select disable* # отобразить статус всех видов проверок/сканирований
+Set-MpPreference -DisableRealtimeMonitoring $true # отключить защиту Defender в реальном времени (использовать только ручное сканирование)
+Set-MpPreference -DisableRemovableDriveScanning $false # включить сканирование USB накопителей
+Get-MpPreference | select excl* # отобразить список всех исключений
+Add-MpPreference -ExclusionPath C:\install # добавить директорию в исключение
+Remove-MpPreference -ExclusionPath C:\install # удалить из исключения
+New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" -Name DisableAntiSpyware -Value 1 -PropertyType DWORD -Force # полностью отключить Windows Defender
+
+Set-MpPreference -SignatureDefinitionUpdateFileSharesSources \\FileShare1\Updates # для обновления из сетевой папки нужно предварительно скачать файлы с сигнатурами баз с сайта https://www.microsoft.com/security/portal/definitions/adl.aspx и поместить в сетевой каталог
+Update-MpSignature -UpdateSource FileShares # изменить источник обновлений (MicrosoftUpdateServer – сервера обновлений MS в интернете, InternalDefinitionUpdateServer — внутренний WSUS сервер)
+Update-MpSignature # обновить сигнатуры
+
+Start-MpScan -ScanType QuickScan # быстрая проверка или FullScan
+Start-MpScan -ScanType FullScan -AsJob
+Set-MpPreference -RemediationScheduleDay 1-7 # выбрать дни, начиная с воскресенья или 0 каждый день, 8 - сбросить
+Set-MpPreference -ScanScheduleQuickScanTime 14:00:00
+Start-MpScan -ScanType CustomScan -ScanPath "C:\Program Files" # сканировать выбранную директорию
+
+Get-MpThreat # история угроз и тип угрозы (ThreatName: HackTool/Trojan)
+Get-MpThreatCatalog # список известных видов угроз
+Get-MpThreatDetection # история защиты (активных и прошлые) и ID угрозы
+Get-MpThreat -ThreatID 2147760253
+
+ls "C:\ProgramData\Microsoft\Windows Defender\Quarantine\" # директория хранения файлов в карантине
+cd "C:\Program Files\Windows Defender\"
+.\MpCmdRun.exe -restore -name $ThreatName # восстановить файл из карантина
+.\MpCmdRun.exe -restore -filepath $path_file
 
 # Performance
 
@@ -3507,33 +3599,45 @@ Get-DscResource -Name File -Syntax # https://learn.microsoft.com/ru-ru/powershel
 Ensure = Present # настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить)
 Ensure = Absent  # настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
 
-Configuration DSConfigurationProxy {
-    Node vproxy-01 {
-        File CreateDir {
+Configuration TestConfiguraion
+{
+    Ctrl+Space
+}
+
+Configuration DSConfigurationProxy 
+{
+    Node vproxy-01 
+    {
+        File CreateDir
+        {
             Ensure = "Present"
             Type = "Directory"
             DestinationPath = "C:\Temp"
         }
-        Service StopW32time {
+        Service StopW32time
+        {
             Name = "w32time"
             State = "Stopped" # Running
         }
-		WindowsProcess RunCalc {
+		WindowsProcess RunCalc
+        {
             Ensure = "Present"
             Path = "C:\WINDOWS\system32\calc.exe"
             Arguments = ""
         }
-        Registry RegSettings {
+        Registry RegSettings
+        {
             Ensure = "Present"
             Key = "HKEY_LOCAL_MACHINE\SOFTWARE\MySoft"
             ValueName = "TestName"
             ValueData = "TestValue"
             ValueType = "String"
         }
-#		WindowsFeature IIS {
+#		WindowsFeature IIS
+#       {
 #            Ensure = "Present"
 #            Name = "Web-Server"
-#        }
+#       }
     }
 }
 
@@ -3548,9 +3652,10 @@ icm $srv {ls C:\ | ? name -match Temp} | ft # rm
 
 # Ansible
 
+apt-get update && apt-get upgrade
 apt-get install ansible
 
-nano /etc/ansible/ansible.cfg
+nano /etc/ansible/ansible.cfg # файл конфигурации
 #inventory = /etc/ansible/hosts
 
 nano /etc/ansible/hosts
