@@ -2,10 +2,11 @@
 
 - [Object](#Object)
 - [Regex](#Regex)
-- [Items](#Items)
+- [Files](#Files)
 - [Credential](#Credential)
-- [Event](#Event)
+- [WinEvent](#WinEvent)
 - [Firewall](#Firewall)
+- [Defender](#Defender)
 - [Performance](#Performance)
 - [Regedit](#Regedit)
 - [Scheduled](#Scheduled)
@@ -15,8 +16,8 @@
 - [WMI](#WMI)
 - [ActiveDirectory](#ActiveDirectory)
 - [ServerManager](#ServerManager)
-- [DNS](#DNS)
-- [DHCP](#DHCP)
+- [DNS](#DNSServer)
+- [DHCP](#DHCPServer)
 - [DFS](#DFS)
 - [PackageManagement](#PackageManagement)
 - [Jobs](#Jobs)
@@ -37,6 +38,7 @@
 - [SQLite](#SQLite)
 - [MySQL](#MySQL)
 - [MSSQL](#MSSQL)
+- [SNMP](#SNMP)
 - [DSC](#DSC)
 - [Ansible](#Ansible)
 
@@ -220,19 +222,19 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 
 # NPP
 
-`pwsh -NoExit -ExecutionPolicy Unrestricted -File "$(FULL_CURRENT_PATH)"`
+`pwsh -NoExit -ExecutionPolicy Unrestricted -WindowStyle Maximized -File "$(FULL_CURRENT_PATH)"`
 ```
-.		# Точка. Обозначает любой символ
+.		# Обозначает любой символ
 \		# Экранирующий символ. Символы которые экранируются: ^, [, ., $, {, *, (, ), \, +, |, ?, <, >
-^		# Крышка. Начало строки
+^		# Начало строки
 $		# Конец строки
+\n		# Новая строка
 \d		# Любая цифра
 \D		# Не цифра
-\s		# Пробел, табуляция, перенос строки
-\S		# Не пробел
 \w		# Любая буква латиницы, цифра, или знак подчёркивания
 \W		# Не латиница, не цифра, не подчёркивание
-|		# Или. Соединяет несколько вариантов
+\s		# Пробел, табуляция, перенос строки
+\S		# Не пробел
 \b		# Граница слова. Применяется когда нужно выделить, что искомые символы являются словом, а не частью другого слова
 \B		# Не граница слова
 \<		# Начало слова
@@ -242,11 +244,14 @@ $		# Конец строки
 *		# Повторитель. Означает что предшествующий символ может работать 0 и более раз
 +		# Количество предшествующего не менее 1-го.
 ?		# Ограничитель. Не более одного раза
-[ ]	 	# В квадратных скобках задаются символы к поиску, например [a-яА-Я], или [0-9]
-[^ ]		# Исключает из поиска символы указанные в квадратных скобках
+|		# Или. Соединяет несколько вариантов
 ()		# В круглые скобки заключаются все комбинации с "или" и поиск начала и конца строк
-{ }		# В фигурных скобках указывается точное количество вхождений, например если надо две цифры, то \d{2}, если две или четыре, то \d{2,4}, если четыре и более, то {4,}
-\n		# Новая строка
+[ ]	 	# В квадратных скобках задаются символы к поиску, например [a-яА-Я], или [0-9]
+[^ ]	# Исключает из поиска символы указанные в квадратных скобках
+{ }		# В фигурных скобках указывается точное количество вхождений
+\d{2}	# Найти две цифры
+\d{2,4}	# Найти две или четыре
+{4,}	# Найти четыре и более
 ```
 # Regex
 
@@ -429,8 +434,15 @@ finally {$out = "End"} # выполняется в конце в любом сл
 `$LASTEXITCODE` результат выполнения последней команды (0 - успех) \
 `exit 1` код завершения, который возвращается $LASTEXITCODE
 
-# Items
+# Files
 
+`$file = [System.IO.File]::Create("$home\desktop\test.txt")` создать файл \
+`$file.Close()` закрыть файл \
+`[System.IO.File]::ReadAllLines("$home\desktop\test.txt")` прочитать файл \
+`$file = New-Object System.IO.StreamReader("$home\desktop\test.txt")` \
+`$file.ReadToEnd()`
+
+`Get-Content $home/desktop\test.txt -Wait` аналог tail \
 `Test-Path $path` проверить доступность пути \
 `Get-ChildItem $path -Filter *.txt -Recurse` # отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) и отфильтровать вывод \
 `Get-Location` отобразить текущие месторасположение (Alias: pwd/gl) \
@@ -511,44 +523,73 @@ finally {$out = "End"} # выполняется в конце в любом сл
 `$Cred.Password | ConvertFrom-SecureString -Key (Get-Content "C:\password.key") | Set-Content "C:\password.txt"` сохранить пароль в файл используя внешний ключ \
 `$pass = Get-Content "C:\password.txt" | ConvertTo-SecureString -Key (Get-Content "\\Server\Share\password.key")` расшифровать пароль на втором компьютере
 
-# Event
+# WinEvent
 
-### EventLog
-`Get-EventLog -List` отобразить все корневые журналы логов и их размер \
-`Clear-EventLog Application` очистить логи указанного журнала \
-`Get-EventLog -LogName Security -InstanceId 4624` найти логи по ID в журнале Security
+`Get-WinEvent -ListLog *` отобразить все доступные журналы логов \
+`Get-WinEvent -ListLog * | where RecordCount -ne 0 | where RecordCount -ne $null | sort -Descending RecordCount` отобразить не пустые журналы с сортировкой по кол-ву записей \
+`Get-WinEvent -ListProvider * | ft` отобразить всех провайдеров приложений \
+`Get-WinEvent -ListProvider GroupPolicy` найти в какой журнал LogLinks {Application} пишутся логи приложения \
+`Get-WinEvent -ListProvider *smb*` \
+`Get-WinEvent -ListLog * | where logname -match SMB | sort -Descending RecordCount` найти все журналы по имени \
+`Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity"` \
+`Get-WinEvent -ListProvider *firewall*`
+
+### Filter XPath/Hashtable
+
+`Get-WinEvent -FilterHashtable @{LogName="Security";ID=4624}` найти логи по ID в журнале Security \
+`Get-WinEvent -FilterHashtable @{LogName="System";Level=2}` найти все записи ошибки (1 - критический, 3 - предупреждение, 4 - сведения) \
+`Get-WinEvent -FilterHashtable @{LogName="System";Level=2;ProviderName="Service Control Manager"}` отфильтровать по имени провайдера
+
+`([xml](Get-WinEvent -FilterHashtable @{LogName="Security";ID=4688} -MaxEvents 1).ToXml()).Event.EventData.Data` отобразить все свойства, хранимые в EventData (Message) \
+`Get-WinEvent -FilterHashtable @{logname="security";ID=4688} -MaxEvents 1 | select timecreated,{$_.Properties[5].value}` отфильтровать время события и имя запущенного процесса
 ```
-function Get-Log {
-Param(
-[Parameter(Mandatory = $true, ValueFromPipeline = $true)][int]$Count,
-$Hour
-)
-if ($Hour -ne $null) {
-Get-EventLog -LogName Application -Newest $Count | ? TimeWritten -ge (Get-Date).AddHours($Hour)
-} else {
-Get-EventLog -LogName Application -Newest $Count
-}
-}
-10 | Get-Log
-Get-Log 100 -2
+$query = '
+<QueryList>
+    <Query Id="0" Path="Security">
+        <Select Path="Security">
+		    *[System[EventID=4688]] and 
+            *[EventData[Data[@Name="NewProcessName"]="C:\Windows\System32\autochk.exe" or Data[@Name="NewProcessName"]="C:\Windows\System32\services.exe"]]
+        </Select>
+    </Query>
+</QueryList>
+'
+
+Get-WinEvent -LogName Security -FilterXPath $query
 ```
-### WinEvent
-`Get-WinEvent -ListLog * | where logname -match SMB | sort -Descending RecordCount` отобразить все доступные журналы логов \
-`Get-WinEvent -LogName "Microsoft-Windows-SmbClient/Connectivity" | where` \
-`Get-WinEvent -LogName Security -MaxEvents 100` отобразить последние 100 событий \
-`Get-WinEvent -FilterHashtable @{LogName="Security";ID=4624}` найти логи по ID в журнале Security
+### Reboot
 ```
-$obj = @()
-$fw = Get-WinEvent "Microsoft-Windows-Windows Firewall With Advanced Security/Firewall"
-foreach ($temp_fw in $fw) {
-if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}
-$port = $temp_fw.Properties[7] | select -ExpandProperty value
-$name = $temp_fw.Properties[1] | select -ExpandProperty value
-$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}
-}
-$obj
+$query = '
+<QueryList>
+    <Query Id="0" Path="System">
+        <Select Path="System">
+		    *[
+			System[
+			EventID=41 or
+			EventID=1074 or
+			EventID=1076 or
+			EventID=6005 or
+			EventID=6006 or
+			EventID=6008 or
+			EventID=6009 or
+			EventID=6013
+			]
+			]
+        </Select>
+    </Query>
+</QueryList>
+'
+Get-WinEvent -LogName System -FilterXPath $query
+
+41   # Система была перезагружена без корректного завершения работы.
+1074 # Система была корректного выключена пользователем или процессом.
+1076 # Следует за Event ID 6008 и означает, что первый пользователь (с правом выключения системы) подключившийся к серверу после неожиданной перезагрузки или выключения, указал причину этого события.
+6005 # Запуск "Журнала событий Windows" (Event Log). Указывает на включение системы.
+6006 # Остановка «Журнала событий Windows». Указывает на выключение системы.
+6008 # Предыдущее выключение системы было неожиданным.
+6009 # Версия операционной системы, зафиксированная при загрузке системы.
+6013 # Время работы системы (system uptime) в секундах.
 ```
-### XPath
+### Logon
 ```
 $srv = "localhost"
 $FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
@@ -564,8 +605,24 @@ New-Object PSObject -Property @{
 }}
 $EventData | ft
 ```
-# Firewall
+### EventLog
 
+`Get-EventLog -List` отобразить все корневые журналы логов и их размер \
+`Clear-EventLog Application` очистить логи указанного журнала \
+`Get-EventLog -LogName Security -InstanceId 4624` найти логи по ID в журнале Security
+
+# Firewall
+```
+$obj = @()
+$fw = Get-WinEvent "Microsoft-Windows-Windows Firewall With Advanced Security/Firewall"
+foreach ($temp_fw in $fw) {
+if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}
+$port = $temp_fw.Properties[7] | select -ExpandProperty value
+$name = $temp_fw.Properties[1] | select -ExpandProperty value
+$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}
+}
+$obj
+```
 `New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135` открыть in-порт \
 `Get-NetFirewallRule | Where-Object {$_.DisplayName -match "135"}` найти правило по имени \
 `Get-NetFirewallPortFilter | where LocalPort -like 80` найти действующие правило по номеру порта
@@ -578,9 +635,52 @@ $EventData | ft
 `Enabled,Profile`
 
 ### Firewall-Manager
+
 `Install-Module Firewall-Manager` \
 `Export-FirewallRules -Name * -CSVFile $home\documents\fw.csv` -Inbound -Outbound -Enabled -Disabled -Allow -Block (фильтр правил для экспорта) \
 `Import-FirewallRules -CSVFile $home\documents\fw.csv`
+
+# Defender
+
+`Import-Module Defender` \
+`Get-Command -Module Defender` \
+`Get-MpComputerStatus` \
+`(Get-MpComputerStatus).AntivirusEnabled` статус работы антивируса
+
+`$session = NewCimSession -ComputerName hostname` подключиться к удаленному компьютеру, используется WinRM \
+`Get-MpComputerStatus -CimSession $session | fl fullscan*` узнать дату последнего сканирования на удаленном компьютере
+
+`Get-MpPreference` настройки \
+`(Get-MpPreference).ScanPurgeItemsAfterDelay` время хранения записей журнала защитника в днях \
+`Set-MpPreference -ScanPurgeItemsAfterDelay 30` изменить время хранения \
+`ls "C:\ProgramData\Microsoft\Windows Defender\Scans\History"` \
+`Get-MpPreference | select disable*` отобразить статус всех видов проверок/сканирований \
+`Set-MpPreference -DisableRealtimeMonitoring $true` отключить защиту Defender в реальном времени (использовать только ручное сканирование) \
+`Set-MpPreference -DisableRemovableDriveScanning $false` включить сканирование USB накопителей \
+`Get-MpPreference | select excl*` отобразить список всех исключений \
+`Add-MpPreference -ExclusionPath C:\install` добавить директорию в исключение \
+`Remove-MpPreference -ExclusionPath C:\install` удалить из исключения \
+`New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" -Name DisableAntiSpyware -Value 1 -PropertyType DWORD -Force` полностью отключить Windows Defender
+
+`Set-MpPreference -SignatureDefinitionUpdateFileSharesSources \\FileShare1\Updates` для обновления из сетевой папки нужно предварительно скачать файлы с сигнатурами баз с сайта https://www.microsoft.com/security/portal/definitions/adl.aspx и поместить в сетевой каталог
+`Update-MpSignature -UpdateSource FileShares` изменить источник обновлений (MicrosoftUpdateServer – сервера обновлений MS в интернете, InternalDefinitionUpdateServer — внутренний WSUS сервер) \
+`Update-MpSignature` обновить сигнатуры
+
+`Start-MpScan -ScanType QuickScan` быстрая проверка или FullScan \
+`Start-MpScan -ScanType FullScan -AsJob` \
+`Set-MpPreference -RemediationScheduleDay 1-7` выбрать дни, начиная с воскресенья или 0 каждый день, 8 - сбросить \
+`Set-MpPreference -ScanScheduleQuickScanTime 14:00:00` \
+`Start-MpScan -ScanType CustomScan -ScanPath "C:\Program Files"` сканировать выбранную директорию
+
+`Get-MpThreat` история угроз и тип угрозы (ThreatName: HackTool/Trojan) \
+`Get-MpThreatCatalog` список известных видов угроз \
+`Get-MpThreatDetection` история защиты (активных и прошлые) и ID угрозы \
+`Get-MpThreat -ThreatID 2147760253`
+
+`ls "C:\ProgramData\Microsoft\Windows Defender\Quarantine\"` директория хранения файлов в карантине \
+`cd "C:\Program Files\Windows Defender\"` \
+`.\MpCmdRun.exe -restore -name $ThreatName` восстановить файл из карантина \
+`.\MpCmdRun.exe -restore -filepath $path_file`
 
 # Performance
 
@@ -690,6 +790,10 @@ $ping = New-Object System.Net.Networkinformation.Ping
 ### DNSClient
 `Get-DNSClientServerAddress` \
 `Set-DNSClientServerAddress -InterfaceIndex 14 -ServerAddresses 8.8.8.8`
+
+### DNSCache
+`Get-DnsClientCache` отобразить кэшированные записи клиента DNS \
+`Clear-DnsClientCache` очистить кэш
 
 ### Binding
 `Get-NetAdapterBinding -Name Ethernet -IncludeHidden -AllBindings` \
@@ -1263,7 +1367,14 @@ Invoke-Expression $WBadmin_cmd
 `(Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty` use redirection server name:i:1 \
 `Get-RDConnectionBrokerHighAvailability`
 
-# DNS
+# DNSServer
+
+`Get-Command -Module DnsServer` \
+`Show-DnsServerCache` отобразить весь кэш DNS-сервера \
+`Show-DnsServerCache | where HostName -match ru` \
+`Clear-DnsServerCache` \
+`Get-DnsServerCache` \
+`Get-DnsServerDiagnostics`
 ```
 $zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,
 DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru
@@ -1296,7 +1407,9 @@ $TextA = "$FQDN IN A $IP"
 [Void]$DNSRR.CreateInstanceFromTextRepresentation($DNSServer,$DNSFZone,$TextA)
 }
 ```
-# DHCP
+# DHCPServer
+
+`Get-Command -Module DhcpServer`
 ```
 $mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,
 HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru
@@ -3475,26 +3588,120 @@ MODIFY FILE (NAME = temp2, FILENAME = 'F:\tempdb_mssql_2.ndf' , SIZE = 1048576KB
 
 - Проверка целостности базы данных
 
-DBCC CHECKDB
+`DBCC CHECKDB`
 
 - Индексы. Индексы используются для быстрого поиска данных без необходимости поиска/просмотра всех строк в таблице базы данных при каждом обращении к таблице базы данных. Индекс ускоряет процесс запроса, предоставляя быстрый доступ к строкам данных в таблице, аналогично тому, как указатель в книге помогает вам быстро найти необходимую информацию. Индексы предоставляют путь для быстрого поиска данных на основе значений в этих столбцах. Для каждого индекса обязательно хранится его статистика. MS SQL Server самостоятельно создает и изменяет индексы при работе с базой. С течением времени данные в индексе становятся фрагментированными, т.е. разбросанными по базе данных, что серьезно снижает производительность запросов. Если фрагментация составляет от 5 до 30% (стандартно в задании 15%), то рекомендуется ее устранить с помощью реорганизации, при фрагментации выше 30% (по умолчанию в задаче > 30% фрагментации и число страниц > 1000) необходимо полное перестроение индексов. После перестроения планово используется только реорганизация.
 
 - Реорганизация (Reorganize) или дефрагментация индекса — это серия небольших локальных перемещений страниц так, чтобы индекс не был фрагментирован. После реорганизации статистика не обновляется. Во время выполнения почти все данные доступны, пользователи смогут работать.
 
-sp_msforeachtable N'DBCC INDEXDEFRAG (<имя базы данных>, ''?'')'
+`sp_msforeachtable N'DBCC INDEXDEFRAG (<имя базы данных>, ''?'')'`
 
 - Перестроение (Rebuild) индексов (или задача в мастере планов обслуживания: Восстановить индекс) запускает процесс полного построения индексов. В версии MS SQL Server Standard происходит отключение всех клиентов от базы на время выполнения операции. После перестроения обязательно обновляется статистика.
 
-sp_msforeachtable N'DBCC DBREINDEX (''?'')'
+`sp_msforeachtable N'DBCC DBREINDEX (''?'')'`
 
 - Обновление статистики. Статистика — небольшая таблица (обычно до 200 строк), в которой хранится обобщенная информация о том, какие значения и как часто встречаются в таблице. На основании статистики сервер принимает решение, как лучше построить запрос. Когда происходят запросы к БД (например, SELECT) вы получаете данные, но не описываете то, как эти данные должны быть извлечены. В получении и обработке данных помогает статистика. Во время выполнения процедуры обновления статистики данные не блокируются.
 
-exec sp_msforeachtable N'UPDATE STATISTICS ? WITH FULLSCAN'
+`exec sp_msforeachtable N'UPDATE STATISTICS ? WITH FULLSCAN'`
 
 - Очистка процедурного кэша, выполняется после обновления статистики. Оптимизатор MS SQL Server кэширует планы запросов для их повторного выполнения. Это делается для того, чтобы экономить время, затрачиваемое на компиляцию запроса в том случае, если такой же запрос уже выполнялся и его план известен. После обновия статистики, не будет очищен процедурный кэш, то SQL Server может выбрать старый (неоптимальный) план запроса из кэша вместо того, чтобы построить новый (более оптимальный) план.
 
-DBCC FREEPROCCACHE
+`DBCC FREEPROCCACHE`
 
+# SNMP
+
+### Setup SNMP Service
+
+`Install-WindowsFeature SNMP-Service,SNMP-WMI-Provider -IncludeManagementTools` установить роль SNMP и WMI провайдер через Server Manager \
+`Get-WindowsFeature SNMP*` \
+`Add-WindowsCapability -Online -Name SNMP.Client~~~~0.0.1.0 # установить компонент Feature On Demand для Windows 10/11` \
+`Get-Service SNMP*` \
+`Get-NetFirewallrule -DisplayName *snmp* | ft` \
+`Get-NetFirewallrule -DisplayName *snmp* | Enable-NetFirewallRule`
+
+### Setting SNMP Service via Regedit
+
+Agent: \
+`New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\services\SNMP\Parameters\RFC1156Agent" -Name "sysContact" -Value "lifailon-user"` создать (New) или изменить (Set) \
+`New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\services\SNMP\Parameters\RFC1156Agent" -Name "sysLocation" -Value "plex-server"`
+
+Security: \
+`New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\services\SNMP\Parameters\TrapConfiguration\public"` создать новый community string \
+`New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\ValidCommunities" -Name "public" -Value 16` назначить права на public \
+`1 — NONE` \
+`2 — NOTIFY` позволяет получать SNMP ловушки \
+`4 — READ ONLY` позволяет получать данные с устройства \
+`8 — READ WRITE` позволяет получать данные и изменять конфигурацию устройства \
+`16 — READ CREATE` позволяет читать данные, изменять и создавать объекты \
+`New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\PermittedManagers" -Name "1" -Value "192.168.3.99"` от кого разрешено принимать запросы \
+`Get-Service SNMP | Restart-Service`
+
+### snmpwalk
+`snmpwalk -v 2c -c public 192.168.3.100`
+`snmpwalk -v 2c -c public -O e 192.168.3.100`
+
+### Modules
+
+`Install-Module -Name SNMP` \
+`Get-SnmpData -IP 192.168.3.100 -OID 1.3.6.1.2.1.1.4.0 -UDPport 161 -Community public` \
+`(Get-SnmpData -IP 192.168.3.100 -OID 1.3.6.1.2.1.1.4.0).Data` \
+`Invoke-SnmpWalk -IP 192.168.3.100 -OID 1.3.6.1.2.1.1` пройтись по дереву OID \
+`Invoke-SnmpWalk -IP 192.168.3.100 -OID 1.3.6.1.2.1.25.6.3.1.2` список установленного ПО \
+`Invoke-SnmpWalk -IP 192.168.3.100 -OID 1.3.6.1.2.1.25.2.3.1` список разделов и памяти (C: D: Virtual Memory и Physical Memory) \
+`Set-SnmpData` изменение данных на удаленном устройстве
+
+`Install-Module -Name SNMPv3 \
+`Invoke-SNMPv3Get` получение данных по одному OID \
+`Invoke-SNMPv3Set` изменение данных \
+`Invoke-SNMPv3Walk` обход по дереву OID \
+`Invoke-SNMPv3Walk -UserName lifailon -Target 192.168.3.100 -AuthSecret password -PrivSecret password -OID 1.3.6.1.2.1.1 -AuthType MD5 -PrivType AES128`
+
+### Lextm.SharpSnmpLib
+
+https://api.nuget.org/v3-flatcontainer/lextm.sharpsnmplib/12.5.2/lextm.sharpsnmplib.12.5.2.nupkg \
+`Add-Type -LiteralPath "$home\Desktop\lextm.sharpsnmplib-12.5.2\net471\SharpSnmpLib.dll"`
+```
+$port = 161
+$OID = "1.3.6.1.2.1.1.4.0"
+$variableList = New-Object Collections.Generic.List[Lextm.SharpSnmpLib.Variable]
+$variableList.Add([Lextm.SharpSnmpLib.Variable]::new([Lextm.SharpSnmpLib.ObjectIdentifier]::new($OID)))
+$timeout = 3000
+[Net.IPAddress]$ip = "192.168.3.100"
+$endpoint = New-Object Net.IpEndPoint $ip, $port
+$Community = "public"
+[Lextm.SharpSnmpLib.VersionCode]$Version = "V2"
+
+$message = [Lextm.SharpSnmpLib.Messaging.Messenger]::Get(
+$Version,
+$endpoint,
+$Community,
+$variableList,
+$TimeOut
+)
+$message.Data.ToString()
+```
+### Walk
+```
+[Lextm.SharpSnmpLib.ObjectIdentifier]$OID = "1.3.6.1.2.1.1" # дерево или конечный OID
+$WalkMode = [Lextm.SharpSnmpLib.Messaging.WalkMode]::WithinSubtree # режим обхода по дереву
+$results = New-Object Collections.Generic.List[Lextm.SharpSnmpLib.Variable]
+$message = [Lextm.SharpSnmpLib.Messaging.Messenger]::Walk(
+  $Version,
+  $endpoint,
+  $Community,
+  $OID,
+  $results,
+  $TimeOut,
+  $WalkMode
+)
+$results
+
+$results2 = @()
+foreach ($d in $results) {
+$results2 +=[PSCustomObject]@{'ID'=$d.id.ToString();'Data'=$d.Data.ToString()} # перекодировать вывод построчно в строку
+}
+$results2
+```
 # DSC
 
 `Import-Module PSDesiredStateConfiguration` \
@@ -3507,33 +3714,45 @@ DBCC FREEPROCCACHE
 `Ensure = Present` настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить) \
 `Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
 ```
-Configuration DSConfigurationProxy {
-    Node vproxy-01 {
-        File CreateDir {
+Configuration TestConfiguraion
+{
+    Ctrl+Space
+}
+
+Configuration DSConfigurationProxy 
+{
+    Node vproxy-01 
+    {
+        File CreateDir
+        {
             Ensure = "Present"
             Type = "Directory"
             DestinationPath = "C:\Temp"
         }
-        Service StopW32time {
+        Service StopW32time
+        {
             Name = "w32time"
             State = "Stopped" # Running
         }
-		WindowsProcess RunCalc {
+		WindowsProcess RunCalc
+        {
             Ensure = "Present"
             Path = "C:\WINDOWS\system32\calc.exe"
             Arguments = ""
         }
-        Registry RegSettings {
+        Registry RegSettings
+        {
             Ensure = "Present"
             Key = "HKEY_LOCAL_MACHINE\SOFTWARE\MySoft"
             ValueName = "TestName"
             ValueData = "TestValue"
             ValueType = "String"
         }
-#		WindowsFeature IIS {
+#		WindowsFeature IIS
+#       {
 #            Ensure = "Present"
 #            Name = "Web-Server"
-#        }
+#       }
     }
 }
 ```
@@ -3548,6 +3767,7 @@ Configuration DSConfigurationProxy {
 
 # Ansible
 
+`apt-get update && apt-get upgrade` \
 `apt-get install ansible`
 
 `nano /etc/ansible/ansible.cfg` \
