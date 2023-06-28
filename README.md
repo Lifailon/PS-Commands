@@ -28,8 +28,8 @@
 - [REST API](#REST-API)
 - [IE](#IE)
 - [Selenium](#Selenium)
-- [COM Object](#COM-Object)
-- [dotNET Object](#dotNET-Object)
+- [COM](#COM)
+- [dotNET](#dotNET)
 - [Console API](#Console-API)
 - [Socket](#Socket)
 - [Excel](#Excel)
@@ -2188,7 +2188,7 @@ $Button_Auth.Click()
 $Result = $ie.Document.documentElement.innerHTML
 $ie.Quit()
 ```
-# COM Object
+# COM
 
 `$wshell = New-Object -ComObject Wscript.Shell` \
 `$wshell | Get-Member` \
@@ -2290,7 +2290,7 @@ $Explorer = $Folder.GetExplorer()
 $Explorer.Display()	
 $Outlook.Quit()
 ```
-# dotNET Object
+# dotNET
 
 `[System.Diagnostics.EventLog] | select Assembly,Module` \
 `$EventLog = [System.Diagnostics.EventLog]::new("Application")` \
