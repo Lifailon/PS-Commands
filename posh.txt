@@ -2,7 +2,7 @@ PowerShell Commands
 
 - Object
 - Regex
-- Items
+- Files
 - Credential
 - WinEvent
 - Firewall
@@ -28,8 +28,8 @@ PowerShell Commands
 - REST API
 - IE
 - Selenium
-- COM Object
-- dotNET Object
+- COM
+- dotNET
 - Console API
 - Socket
 - Excel
@@ -38,6 +38,7 @@ PowerShell Commands
 - SQLite
 - MySQL
 - MSSQL
+- SNMP
 - DSC
 - Ansible
 
@@ -433,8 +434,15 @@ $Error.clear()
 $LASTEXITCODE # результат выполнения последней команды (0 - успех)
 exit 1 # код завершения, который возвращается $LASTEXITCODE
 
-# Items
+# Files
 
+$file = [System.IO.File]::Create("$home\desktop\test.txt") # создать файл
+$file.Close() # закрыть файл
+[System.IO.File]::ReadAllLines("$home\desktop\test.txt") # прочитать файл
+$file = New-Object System.IO.StreamReader("$home\desktop\test.txt")
+$file.ReadToEnd()
+
+Get-Content $home/desktop\test.txt -Wait # аналог tail
 Test-Path $path # проверить доступность пути
 Get-ChildItem $path -Filter *.txt -Recurse # отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) и отфильтровать вывод
 Get-Location # отобразить текущие месторасположение (Alias: pwd/gl)
@@ -782,6 +790,10 @@ Set-NetIPInterface -InterfaceIndex 14 -Dhcp Enabled # включить DHCP
 ### DNSClient
 Get-DNSClientServerAddress
 Set-DNSClientServerAddress -InterfaceIndex 14 -ServerAddresses 8.8.8.8
+
+### DNSCache
+Get-DnsClientCache # отобразить кэшированные записи клиента DNS
+Clear-DnsClientCache # очистить кэш
 
 ### Binding
 Get-NetAdapterBinding -Name Ethernet -IncludeHidden -AllBindings
@@ -1355,7 +1367,14 @@ Get-RDAvailableApp -ConnectionBroker $broker -CollectionName C03 # список 
 (Get-RDSessionCollectionConfiguration -ConnectionBroker $broker -CollectionName C03 | select *).CustomRdpProperty # use redirection server name:i:1
 Get-RDConnectionBrokerHighAvailability
 
-# DNS
+# DNSServer
+
+Get-Command -Module DnsServer
+Show-DnsServerCache # отобразить весь кэш DNS-сервера
+Show-DnsServerCache | where HostName -match ru
+Clear-DnsServerCache
+Get-DnsServerCache
+Get-DnsServerDiagnostics
 
 $zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,
 DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru
@@ -1388,7 +1407,9 @@ $TextA = "$FQDN IN A $IP"
 [Void]$DNSRR.CreateInstanceFromTextRepresentation($DNSServer,$DNSFZone,$TextA)
 }
 
-# DHCP
+# DHCPServer
+
+Get-Command -Module DhcpServer
 
 $mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,
 HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru
@@ -2167,7 +2188,7 @@ $Button_Auth.Click()
 $Result = $ie.Document.documentElement.innerHTML
 $ie.Quit()
 
-# COM Object
+# COM
 
 $wshell = New-Object -ComObject Wscript.Shell
 $wshell | Get-Member
@@ -2269,7 +2290,7 @@ $Explorer = $Folder.GetExplorer()
 $Explorer.Display()	
 $Outlook.Quit()
 
-# dotNET Object
+# dotNET
 
 [System.Diagnostics.EventLog] | select Assembly,Module
 $EventLog = [System.Diagnostics.EventLog]::new("Application")
@@ -3586,6 +3607,100 @@ exec sp_msforeachtable N'UPDATE STATISTICS ? WITH FULLSCAN'
 - Очистка процедурного кэша, выполняется после обновления статистики. Оптимизатор MS SQL Server кэширует планы запросов для их повторного выполнения. Это делается для того, чтобы экономить время, затрачиваемое на компиляцию запроса в том случае, если такой же запрос уже выполнялся и его план известен. После обновия статистики, не будет очищен процедурный кэш, то SQL Server может выбрать старый (неоптимальный) план запроса из кэша вместо того, чтобы построить новый (более оптимальный) план.
 
 DBCC FREEPROCCACHE
+
+# SNMP
+
+### Setup SNMP Service
+
+Install-WindowsFeature SNMP-Service,SNMP-WMI-Provider -IncludeManagementTools # установить роль SNMP и WMI провайдер через Server Manager
+Get-WindowsFeature SNMP*
+Add-WindowsCapability -Online -Name SNMP.Client~~~~0.0.1.0 # установить компонент Feature On Demand для Windows 10/11
+Get-Service SNMP*
+Get-NetFirewallrule -DisplayName *snmp* | ft
+Get-NetFirewallrule -DisplayName *snmp* | Enable-NetFirewallRule
+
+### Setting SNMP Service via Regedit
+
+Agent:
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\services\SNMP\Parameters\RFC1156Agent" -Name "sysContact" -Value "lifailon-user" # создать (New) или изменить (Set)
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\services\SNMP\Parameters\RFC1156Agent" -Name "sysLocation" -Value "plex-server"
+
+Security:
+New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\services\SNMP\Parameters\TrapConfiguration\public" # создать новый community string
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\ValidCommunities" -Name "public" -Value 16 # назначить права на public
+1 — NONE
+2 — NOTIFY # позволяет получать SNMP ловушки
+4 — READ ONLY # позволяет получать данные с устройства
+8 — READ WRITE # позволяет получать данные и изменять конфигурацию устройства
+16 — READ CREATE # позволяет читать данные, изменять и создавать объекты
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\SNMP\Parameters\PermittedManagers" -Name "1" -Value "192.168.3.99" # от кого разрешено принимать запросы
+Get-Service SNMP | Restart-Service
+
+### snmpwalk
+snmpwalk -v 2c -c public 192.168.3.100
+snmpwalk -v 2c -c public -O e 192.168.3.100
+
+### Modules
+
+Install-Module -Name SNMP
+Get-SnmpData -IP 192.168.3.100 -OID 1.3.6.1.2.1.1.4.0 -UDPport 161 -Community public
+(Get-SnmpData -IP 192.168.3.100 -OID 1.3.6.1.2.1.1.4.0).Data
+Invoke-SnmpWalk -IP 192.168.3.100 -OID 1.3.6.1.2.1.1 # пройтись по дереву OID
+Invoke-SnmpWalk -IP 192.168.3.100 -OID 1.3.6.1.2.1.25.6.3.1.2 # список установленного ПО
+Invoke-SnmpWalk -IP 192.168.3.100 -OID 1.3.6.1.2.1.25.2.3.1 # список разделов и памяти (C: D: Virtual Memory и Physical Memory)
+Set-SnmpData # изменение данных на удаленном устройстве
+
+Install-Module -Name SNMPv3
+Invoke-SNMPv3Get # получение данных по одному OID
+Invoke-SNMPv3Set # изменение данных
+Invoke-SNMPv3Walk # обход по дереву OID
+Invoke-SNMPv3Walk -UserName lifailon -Target 192.168.3.100 -AuthSecret password -PrivSecret password -OID 1.3.6.1.2.1.1 -AuthType MD5 -PrivType AES128
+
+### Lextm.SharpSnmpLib
+
+https://api.nuget.org/v3-flatcontainer/lextm.sharpsnmplib/12.5.2/lextm.sharpsnmplib.12.5.2.nupkg
+Add-Type -LiteralPath "$home\Desktop\lextm.sharpsnmplib-12.5.2\net471\SharpSnmpLib.dll"
+
+$port = 161
+$OID = "1.3.6.1.2.1.1.4.0"
+$variableList = New-Object Collections.Generic.List[Lextm.SharpSnmpLib.Variable]
+$variableList.Add([Lextm.SharpSnmpLib.Variable]::new([Lextm.SharpSnmpLib.ObjectIdentifier]::new($OID)))
+$timeout = 3000
+[Net.IPAddress]$ip = "192.168.3.100"
+$endpoint = New-Object Net.IpEndPoint $ip, $port
+$Community = "public"
+[Lextm.SharpSnmpLib.VersionCode]$Version = "V2"
+
+$message = [Lextm.SharpSnmpLib.Messaging.Messenger]::Get(
+$Version,
+$endpoint,
+$Community,
+$variableList,
+$TimeOut
+)
+$message.Data.ToString()
+
+### Walk
+
+[Lextm.SharpSnmpLib.ObjectIdentifier]$OID = "1.3.6.1.2.1.1" # дерево или конечный OID
+$WalkMode = [Lextm.SharpSnmpLib.Messaging.WalkMode]::WithinSubtree # режим обхода по дереву
+$results = New-Object Collections.Generic.List[Lextm.SharpSnmpLib.Variable]
+$message = [Lextm.SharpSnmpLib.Messaging.Messenger]::Walk(
+  $Version,
+  $endpoint,
+  $Community,
+  $OID,
+  $results,
+  $TimeOut,
+  $WalkMode
+)
+$results
+
+$results2 = @()
+foreach ($d in $results) {
+$results2 +=[PSCustomObject]@{'ID'=$d.id.ToString();'Data'=$d.Data.ToString()} # перекодировать вывод построчно в строку
+}
+$results2
 
 # DSC
 
