@@ -34,6 +34,9 @@ PowerShell Commands
 - Socket
 - Excel
 - XML
+- JSON
+- YAML
+- HTML
 - Git
 - SQLite
 - MySQL
@@ -2932,7 +2935,7 @@ $NewElement.set_InnerXML("<Name>Times New Roman</Name><Size>14</Size>") # Зап
 $xml.Root.Configuration.AppendChild($NewElement) # добавить элемент новой строкой в Configuration (родитель Fonts)
 $xml.Save("$home\desktop\test.xml")
 
-### JSON (JavaScript Object Notation)
+# JSON
 
 log =
 {
@@ -2953,17 +2956,17 @@ $log = '
 
 Get-Service | ConvertTo-Json
 
-### YAML (Yet Another Markup Language)
+# YAML
 
-Import-Module PSYaml
-$network = "
-network:
+Import-Module PSYaml # используется в Docker-compose и Ansible playbooks. Правила оформления YAML-файлов:
+$netplan = "
+network: # словарь по типу - ключ : значение с вложенными словарями
   ethernets:
     ens160:
       dhcp4: yes
       dhcp6: no
       nameservers:
-        addresses: # [8.8.8.8, 1.1.1.1]
+        addresses: # [8.8.8.8, 1.1.1.1] # список данных (строк)
 		  - 8.8.8.8
 		  - 1.1.1.1
   version: 2
@@ -2971,7 +2974,8 @@ network:
 $Result = ConvertFrom-Yaml $network
 $Result.Values.ethernets.ens160.nameservers
 
-### HTML (HyperText Markup Language)
+# HTML
+
 Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html" # вывод в формате List (Format-List) или Table (Format-Table)
 
 ### PSWriteHTML
