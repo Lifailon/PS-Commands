@@ -3637,7 +3637,7 @@ Security: \
 `Get-Service SNMP | Restart-Service`
 
 ### snmpwalk
-`snmpwalk -v 2c -c public 192.168.3.100`
+`snmpwalk -v 2c -c public 192.168.3.100` \
 `snmpwalk -v 2c -c public -O e 192.168.3.100`
 
 ### Modules
@@ -3650,7 +3650,7 @@ Security: \
 `Invoke-SnmpWalk -IP 192.168.3.100 -OID 1.3.6.1.2.1.25.2.3.1` список разделов и памяти (C: D: Virtual Memory и Physical Memory) \
 `Set-SnmpData` изменение данных на удаленном устройстве
 
-`Install-Module -Name SNMPv3 \
+`Install-Module -Name SNMPv3` \
 `Invoke-SNMPv3Get` получение данных по одному OID \
 `Invoke-SNMPv3Set` изменение данных \
 `Invoke-SNMPv3Walk` обход по дереву OID \
