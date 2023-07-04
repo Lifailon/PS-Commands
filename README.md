@@ -7,13 +7,10 @@
 - [WinEvent](#WinEvent)
 - [Firewall](#Firewall)
 - [Defender](#Defender)
-- [Performance](#Performance)
-- [Regedit](#Regedit)
 - [Scheduled](#Scheduled)
 - [Network](#Network)
+- [LocalAccounts](#LocalAccounts)
 - [SMB](#SMB)
-- [WinRM](#WinRM)
-- [WMI](#WMI)
 - [ActiveDirectory](#ActiveDirectory)
 - [ServerManager](#ServerManager)
 - [DNS](#DNSServer)
@@ -31,8 +28,9 @@
 - [COM](#COM)
 - [dotNET](#dotNET)
 - [Console API](#Console-API)
-- [Socket](#Socket)
+- [Sockets](#Sockets)
 - [Excel](#Excel)
+- [CSV](#CSV)
 - [XML](#XML)
 - [JSON](#JSON)
 - [YAML](#YAML)
@@ -41,7 +39,14 @@
 - [SQLite](#SQLite)
 - [MySQL](#MySQL)
 - [MSSQL](#MSSQL)
+- [InfluxDB](#InfluxDB)
+- [WMI](#WMI)
+- [Regedit](#Regedit)
+- [Performance](#Performance)
 - [SNMP](#SNMP)
+- [Zabbix](#Zabbix)
+- [Grafana](#Grafana)
+- [WinRM](#WinRM)
 - [DSC](#DSC)
 - [Ansible](#Ansible)
 
@@ -134,7 +139,7 @@ $hashtable.Remove("User") # удалить ключ
 ```
 `$Tag = @{$true = 'dev'; $false = 'prod'}[([System.Net.Dns]::GetHostEntry("localhost").HostName) -match '.*.TestDomain$']`
 
-### List
+### Collections/List
 ```
 $Collections = New-Object System.Collections.Generic.List[System.Object]
 $Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})
@@ -304,6 +309,10 @@ $		# Конец строки
 `(?<=text)` поиск слова справа. $in_time -replace ".+(?<=Last)" # удалить все до слова Last \
 `(?!text)` не совпадает со словом слева \
 `(?<!text)` не совпадает со словом справа
+
+`$test = "string"` \
+`$test -replace ".{1}$"` удалить любое кол-во символов в конце строки \
+`$test -replace "^.{1}"` удалить любое кол-во символов в начале строки
 
 ### Группы захвата
 `$date = '12.31.2021'` \
@@ -685,57 +694,6 @@ $obj
 `.\MpCmdRun.exe -restore -name $ThreatName` восстановить файл из карантина \
 `.\MpCmdRun.exe -restore -filepath $path_file`
 
-# Performance
-
-`(Get-Counter -ListSet *).CounterSetName` вывести список всех доступных счетчиков производительности в системе \
-`(Get-Counter -ListSet *memory*).Counter` поиск по wildcard-имени во всех счетчиках (включая дочернии) \
-`Get-Counter "\Memory\Available MBytes"` объем свободной оперативной памяти \
-`Get-Counter -cn $srv "\LogicalDisk(*)\% Free Space"` % свободного места на всех разделах дисков \
-`(Get-Counter "\Process(*)\ID Process").CounterSamples` \
-`Get-Counter "\Processor(_Total)\% Processor Time" –ComputerName $srv -MaxSamples 5 -SampleInterval 2` 5 проверок каждые 2 секунды \
-`Get-Counter "\Процессор(_Total)\% загруженности процессора" -Continuous` непрерывно \
-`(Get-Counter "\Процессор(*)\% загруженности процессора").CounterSamples`
-
-`(Get-Counter -ListSet *интерфейс*).Counter` найти все счетчики \
-`Get-Counter "\Сетевой интерфейс(*)\Всего байт/с"` отобразить все адаптеры (выбрать действующий по трафику)
-```
-$WARNING = 25
-$CRITICAL = 50
-$TransferRate = ((Get-Counter "\\huawei-mb-x-pro\сетевой интерфейс(intel[r] wi-fi 6e ax211 160mhz)\всего байт/с"
-).countersamples | select -ExpandProperty CookedValue)*8
-$NetworkUtilisation = [math]::round($TransferRate/1000000000*100,2)
-if ($NetworkUtilisation -gt $CRITICAL){
-Write-Output "CRITICAL: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"   
-#exit 2		
-}
-if ($NetworkUtilisation -gt $WARNING){
-Write-Output "WARNING: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"
-#exit 1
-}
-Write-Output "OK: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"   
-#exit 0
-```
-# Regedit
-
-`Get-PSDrive` список всех доступных дисков и веток реестра \
-`cd HKLM:\` HKEY_LOCAL_MACHINE \
-`cd HKCU:\` HKEY_CURRENT_USER \
-`Get-Item` получить информацию о ветке реестра \
-`New-Item` создать новый раздел реестра \
-`Remove-Item` удалить ветку реестра \
-`Get-ItemProperty` получить значение ключей/параметров реестра (это свойства ветки реестра, аналогично свойствам файла) \
-`Set-ItemProperty` изменить название или значение параметра реестра \
-`New-ItemProperty` создать параметр реестра \
-`Remove-ItemProperty` удалить параметр
-
-`Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Select DisplayName` список установленных программ \
-`Get-Item HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002` посмотреть содержимое Items \
-`(Get-ItemProperty HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002)."New Signature"` отобразить значение (Value) свойства (Property) Items \
-`$reg_path = "HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002"` \
-`$sig_name = "auto"` \
-`Set-ItemProperty -Path $reg_path -Name "New Signature" -Value $sig_name` изменить или добавить в корне ветки (Path) свойство (Name) со значением (Value) \
-`Set-ItemProperty -Path $reg_path -Name "Reply-Forward Signature" -Value $sig_name`
-
 # Scheduled
 
 `$Trigger = New-ScheduledTaskTrigger -At 01:00am -Daily` 1:00 ночи \
@@ -880,7 +838,8 @@ $mac_coll
 ### shutdown
 `shutdown /r /o` перезагрузка в безопасный режим
 
-### LocalAccounts
+# LocalAccounts
+
 `Get-Command -Module Microsoft.PowerShell.LocalAccounts`
 `Get-LocalUser` список пользователей \
 `Get-LocalGroup` список групп \
@@ -894,33 +853,6 @@ icm $_ {Add-LocalGroupMember -Group "Administrators" -Member "support4"}
 icm $_ {Get-LocalGroupMember "Administrators"}
 }
 ```
-# WinRM
-
-`Get-Service -Name winrm -RequiredServices` статус зависимых служб \
-`Enter-PSSession -ComputerName $srv` подключиться к PowerShell сессии через PSRemoting. Подключение возможно только по FQDN-имени \
-`Invoke-Command $srv -ScriptBlock {Get-ComputerInfo}` выполнение команды через PSRemoting \
-`$session = New-PSSession $srv` открыть сессию \
-`Get-PSSession` отобразить активные сессии \
-`icm -Session $session {$srv = $using:srv}` передать переменную текущей сессии ($using) в удаленную \
-`Disconnect-PSSession $session` закрыть сессию \
-`Remove-PSSession $session` удалить сессию
-
-### Windows Remote Management Configuration
-`winrm quickconfig -quiet` изменит запуск службы WinRM на автоматический, задаст стандартные настройки WinRM и добавить исключения для портов в fw \
-`Enable-PSRemoting –Force` \
-`Test-WSMan $srv -ErrorAction Ignore` проверить работу WinRM на удаленном компьютере (игнорировать вывыод ошибок) \
-`New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -DnsName "$env:computername" -FriendlyName "WinRM HTTPS Certificate" -NotAfter (Get-Date).AddYears(5)` создать самоподписанный сертификат и скопировать отпечаток (thumbprint) \
-`New-Item -Path WSMan:\Localhost\Listener -Transport HTTPS -Address * -CertificateThumbprint "CACA491A66D1706AC2FEB5E53D0E111C1C73DD65"` создать прослушиватель \
-`New-NetFirewallRule -DisplayName 'WinRM HTTPS Management' -Profile Domain,Private -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5986` открыть порт в fw \
-`winrm enumerate winrm/config/listener` текущая конфигурация прослушивателей WinRM (отображает отпечаток cert SSL для HTTPS 5986) \
-`dir WSMan:\localhost\client` отобразить конфигурацию \
-`winrm get winrm/config/service/auth` список всех конфигураций аутентификации WinRM (WSMan:\localhost\client\auth) \
-`Set-Item -path wsman:\localhost\service\auth\basic -value $true` разрешить локальную аутентификацию \
-`Set-PSSessionConfiguration -ShowSecurityDescriptorUI -Name Microsoft.PowerShell` добавить права доступа через дескриптор безопасности \
-`Set-Item WSMan:\localhost\client\allowunencrypted $true` работать без шифрования \
-`Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
-`net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
-
 # SMB
 
 `Get-SmbServerConfiguration` \
@@ -994,55 +926,6 @@ icm $_ {Get-LocalGroupMember "Administrators"}
 `Get-IscsiTarget | fl` \
 `Disconnect-IscsiTarget -NodeAddress ″iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target″ -Confirm:$false` отключиться
 
-# WMI
-
-### WMI/CIM (Windows Management Instrumentation/Common Information Model)	
-`Get-WmiObjec -ComputerName localhost -Namespace root -class "__NAMESPACE" | select name,__namespace` отобразить дочернии Namespace (логические иерархические группы) \
-`Get-WmiObject -List` отобразить все классы пространства имен "root\cimv2" (по умолчанию), свойства (описывают конфигурацию и текущее состояние управляемого ресурса) и их методы (какие действия позволяет выполнить над этим ресурсом) \
-`Get-WmiObject -List | Where-Object {$_.name -match "video"}` поиск класса по имени, его свойств и методов \
-`Get-WmiObject -ComputerName localhost -Class Win32_VideoController` отобразить содержимое свойств класса
-
-`gwmi -List | where name -match "service" | ft -auto` если в таблице присутствуют Methods, то можно взаимодействовать {StartService, StopService} \
-`gwmi -Class win32_service | select *` отобразить список всех служб и всех их свойств \
-`Get-CimInstance Win32_service` обращается на прямую к "root\cimv2" \
-`Get-CimInstance -ComputerName $srv Win32_OperatingSystem | select LastBootUpTime` время последнего включения \
-`gwmi -ComputerName $srv -Class Win32_OperatingSystem | select LocalDateTime,LastBootUpTime` текущее время и время последнего включения \
-`gwmi win32_service -Filter "name='Zabbix Agent'"` отфильтровать вывод по имени \
-`(gwmi win32_service -Filter "name='Zabbix Agent'").State` отобразить конкретное свойство \
-`gwmi win32_service -Filter "State = 'Running'"` отфильтровать запущенные службы \
-`gwmi win32_service -Filter "StartMode = 'Auto'"` отфильтровать службы по методу запуска \
-`gwmi -Query 'select * from win32_service where startmode="Auto"'` WQL-запрос (WMI Query Language) \
-`gwmi win32_service | Get-Member -MemberType Method` отобразить все методы взаимодействия с описание применения (Delete, StartService) \
-`(gwmi win32_service -Filter 'name="Zabbix Agent"').Delete()` удалить службу \
-`(gwmi win32_service -Filter 'name="MSSQL$MSSQLE"').StartService()` запустить службу \
-`gwmi Win32_OperatingSystem | Get-Member -MemberType Method` методы reboot и shutdown \
-`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Reboot()` используется с ключем повышения привелегий \
-`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Win32Shutdown(0)` завершение сеанса пользователя \
-`gwmi -list -Namespace root\CIMV2\Terminalservices` \
-`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections` \
-`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP \
-`(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах \
-`gwmi Win32_UserAccount` доменные пользователи \
-`(gwmi Win32_SystemUsers).PartComponent` \
-`Get-CimInstance -ClassName Win32_LogonSession` \
-`Get-CimInstance -ClassName Win32_BIOS`
-```
-$srv = "localhost"
-gwmi Win32_logicalDisk -ComputerName $srv | where {$_.Size -ne $null} | select @{
-Label="Value"; Expression={$_.DeviceID}}, @{Label="AllSize"; Expression={
-[string]([int]($_.Size/1Gb))+" GB"}},@{Label="FreeSize"; Expression={
-[string]([int]($_.FreeSpace/1Gb))+" GB"}}, @{Label="Free%"; Expression={
-[string]([int]($_.FreeSpace/$_.Size*100))+" %"}}
-```
-### NLA (Network Level Authentication)
-`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").UserAuthenticationRequired` \
-`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(1)` включить NLA \
-`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer` отобразить значение (2) \
-`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication` отобразить значение (1) \
-`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer -Value 0` изменить значение \
-`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication -Value 0` \
-`REG ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters /v AllowEncryptionOracle /t REG_DWORD /d 2` отключить на клиентском компьютере проверку версии CredSSP, если на целевом комьютере-сервере не установлены обновления KB4512509 от мая 2018 года
-
 # ActiveDirectory
 
 ### RSAT (Remote Server Administration Tools)
@@ -1054,6 +937,11 @@ Label="Value"; Expression={$_.DeviceID}}, @{Label="AllSize"; Expression={
 `Add-WindowsCapability -Online -Name Rsat.CertificateServices.Tools~~~~0.0.1.0` \
 `Add-WindowsCapability -Online -Name Rsat.RemoteDesktop.Services.Tools~~~~0.0.1.0` \
 `Get-WindowsCapability -Name RSAT* -Online | Select-Object -Property DisplayName, State` отобразить список установленных компанентов
+
+### SSH
+`Get-WindowsCapability -Online | ? Name -like 'OpenSSH.Client*'` \
+`Add-WindowsCapability -Online -Name OpenSSH.Client*` \
+`dism /Online /Add-Capability /CapabilityName:OpenSSH.Client~~~~0.0.1.0`
 
 ### Import-Module ActiveDirectory
 `$Session = New-PSSession -ComputerName $srv # -Credential $cred` \
@@ -2642,7 +2530,7 @@ $date = Get-Date -f hh:mm:ss
 (New-Object -ComObject Wscript.Shell).Popup("PowerShell Exit: $date",0,"Action",64)
 }
 ```
-# Socket
+# Sockets
 
 ### UDP Socket
 Source: https://cloudbrothers.info/en/test-udp-connection-powershell/
@@ -2874,6 +2762,17 @@ $Excel.Quit()
 `$Chart = New-ExcelChartDefinition -XRange CPU -YRange WS -Title "Process" -NoLegend` \
 `$data | Export-Excel .\ps.xlsx -AutoNameRange -ExcelChartDefinition $Chart -Show`
 
+# CSV
+
+`Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
+`Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
+```
+$data = ConvertFrom-Csv @"
+Region,State,Units,Price
+West,Texas,927,923.71
+$null,Tennessee,466,770.67
+"@
+```
 # XML
 ```
 $xml = [xml](Get-Content $home\desktop\test.rdg) # прочитать содержимое XML-файла
@@ -2952,13 +2851,26 @@ $log = '
   "log": {
     "level": 7
   }
-}' | ConvertFrom-Json
+}
+' | ConvertFrom-Json
+
+Invoke-RestMethod https://www.speedtest.net/result/14708271987
+
+$OOKLA  = '
+{
+"result" : 
+{"date":1683534970,"id":"14708271987","connection_icon":"wireless","download":33418,"upload":35442,"latency":15,"distance":50,"country_code":"RU","server_id":2707,"server_name":"Bryansk","sponsor_name":"DOM.RU","sponsor_url":null,"connection_mode":"multi","isp_name":"Resource Link","isp_rating":"4.0","test_rank":63,"test_grade":"B-","test_rating":4,"idle_latency":"17","download_latency":"116","upload_latency":"75","additional_servers":
+[{"server_id":8191,"server_name":"Bryansk","sponsor_name":"SectorTelecom.ru"},{"server_id":46278,"server_name":"Fokino","sponsor_name":"Fokks - Promyshlennaya avtomatika Ltd."},{"server_id":18218,"server_name":"Bryansk","sponsor_name":"RIA-link Ltd."}],
+"path":"result\u002F14708271987","hasSecondary":true
+}
+}
+' | ConvertFrom-Json
 ```
 `Get-Service | ConvertTo-Json`
 
 # YAML
 ```
-Import-Module PSYaml # используется в Docker-compose и Ansible playbooks. Правила оформления YAML-файлов:
+Import-Module PSYaml # используется в Docker-compose и Ansible playbooks
 $netplan = "
 network: # словарь по типу - ключ : значение с вложенными словарями
   ethernets:
@@ -2971,8 +2883,15 @@ network: # словарь по типу - ключ : значение с вло�
 		  - 1.1.1.1
   version: 2
 "
-$Result = ConvertFrom-Yaml $network
-$Result.Values.ethernets.ens160.nameservers
+$network = ConvertFrom-Yaml $netplan
+$network.Values.ethernets.ens160.nameservers
+
+$DataType = "
+int: !!int 10.1
+flo: !!float 10.1
+str: !!str string
+bool: !!bool # boolean
+"
 ```
 # HTML
 
@@ -2995,19 +2914,9 @@ New-Chart Column "Top CPU Overall" -input $topCPU
 ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Processes"
 } > ~\Desktop\Get-Process-HtmlReport.html
 ```
-### CSV (Comma-Separated Values)
-`Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
-`Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
-```
-$data = ConvertFrom-Csv @"
-Region,State,Units,Price
-West,Texas,927,923.71
-$null,Tennessee,466,770.67
-"@
-```
 # Git
 
-`git --version`
+`git --version` \
 `git config --global user.name "Lifailon"` добавить имя для коммитов \
 `git config --global user.email "lifailon@yandex.ru"` \
 `git config --global --edit` \
@@ -3612,6 +3521,231 @@ MODIFY FILE (NAME = temp2, FILENAME = 'F:\tempdb_mssql_2.ndf' , SIZE = 1048576KB
 
 `DBCC FREEPROCCACHE`
 
+# InfluxDB
+
+https://community.influxdata.com/t/influxdb-1-7-11-download-links/18898 # InfluxDB1 \
+`wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.1-windows-amd64.zip -UseBasicParsing -OutFile influxdb2-2.7.1-windows-amd64.zip` скачать InfluxDB2 \
+`Expand-Archive .\influxdb2-2.7.1-windows-amd64.zip -DestinationPath 'C:\Program Files\InfluxData\influxdb\'` разархивировать \
+`cd "C:\Program Files\InfluxData\influxdb\influxdb2_windows_amd64"` \
+`.\influxd.exe` \
+`.\influxd -h` \
+`http://localhost:8086/` базовая настройка \
+API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIosiCFkhi4EoWfHxwIlAA==`
+
+### CLI Client
+`wget https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.7.3-windows-amd64.zip?_gl=1*76m6hu*_ga*MTg0OTc4MzkzNC4xNjg4MTM5NzQ4*_ga_CNWQ54SDD8*MTY4ODE2MjA0My41LjEuMTY4ODE2MzI5Ni4yMi4wLjA. -UseBasicParsing -OutFile influxdb2-client-2.7.3-windows-amd64.zip` \
+`Expand-Archive .\influxdb2-client-2.7.3-windows-amd64.zip -DestinationPath 'C:\Program Files\InfluxData\influx'` \
+`cd "C:\Program Files\InfluxData\influx"`
+
+`.\influx org list` отобразить список пользователей организаций \
+`.\influx auth list` отобразить список пользователей и токенов \
+`.\influx v1 shell` консоль \
+`.\influx v1 dbrp list` список БД
+```
+.\influx config create --config-name main `
+--host-url "http://localhost:8086" `
+--org "test" `
+--token "wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIosiCFkhi4EoWfHxwIlAA==" `
+--active # создать и активировать конфигурацию, что бы не передавать свой хост InfluxDB, токен API и организацию с каждой командой
+```
+`.\influx config list` список конфигураций \
+`.\influx config list --json | ConvertFrom-Json` отобразить конфигурацию с выводом токена \
+`.\influx server-config | ConvertFrom-Json` текущая конфигурация сервера
+
+### bucket
+`.\influx bucket create --name test-bucket -c main` создать корзину \
+`.\influx write --bucket test-bucket --url https://influx-testdata.s3.amazonaws.com/air-sensor-data-annotated.csv` записать данные из CSV в созданную корзину (Flux scripting language) \
+`.\influx query 'from(bucket:\"test-bucket\") |> range(start:-30m) |> mean()'` получить записанные данные
+
+### user
+`.\influx user create -n root -o test` создать пользователя (-o <org-name>) \
+`.\influx user password -n admin -p "password"` изменить/задать пароль \
+`.\influx user list` список пользователей \
+`influx user delete -i <user-id>`
+
+### deb
+
+`wget https://repos.influxdata.com/debian/packages/influxdb2-2.7.1-amd64.deb` \
+`dpkg -i influxdb2-2.7.1-amd64.deb` \
+`systemctl start influxd.service` \
+`systemctl status influxd.service` \
+`netstat -natpl | grep 80[8-9][3-9]` \
+`ps aux | grep influxdb | grep -Ev "grep"`
+
+`nano /etc/influxdb/config.toml` v2 \
+`http-bind-address = "192.168.3.101:8086"`
+
+`nano /etc/influxdb/influxdb.conf` v1
+```
+[http]
+  enabled = true # включить API
+  bind-address = "192.168.3.104:8086"
+  auth-enabled = true # включить аудентификацию
+```
+`apt install influxdb-client` \
+`influx` \
+`influx --host 192.168.3.104 --username admin --password password`
+
+### USERS
+`SHOW USERS` отобразить пользователей и их права доступа \
+`CREATE USER admin WITH PASSWORD 'password' WITH ALL PRIVILEGES` создать пользователя \
+`GRANT ALL PRIVILEGES TO "admin"` предоставить права доступа \
+`GRANT READ ON "database" TO "admin"` доступ на чтение для БД или запись (WRITE) \
+`REVOKE ALL PRIVILEGES FROM "admin"` отозвать права доступа \
+`SHOW GRANTS FOR "admin"` БД и привелегии доступа для указанного пользователя \
+`SET PASSWORD FOR "admin" = 'new_password'` изменить пароль \
+`DROP USER "admin"` удалить пользователя
+
+### DATABASE
+`CREATE DATABASE win_performance` создать БД \
+`SHOW DATABASES` отобразить список БД \
+`USE win_performance` \
+`SHOW measurements` отобразить все таблицы \
+`INSERT counters,host=console,counter=CPU value=0.88` записать данные в таблицу counters \
+`SELECT * FROM counters` отобразить все данные в таблице \
+`SELECT * FROM counters limit 10` отобразить 10 единиц данных \
+`SELECT * FROM counters WHERE time > now() -2h` отобразить данные за последние 2 часа
+
+`SELECT/DELETE/SHOW/CREATE/DROP/EXPLAIN/GRANT/REVOKE/ALTER/SET/KILL`
+
+### API POST
+```
+$url = "http://192.168.3.104:8086/write?db=win_performance"
+$PerformanceStat = "\Процессор(_Total)\% загруженности процессора"
+$Value = ((Get-Counter $PerformanceStat).CounterSamples).CookedValue
+Invoke-RestMethod -Method POST -Uri $url -Body "counters,host=$ENV:COMPUTERNAME,counter=CPU value=$value"
+```
+### API GET
+
+`curl http://192.168.3.104:8086/query --data-urlencode "q=SHOW DATABASES" # | ConvertFrom-Json`
+
+`$db = irm "http://192.168.3.104:8086/query?q=SHOW DATABASES"` \
+`$db = irm "http://192.168.3.104:8086/query?epoch=ms&u=admin&p=password&q=SHOW DATABASES"` \
+`$db.results.series.values`
+```
+$ip_port = "192.168.3.104:8086"
+$db      = "win_performance"
+$query   = 'SELECT * FROM counters'
+$url     = "http://$ip_port/query?db=$db&q=$query"
+#$cred   = Get-Credential
+#$user   = "admin"
+#$pass   = "password" | ConvertTo-SecureString -AsPlainText -Force
+#$cred   = [System.Management.Automation.PSCredential]::new($user,$pass)
+$rest    = Invoke-RestMethod -Method GET -Uri $url # -Credential $cred 
+$name    = $rest.results.series.name          # имя таблицы
+$col     = $rest.results.series.columns       # столбцы/ключи
+$val     = $rest.results.series.values        # данные построчно
+
+$mass    = @()
+$mass   += [string]$col -replace "\s"," | "
+foreach ($v in $val) {
+	$mass += [string]$v -replace "\s","   "
+}
+$mass
+```
+`irm http://localhost:8086/api/v2/setup` \
+`irm http://localhost:8086/api/v2/config`
+
+# WMI
+
+### WMI/CIM (Windows Management Instrumentation/Common Information Model)	
+`Get-WmiObjec -ComputerName localhost -Namespace root -class "__NAMESPACE" | select name,__namespace` отобразить дочернии Namespace (логические иерархические группы) \
+`Get-WmiObject -List` отобразить все классы пространства имен "root\cimv2" (по умолчанию), свойства (описывают конфигурацию и текущее состояние управляемого ресурса) и их методы (какие действия позволяет выполнить над этим ресурсом) \
+`Get-WmiObject -List | Where-Object {$_.name -match "video"}` поиск класса по имени, его свойств и методов \
+`Get-WmiObject -ComputerName localhost -Class Win32_VideoController` отобразить содержимое свойств класса
+
+`gwmi -List | where name -match "service" | ft -auto` если в таблице присутствуют Methods, то можно взаимодействовать {StartService, StopService} \
+`gwmi -Class win32_service | select *` отобразить список всех служб и всех их свойств \
+`Get-CimInstance Win32_service` обращается на прямую к "root\cimv2" \
+`Get-CimInstance -ComputerName $srv Win32_OperatingSystem | select LastBootUpTime` время последнего включения \
+`gwmi -ComputerName $srv -Class Win32_OperatingSystem | select LocalDateTime,LastBootUpTime` текущее время и время последнего включения \
+`gwmi win32_service -Filter "name='Zabbix Agent'"` отфильтровать вывод по имени \
+`(gwmi win32_service -Filter "name='Zabbix Agent'").State` отобразить конкретное свойство \
+`gwmi win32_service -Filter "State = 'Running'"` отфильтровать запущенные службы \
+`gwmi win32_service -Filter "StartMode = 'Auto'"` отфильтровать службы по методу запуска \
+`gwmi -Query 'select * from win32_service where startmode="Auto"'` WQL-запрос (WMI Query Language) \
+`gwmi win32_service | Get-Member -MemberType Method` отобразить все методы взаимодействия с описание применения (Delete, StartService) \
+`(gwmi win32_service -Filter 'name="Zabbix Agent"').Delete()` удалить службу \
+`(gwmi win32_service -Filter 'name="MSSQL$MSSQLE"').StartService()` запустить службу \
+`gwmi Win32_OperatingSystem | Get-Member -MemberType Method` методы reboot и shutdown \
+`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Reboot()` используется с ключем повышения привелегий \
+`(gwmi Win32_OperatingSystem -EnableAllPrivileges).Win32Shutdown(0)` завершение сеанса пользователя \
+`gwmi -list -Namespace root\CIMV2\Terminalservices` \
+`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).AllowTSConnections` \
+`(gwmi -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(1)` включить RDP \
+`(Get-WmiObject win32_battery).estimatedChargeRemaining` заряд батареи в процентах \
+`gwmi Win32_UserAccount` доменные пользователи \
+`(gwmi Win32_SystemUsers).PartComponent` \
+`Get-CimInstance -ClassName Win32_LogonSession` \
+`Get-CimInstance -ClassName Win32_BIOS`
+```
+$srv = "localhost"
+gwmi Win32_logicalDisk -ComputerName $srv | where {$_.Size -ne $null} | select @{
+Label="Value"; Expression={$_.DeviceID}}, @{Label="AllSize"; Expression={
+[string]([int]($_.Size/1Gb))+" GB"}},@{Label="FreeSize"; Expression={
+[string]([int]($_.FreeSpace/1Gb))+" GB"}}, @{Label="Free%"; Expression={
+[string]([int]($_.FreeSpace/$_.Size*100))+" %"}}
+```
+### NLA (Network Level Authentication)
+`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").UserAuthenticationRequired` \
+`(gwmi -class "Win32_TSGeneralSetting" -Namespace root\cimv2\Terminalservices -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(1)` включить NLA \
+`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer` отобразить значение (2) \
+`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication` отобразить значение (1) \
+`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name SecurityLayer -Value 0` изменить значение \
+`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name UserAuthentication -Value 0` \
+`REG ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters /v AllowEncryptionOracle /t REG_DWORD /d 2` отключить на клиентском компьютере проверку версии CredSSP, если на целевом комьютере-сервере не установлены обновления KB4512509 от мая 2018 года
+
+# Regedit
+
+`Get-PSDrive` список всех доступных дисков и веток реестра \
+`cd HKLM:\` HKEY_LOCAL_MACHINE \
+`cd HKCU:\` HKEY_CURRENT_USER \
+`Get-Item` получить информацию о ветке реестра \
+`New-Item` создать новый раздел реестра \
+`Remove-Item` удалить ветку реестра \
+`Get-ItemProperty` получить значение ключей/параметров реестра (это свойства ветки реестра, аналогично свойствам файла) \
+`Set-ItemProperty` изменить название или значение параметра реестра \
+`New-ItemProperty` создать параметр реестра \
+`Remove-ItemProperty` удалить параметр
+
+`Get-ItemProperty HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\* | Select DisplayName` список установленных программ \
+`Get-Item HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002` посмотреть содержимое Items \
+`(Get-ItemProperty HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002)."New Signature"` отобразить значение (Value) свойства (Property) Items \
+`$reg_path = "HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375CFF0413111d3B88A00104B2A6676\00000002"` \
+`$sig_name = "auto"` \
+`Set-ItemProperty -Path $reg_path -Name "New Signature" -Value $sig_name` изменить или добавить в корне ветки (Path) свойство (Name) со значением (Value) \
+`Set-ItemProperty -Path $reg_path -Name "Reply-Forward Signature" -Value $sig_name`
+
+# Performance
+
+`(Get-Counter -ListSet *).CounterSetName` вывести список всех доступных счетчиков производительности в системе \
+`(Get-Counter -ListSet *memory*).Counter` поиск по wildcard-имени во всех счетчиках (включая дочернии) \
+`Get-Counter "\Memory\Available MBytes"` объем свободной оперативной памяти \
+`Get-Counter -cn $srv "\LogicalDisk(*)\% Free Space"` % свободного места на всех разделах дисков \
+`(Get-Counter "\Process(*)\ID Process").CounterSamples` \
+`Get-Counter "\Processor(_Total)\% Processor Time" –ComputerName $srv -MaxSamples 5 -SampleInterval 2` 5 проверок каждые 2 секунды \
+`Get-Counter "\Процессор(_Total)\% загруженности процессора" -Continuous` непрерывно \
+`(Get-Counter "\Процессор(*)\% загруженности процессора").CounterSamples`
+
+`(Get-Counter -ListSet *интерфейс*).Counter` найти все счетчики \
+`Get-Counter "\Сетевой интерфейс(*)\Всего байт/с"` отобразить все адаптеры (выбрать действующий по трафику)
+```
+$WARNING = 25
+$CRITICAL = 50
+$TransferRate = ((Get-Counter "\\huawei-mb-x-pro\сетевой интерфейс(intel[r] wi-fi 6e ax211 160mhz)\всего байт/с"
+).countersamples | select -ExpandProperty CookedValue)*8
+$NetworkUtilisation = [math]::round($TransferRate/1000000000*100,2)
+if ($NetworkUtilisation -gt $CRITICAL){
+Write-Output "CRITICAL: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"   
+#exit 2		
+}
+if ($NetworkUtilisation -gt $WARNING){
+Write-Output "WARNING: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"
+#exit 1
+}
+Write-Output "OK: $($NetworkUtilisation) % Network utilisation, $($TransferRate.ToString('N0')) b/s"   
+#exit 0
+```
 # SNMP
 
 ### Setup SNMP Service
@@ -3706,6 +3840,33 @@ $results2 +=[PSCustomObject]@{'ID'=$d.id.ToString();'Data'=$d.Data.ToString()} #
 }
 $results2
 ```
+# WinRM
+
+`Get-Service -Name winrm -RequiredServices` статус зависимых служб \
+`Enter-PSSession -ComputerName $srv` подключиться к PowerShell сессии через PSRemoting. Подключение возможно только по FQDN-имени \
+`Invoke-Command $srv -ScriptBlock {Get-ComputerInfo}` выполнение команды через PSRemoting \
+`$session = New-PSSession $srv` открыть сессию \
+`Get-PSSession` отобразить активные сессии \
+`icm -Session $session {$srv = $using:srv}` передать переменную текущей сессии ($using) в удаленную \
+`Disconnect-PSSession $session` закрыть сессию \
+`Remove-PSSession $session` удалить сессию
+
+### Windows Remote Management Configuration
+`winrm quickconfig -quiet` изменит запуск службы WinRM на автоматический, задаст стандартные настройки WinRM и добавить исключения для портов в fw \
+`Enable-PSRemoting –Force` \
+`Test-WSMan $srv -ErrorAction Ignore` проверить работу WinRM на удаленном компьютере (игнорировать вывыод ошибок) \
+`New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -DnsName "$env:computername" -FriendlyName "WinRM HTTPS Certificate" -NotAfter (Get-Date).AddYears(5)` создать самоподписанный сертификат и скопировать отпечаток (thumbprint) \
+`New-Item -Path WSMan:\Localhost\Listener -Transport HTTPS -Address * -CertificateThumbprint "CACA491A66D1706AC2FEB5E53D0E111C1C73DD65"` создать прослушиватель \
+`New-NetFirewallRule -DisplayName 'WinRM HTTPS Management' -Profile Domain,Private -Direction Inbound -Action Allow -Protocol TCP -LocalPort 5986` открыть порт в fw \
+`winrm enumerate winrm/config/listener` текущая конфигурация прослушивателей WinRM (отображает отпечаток cert SSL для HTTPS 5986) \
+`dir WSMan:\localhost\client` отобразить конфигурацию \
+`winrm get winrm/config/service/auth` список всех конфигураций аутентификации WinRM (WSMan:\localhost\client\auth) \
+`Set-Item -path wsman:\localhost\service\auth\basic -value $true` разрешить локальную аутентификацию \
+`Set-PSSessionConfiguration -ShowSecurityDescriptorUI -Name Microsoft.PowerShell` добавить права доступа через дескриптор безопасности \
+`Set-Item WSMan:\localhost\client\allowunencrypted $true` работать без шифрования \
+`Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
+`net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
+
 # DSC
 
 `Import-Module PSDesiredStateConfiguration` \
