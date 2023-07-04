@@ -3605,6 +3605,8 @@ INSERT counters,host=console,counter=CPU value=0.88 # записать данн�
 SELECT * FROM counters # отобразить все данные в таблице
 SELECT * FROM counters limit 10 # отобразить 10 единиц данных
 SELECT * FROM counters WHERE time > now() -2h # отобразить данные за последние 2 часа
+DELETE FROM counters WHERE time > now() - 2h # удалить данные за последние 2 часа
+DELETE FROM counters WHERE time < now() - 24h # удалить данные старше 24 часов
 
 SELECT/DELETE/SHOW/CREATE/DROP/EXPLAIN/GRANT/REVOKE/ALTER/SET/KILL
 
@@ -3615,6 +3617,16 @@ $PerformanceStat = "\Процессор(_Total)\% загруженности п�
 $Value = ((Get-Counter $PerformanceStat).CounterSamples).CookedValue
 Invoke-RestMethod -Method POST -Uri $url -Body "counters,host=$ENV:COMPUTERNAME,counter=CPU value=$value"
 
+### Unix Time
+
+[string]$timestamp = (New-TimeSpan -Start (Get-Date "01/01/1970") -End (Get-Date)).TotalSeconds
+[string]$timestamp = ($timestamp -replace "\..+") + "000000000"
+Invoke-RestMethod -Method POST -Uri $url -Body "speedtest,host=$(hostname) download=200000,upload=300000,ping=3 $timestamp"
+# speedtest - Table
+# host - Tag Keys
+# $(hostname) - Tag Values
+# temp* - Field Keys
+
 ### API GET
 
 curl http://192.168.3.104:8086/query --data-urlencode "q=SHOW DATABASES" # | ConvertFrom-Json
@@ -3623,28 +3635,25 @@ $db = irm "http://192.168.3.104:8086/query?q=SHOW DATABASES"
 $db = irm "http://192.168.3.104:8086/query?epoch=ms&u=admin&p=password&q=SHOW DATABASES"
 $db.results.series.values
 
-$ip_port = "192.168.3.104:8086"
-$db      = "win_performance"
-$query   = 'SELECT * FROM counters'
-$url     = "http://$ip_port/query?db=$db&q=$query"
-#$cred   = Get-Credential
-#$user   = "admin"
-#$pass   = "password" | ConvertTo-SecureString -AsPlainText -Force
-#$cred   = [System.Management.Automation.PSCredential]::new($user,$pass)
-$rest    = Invoke-RestMethod -Method GET -Uri $url # -Credential $cred 
-$name    = $rest.results.series.name          # имя таблицы
-$col     = $rest.results.series.columns       # столбцы/ключи
-$val     = $rest.results.series.values        # данные построчно
-
-$mass    = @()
-$mass   += [string]$col -replace "\s"," | "
-foreach ($v in $val) {
-	$mass += [string]$v -replace "\s","   "
-}
-$mass
+$ip    = "192.168.3.104"
+$port  = "8086"
+$db    = "win_performance"
+$table = "counters"
+$query = "SELECT * FROM $table"
+$ipp   = $ip+":"+$port
+$url   = "http://$ipp/query?db=$db&q=$query"
+#$cred = Get-Credential
+#$user = "admin"
+#$pass = "password" | ConvertTo-SecureString -AsPlainText -Force
+#$cred = [System.Management.Automation.PSCredential]::new($user,$pass)
+$data  = Invoke-RestMethod -Method GET -Uri $url # -Credential $cred 
+$data.results.series.name          # имя таблицы
+$data.results.series.columns       # столбцы/ключи
+$data.results.series.values        # данные построчно
 
 irm http://localhost:8086/api/v2/setup
 irm http://localhost:8086/api/v2/config
+irm http://localhost:8086/api/v2/write
 
 # WMI
 
