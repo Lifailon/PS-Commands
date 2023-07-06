@@ -47,8 +47,8 @@
 - [Zabbix](#Zabbix)
 - [Grafana](#Grafana)
 - [WinRM](#WinRM)
-- [DSC](#DSC)
 - [Ansible](#Ansible)
+- [DSC](#DSC)
 
 ### Help
 `Get-Verb` действия/глаголы, утвержденные для использования в командлетах \
@@ -312,7 +312,8 @@ $		# Конец строки
 
 `$test = "string"` \
 `$test -replace ".{1}$"` удалить любое кол-во символов в конце строки \
-`$test -replace "^.{1}"` удалить любое кол-во символов в начале строки
+`$test -replace "^.{1}"` удалить любое кол-во символов в начале строки \
+`(4164539/1MB).ToString(".00")` округлить до 3,97
 
 ### Группы захвата
 `$date = '12.31.2021'` \
@@ -336,8 +337,7 @@ $		# Конец строки
 `[Byte]` 8-разрядное целое число без знака \
 `[int16]` 16-разрядное знаковое целое число \
 `[int]` 32-разрядное знаковое целое число. (BaseType:System.ValueType) \
-`[String]` неизменяемая строка символов Юникода фиксированной длины (BaseType:System.Object) \
-`(4164539/1MB).ToString(".00")` округлить до 3,97
+`[String]` неизменяемая строка символов Юникода фиксированной длины (BaseType:System.Object)
 
 ### Property
 `$srv.Count` кол-во элементов в массиве \
@@ -3597,14 +3597,14 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `DROP USER "admin"` удалить пользователя
 
 ### DATABASE
-`CREATE DATABASE win_performance` создать БД \
+`CREATE DATABASE powershell` создать БД \
 `SHOW DATABASES` отобразить список БД \
-`USE win_performance` \
+`USE powershell` \
 `SHOW measurements` отобразить все таблицы \
 `INSERT counters,host=console,counter=CPU value=0.88` записать данные в таблицу counters \
 `SELECT * FROM counters` отобразить все данные в таблице \
 `SELECT * FROM counters limit 10` отобразить 10 единиц данных \
-`SELECT * FROM counters WHERE time > now() -2h` отобразить данные за последние 2 часа \
+`SELECT * FROM counters WHERE time > now() -2d` отобразить данные за последние 2 дня \
 `DELETE FROM counters WHERE time > now() - 2h` удалить данные за последние 2 часа \
 `DELETE FROM counters WHERE time < now() - 24h` удалить данные старше 24 часов
 
@@ -3612,49 +3612,88 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 
 ### API POST
 ```
-$url = "http://192.168.3.104:8086/write?db=win_performance"
-$PerformanceStat = "\Процессор(_Total)\% загруженности процессора"
-$Value = ((Get-Counter $PerformanceStat).CounterSamples).CookedValue
-Invoke-RestMethod -Method POST -Uri $url -Body "counters,host=$ENV:COMPUTERNAME,counter=CPU value=$value"
-```
-### Unix Time
-```
-[string]$timestamp = (New-TimeSpan -Start (Get-Date "01/01/1970") -End (Get-Date)).TotalSeconds
-[string]$timestamp = ($timestamp -replace "\..+") + "000000000"
-Invoke-RestMethod -Method POST -Uri $url -Body "speedtest,host=$(hostname) download=200000,upload=300000,ping=3 $timestamp"
-# speedtest - Table
-# host - Tag Keys
-# $(hostname) - Tag Values
-# temp* - Field Keys
+   Table                        Tag (string)                              Field (double/int)           TIMESTAMP
+measurement,Tag_Keys1=Tag_Values1,Tag_Keys2=Tag_Values2 Field_Keys1="Values",Field_Keys2="Values" 0000000000000000000
+           1                                           2                                         3
+
+$ip        = "192.168.3.104"
+$port      = "8086"
+$db        = "powershell"
+$table     = "speedtest_test"
+$ipp       = $ip+":"+$port
+$url       = "http://$ipp/write?db=$db"
+$user      = "admin"
+$pass      = "password" | ConvertTo-SecureString -AsPlainText -Force
+$cred      = [System.Management.Automation.PSCredential]::new($user,$pass)
+$unixtime  = (New-TimeSpan -Start (Get-Date "01/01/1970") -End (Get-Date)).TotalSeconds
+$timestamp = ([string]$unixtime -replace "\..+") + "000000000"
+
+Invoke-RestMethod -Method POST -Uri $url -Body "$table,host=$(hostname) download=200000,upload=300000,ping=3 $timestamp"
 ```
 ### API GET
 
-`curl http://192.168.3.104:8086/query --data-urlencode "q=SHOW DATABASES" # | ConvertFrom-Json`
+`curl http://192.168.3.104:8086/query --data-urlencode "q=SHOW DATABASES"` pwsh7 (ConvertFrom-Json) and bash
 
-`$db = irm "http://192.168.3.104:8086/query?q=SHOW DATABASES"` \
-`$db = irm "http://192.168.3.104:8086/query?epoch=ms&u=admin&p=password&q=SHOW DATABASES"` \
-`$db.results.series.values`
+`$dbs = irm "http://192.168.3.104:8086/query?q=SHOW DATABASES"` \
+`$dbs = irm "http://192.168.3.104:8086/query?epoch=ms&u=admin&p=password&q=SHOW DATABASES"` \
+`$dbs.results.series.values`
 ```
 $ip    = "192.168.3.104"
 $port  = "8086"
-$db    = "win_performance"
-$table = "counters"
+$db    = "powershell"
+$table = "speedtest_test"
 $query = "SELECT * FROM $table"
 $ipp   = $ip+":"+$port
 $url   = "http://$ipp/query?db=$db&q=$query"
-#$cred = Get-Credential
-#$user = "admin"
-#$pass = "password" | ConvertTo-SecureString -AsPlainText -Force
-#$cred = [System.Management.Automation.PSCredential]::new($user,$pass)
 $data  = Invoke-RestMethod -Method GET -Uri $url # -Credential $cred 
-$data.results.series.name          # имя таблицы
-$data.results.series.columns       # столбцы/ключи
-$data.results.series.values        # данные построчно
+$data.results.series.name    # имя таблицы
+$data.results.series.columns # столбцы/ключи
+$data.results.series.values  # данные построчно
 ```
+### Endpoint
+
 `irm http://localhost:8086/api/v2/setup` \
 `irm http://localhost:8086/api/v2/config` \
 `irm http://localhost:8086/api/v2/write`
 
+### PerformanceTo-InfluxDB
+```
+function ConvertTo-Encoding ([string]$From, [string]$To) {
+    Begin {
+        $encFrom = [System.Text.Encoding]::GetEncoding($from)
+        $encTo = [System.Text.Encoding]::GetEncoding($to)
+    }
+    Process {
+        $bytes = $encTo.GetBytes($_)
+        $bytes = [System.Text.Encoding]::Convert($encFrom, $encTo, $bytes)
+        $encTo.GetString($bytes)
+    }
+}
+
+$localization = (Get-Culture).LCID # текущая локализация
+if ($localization -eq 1049) {
+	$performance = "\\$(hostname)\Процессор(_Total)\% загруженности процессора" | ConvertTo-Encoding UTF-8 windows-1251 # декодировать кириллицу
+} else {
+	$performance = "\Processor(_Total)\% Processor Time"
+}
+
+while ($true) {
+	$unixtime  = (New-TimeSpan -Start (Get-Date "01/01/1970") -End (Get-Date)).TotalSeconds
+	$timestamp = ([string]$unixtime -replace "\..+") + "000000000"
+	[double]$value = (Get-Counter $performance).CounterSamples.CookedValue.ToString("0.00").replace(",",".") # округлить в тип данных Double
+	Invoke-RestMethod -Method POST -Uri "http://192.168.3.104:8086/write?db=powershell" -Body "performance,host=$(hostname),counter=CPU value=$value $timestamp"
+	sleep 5
+}
+```
+### Service
+```
+$powershell_Path = (Get-Command powershell).Source
+$NSSM_Path = "C:\NSSM\NSSM-2.24.exe"
+$Script_Path = "C:\NSSM\PerformanceTo-InfluxDB.ps1"
+$Service_Name = "PerformanceTo-InfluxDB"
+& $NSSM_Path install $Service_Name $powershell_Path -ExecutionPolicy Bypass -NoProfile -f $Script_Path
+Get-Service $Service_Name | Start-Service
+```
 # WMI
 
 ### WMI/CIM (Windows Management Instrumentation/Common Information Model)	
@@ -3876,69 +3915,6 @@ $results2
 `Set-Item WSMan:\localhost\client\TrustedHosts -Value "*" -force` добавить новый доверенный хост (для всех) в конфигурацию \
 `net localgroup "Remote Management Users" "winrm" /add` добавить пользователя winrm (удалить /del) в локальную группу доступа "пользователи удаленного управления" (Local Groups - Remote Management Users)
 
-# DSC
-
-`Import-Module PSDesiredStateConfiguration` \
-`(Get-Module PSDesiredStateConfiguration).ExportedCommands` \
-`Get-DscLocalConfigurationManager`
-
-`Get-DscResource` \
-`Get-DscResource -Name File -Syntax` # https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
-
-`Ensure = Present` настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить) \
-`Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
-```
-Configuration TestConfiguraion
-{
-    Ctrl+Space
-}
-
-Configuration DSConfigurationProxy 
-{
-    Node vproxy-01 
-    {
-        File CreateDir
-        {
-            Ensure = "Present"
-            Type = "Directory"
-            DestinationPath = "C:\Temp"
-        }
-        Service StopW32time
-        {
-            Name = "w32time"
-            State = "Stopped" # Running
-        }
-		WindowsProcess RunCalc
-        {
-            Ensure = "Present"
-            Path = "C:\WINDOWS\system32\calc.exe"
-            Arguments = ""
-        }
-        Registry RegSettings
-        {
-            Ensure = "Present"
-            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\MySoft"
-            ValueName = "TestName"
-            ValueData = "TestValue"
-            ValueType = "String"
-        }
-#		WindowsFeature IIS
-#       {
-#            Ensure = "Present"
-#            Name = "Web-Server"
-#       }
-    }
-}
-```
-`$Path = (DSConfigurationProxy).DirectoryName` \
-`Test-DscConfiguration -Path $Path | select *` ResourcesInDesiredState - уже настроено, ResourcesNotInDesiredState - не настроено (не соответствует) \
-`Start-DscConfiguration -Path $Path` \
-`Get-Job` \
-`$srv = "vproxy-01"` \
-`Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
-`icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
-`icm $srv {ls C:\ | ? name -match Temp} | ft # rm`
-
 # Ansible
 
 `apt-get update && apt-get upgrade` \
@@ -4034,3 +4010,65 @@ ansible ws_vproxy -m win_service -a "name=Spooler state=started"
       name: nmap
       state: latest
 ```
+# DSC
+
+`Import-Module PSDesiredStateConfiguration` \
+`(Get-Module PSDesiredStateConfiguration).ExportedCommands` \
+`Get-DscLocalConfigurationManager`
+
+`Get-DscResource` \
+`Get-DscResource -Name File -Syntax` # https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
+
+`Ensure = Present` настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить) \
+`Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
+```
+Configuration TestConfiguraion
+{
+    Ctrl+Space
+}
+
+Configuration DSConfigurationProxy 
+{
+    Node vproxy-01 
+    {
+        File CreateDir
+        {
+            Ensure = "Present"
+            Type = "Directory"
+            DestinationPath = "C:\Temp"
+        }
+        Service StopW32time
+        {
+            Name = "w32time"
+            State = "Stopped" # Running
+        }
+		WindowsProcess RunCalc
+        {
+            Ensure = "Present"
+            Path = "C:\WINDOWS\system32\calc.exe"
+            Arguments = ""
+        }
+        Registry RegSettings
+        {
+            Ensure = "Present"
+            Key = "HKEY_LOCAL_MACHINE\SOFTWARE\MySoft"
+            ValueName = "TestName"
+            ValueData = "TestValue"
+            ValueType = "String"
+        }
+#		WindowsFeature IIS
+#       {
+#            Ensure = "Present"
+#            Name = "Web-Server"
+#       }
+    }
+}
+```
+`$Path = (DSConfigurationProxy).DirectoryName` \
+`Test-DscConfiguration -Path $Path | select *` ResourcesInDesiredState - уже настроено, ResourcesNotInDesiredState - не настроено (не соответствует) \
+`Start-DscConfiguration -Path $Path` \
+`Get-Job` \
+`$srv = "vproxy-01"` \
+`Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
+`icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
+`icm $srv {ls C:\ | ? name -match Temp} | ft # rm`
