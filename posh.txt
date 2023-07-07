@@ -40,6 +40,10 @@ PowerShell Commands
 # MySQL
 # MSSQL
 # InfluxDB
+# Elasticsearch
+# CData
+# ODBC
+# PostgreSQL
 # WMI
 # Regedit
 # Performance
@@ -3694,6 +3698,114 @@ $Service_Name = "PerformanceTo-InfluxDB"
 & $NSSM_Path install $Service_Name $powershell_Path -ExecutionPolicy Bypass -NoProfile -f $Script_Path
 Get-Service $Service_Name | Start-Service
 
+# Elasticsearch
+
+Install-Module -Name Elastic.Console -AllowPrerelease # https://github.com/elastic/powershell/blob/master/Elastic.Console/README.md
+Get-Command -Module Elastic.Console
+Get-ElasticsearchVersion
+Set-ElasticsearchVersion 7.3.0
+Invoke-Elasticsearch # REST API запросы
+
+# CData
+
+https://www.powershellgallery.com/profiles/CData
+https://www.cdata.com/kb/tech/elasticsearch-ado-powershell.rst
+
+Install-Module ElasticsearchCmdlets # https://www.powershellgallery.com/packages/ElasticsearchCmdlets/23.0.8565.1
+Import-Module ElasticsearchCmdlets
+Get-Command -Module ElasticsearchCmdlets
+
+$elasticsearch = Connect-Elasticsearch  -Server "$Server" -Port "$Port" -User "$User" -Password "$Password"
+$shipcity = "New York"
+$orders = Select-Elasticsearch -Connection $elasticsearch -Table "Orders" -Where "ShipCity = `'$ShipCity`'" # поиск и получение данных
+$orders = Invoke-Elasticsearch -Connection $elasticsearch -Query 'SELECT * FROM Orders WHERE ShipCity = @ShipCity' -Params @{'@ShipCity'='New York'} # SQL запросы
+
+### ADO.NET Assembly
+
+Install-Package CData.Elasticsearch # https://www.nuget.org/packages/CData.Elasticsearch
+[Reflection.Assembly]::LoadFile("C:\Program Files\PackageManagement\NuGet\Packages\CData.Elasticsearch.23.0.8565\lib\net40\System.Data.CData.Elasticsearch.dll")
+
+$connect = New-Object System.Data.CData.Elasticsearch.ElasticsearchConnection("Server=127.0.0.1;Port=9200;User=admin;Password=123456;")
+$connect.Open()
+$sql = "SELECT OrderName, Freight from Orders"
+$da = New-Object System.Data.CData.Elasticsearch.ElasticsearchDataAdapter($sql, $conn)
+$dt = New-Object System.Data.DataTable
+$da.Fill($dt)
+$dt.Rows | foreach {
+Write-Host $_.ordername $_.freight
+}
+
+### UPDATE
+
+Update-Elasticsearch -Connection $Elasticsearch -Columns @('OrderName','Freight') -Values @('MyOrderName', 'MyFreight') -Table Orders -Id "MyId"
+
+$cmd =  New-Object System.Data.CData.Elasticsearch.ElasticsearchCommand("UPDATE Orders SET ShipCity='New York' WHERE Id = @myId", $conn)
+$cmd.Parameters.Add(new System.Data.CData.Elasticsearch.ElasticsearchParameter("@myId","10456255-0015501366"))
+$cmd.ExecuteNonQuery()
+
+### INSERT
+
+Add-Elasticsearch -Connection $Elasticsearch -Table Orders -Columns @("OrderName", "Freight") -Values @("MyOrderName", "MyFreight")
+
+$cmd =  New-Object System.Data.CData.Elasticsearch.ElasticsearchCommand("INSERT INTO Orders (ShipCity) VALUES (@myShipCity)", $conn)
+$cmd.Parameters.Add(new System.Data.CData.Elasticsearch.ElasticsearchParameter("@myShipCity","New York"))
+$cmd.ExecuteNonQuery()
+
+### DELETE
+
+Remove-Elasticsearch -Connection $Elasticsearch -Table "Orders" -Id "MyId"
+
+$cmd =  New-Object System.Data.CData.Elasticsearch.ElasticsearchCommand("DELETE FROM Orders WHERE Id=@myId", $conn)
+$cmd.Parameters.Add(new System.Data.CData.Elasticsearch.ElasticsearchParameter("@myId","001d000000YBRseAAH"))
+$cmd.ExecuteNonQuery()
+
+# ODBC
+
+Get-Command -Module Wdac
+Get-OdbcDriver | ft # список установленных драйверов
+
+https://www.elastic.co/guide/en/elasticsearch/reference/current/sql-client-apps-ps1.html
+
+$connectstring = "DSN=Local Elasticsearch;"
+$sql = "SELECT * FROM library"
+$conn = New-Object System.Data.Odbc.OdbcConnection($connectstring)
+$conn.open()
+$cmd = New-Object system.Data.Odbc.OdbcCommand($sql,$conn)
+$da = New-Object system.Data.Odbc.OdbcDataAdapter($cmd)
+$dt = New-Object system.Data.datatable
+$null = $da.fill($dt)
+$conn.close()
+$dt
+
+# PostgreSQL
+
+Скачать и установить драйвер: https://www.postgresql.org/ftp/odbc/versions/msi/
+
+$dbServer = "192.168.1.105" 
+$dbName = "test"
+$dbUser = "admin"
+$dbPass = "admin"
+$port = "5432"
+[string]$szConnect = "Driver={PostgreSQL Unicode(x64)};Server=$dbServer;Port=$port;Database=$dbName;Uid=$dbUser;Pwd=$dbPass;" 
+$cnDB = New-Object System.Data.Odbc.OdbcConnection($szConnect)
+$dsDB = New-Object System.Data.DataSet
+try {
+    $cnDB.Open()
+    $adDB = New-Object System.Data.Odbc.OdbcDataAdapter    
+    $adDB.SelectCommand = New-Object System.Data.Odbc.OdbcCommand("SELECT id, name, age, login FROM public.users" , $cnDB) 
+    $adDB.Fill($dsDB) 
+    $cnDB.Close() 
+}
+catch [System.Data.Odbc.OdbcException] {
+    $_.Exception
+    $_.Exception.Message
+    $_.Exception.ItemName
+}
+foreach ($row in $dsDB[0].Tables[0].Rows) {
+    $row.login
+    $row.age
+}
+
 # WMI
 
 ### WMI/CIM (Windows Management Instrumentation/Common Information Model)
@@ -3763,6 +3875,10 @@ $reg_path = "HKCU:\SOFTWARE\Microsoft\Office\16.0\Outlook\Profiles\Outlook\9375C
 $sig_name = "auto"
 Set-ItemProperty -Path $reg_path -Name "New Signature" -Value $sig_name # изменить или добавить в корне ветки (Path) свойство (Name) со значением (Value)
 Set-ItemProperty -Path $reg_path -Name "Reply-Forward Signature" -Value $sig_name
+
+Windows Registry Editor Version 5.00
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe]
+"Debugger"="\"C:\\Windows\\System32\\Taskmgr.exe\""
 
 # Performance
 
