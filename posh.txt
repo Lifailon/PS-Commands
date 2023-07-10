@@ -3735,6 +3735,7 @@ cd "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1"
 .\telegraf.exe -sample-config --input-filter cpu:mem:dns_query --output-filter influxdb > telegraf.conf # создать конфигурацию с выбарнными плагинами для сбора метрик
 .\telegraf.exe --test # тест конфигурации
 ii "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"
+
 [[outputs.influxdb]]
   urls = ["http://192.168.3.104:8086"]
   username = "username"
@@ -3750,6 +3751,7 @@ ii "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"
   record_type = "A"
   port = 53
   timeout = "2s"
+
 Get-Service telegraf | Start-Service
 
 USE telegraf
