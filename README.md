@@ -3726,15 +3726,16 @@ Get-Service $Service_Name | Set-Service -StartupType Automatic
 ### Telegraf
 
 Plugins: https://docs.influxdata.com/telegraf/v1.27/plugins/#input-plugins
+
+`iwr https://dl.influxdata.com/telegraf/releases/telegraf-1.27.1_windows_amd64.zip -UseBasicParsing -OutFile telegraf-1.27.1_windows_amd64.zip` \
+`Expand-Archive .\telegraf-1.27.1_windows_amd64.zip -DestinationPath "C:\Program Files\InfluxData\telegraf"` \
+`cd "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1"` \
+`.\telegraf.exe --service install --config "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"` \
+`.\telegraf.exe --service uninstall` \
+`.\telegraf.exe -sample-config --input-filter cpu:mem:dns_query --output-filter influxdb > telegraf.conf` создать конфигурацию с выбарнными плагинами для сбора метрик \
+`.\telegraf.exe --test` тест конфигурации \
+`ii "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"`
 ```
-iwr https://dl.influxdata.com/telegraf/releases/telegraf-1.27.1_windows_amd64.zip -UseBasicParsing -OutFile telegraf-1.27.1_windows_amd64.zip
-Expand-Archive .\telegraf-1.27.1_windows_amd64.zip -DestinationPath "C:\Program Files\InfluxData\telegraf"
-cd "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1"
-.\telegraf.exe --service install --config "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"
-.\telegraf.exe --service uninstall
-.\telegraf.exe -sample-config --input-filter cpu:mem:dns_query --output-filter influxdb > telegraf.conf # создать конфигурацию с выбарнными плагинами для сбора метрик
-.\telegraf.exe --test # тест конфигурации
-ii "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"
 [[outputs.influxdb]]
   urls = ["http://192.168.3.104:8086"]
   username = "username"
@@ -3750,8 +3751,9 @@ ii "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"
   record_type = "A"
   port = 53
   timeout = "2s"
-Get-Service telegraf | Start-Service
 ```
+`Get-Service telegraf | Start-Service`
+
 `USE telegraf` \
 `SELECT usage_idle,usage_system,usage_user FROM cpu`
 
