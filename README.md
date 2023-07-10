@@ -16,7 +16,7 @@
 - [DNS](#DNSServer)
 - [DHCP](#DHCPServer)
 - [DFS](#DFS)
-- [PackageManagement](#PackageManagement)
+- [Package(#Package)
 - [Jobs](#Jobs)
 - [PowerCLI](#PowerCLI)
 - [EMShell](#EMShell)
@@ -49,7 +49,6 @@
 - [Performance](#Performance)
 - [SNMP](#SNMP)
 - [Zabbix](#Zabbix)
-- [Grafana](#Grafana)
 - [WinRM](#WinRM)
 - [Ansible](#Ansible)
 - [DSC](#DSC)
@@ -58,10 +57,6 @@
 `Get-Verb` действия/глаголы, утвержденные для использования в командлетах \
 `Get-Command *Service*` поиск команды по имени \
 `Get-Command Get-Content | fl Module,DLL` узнать принадлежность команды к модулю и dll \
-`Import-Module PackageManagement` импортировать модуль \
-`Get-Module PackageManagement` информация о модуле \
-`Get-Command -Module PackageManagement` отобразить все командлеты модуля \
-`Get-Package` отобразить все установленные пакеты PowerShellGallery \
 `Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) \
 `Get-Alias gsv` \
 `Get-Help Get-Service` синтаксис \
@@ -1372,8 +1367,12 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `Write-DfsrPropagationReport` создает отчеты для тестовых файлов распространения в группе репликации \
 `Start-DfsrPropagationTest` создает тестовый файл распространения в реплицированной папке
 
-# PackageManagement
+# Package
 
+`Import-Module PackageManagement` импортировать модуль \
+`Get-Module PackageManagement` информация о модуле \
+`Get-Command -Module PackageManagement` отобразить все командлеты модуля \
+`Get-Package` отобразить все установленные пакеты PowerShellGallery \
 `Get-Package -ProviderName msi,Programs` список установленных программ
 `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
 `Find-PackageProvider` поиск провайдеров \
@@ -3558,7 +3557,7 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 
 ### bucket
 `.\influx bucket create --name test-bucket -c main` создать корзину \
-`.\influx write --bucket test-bucket --url https://influx-testdata.s3.amazonaws.com/air-sensor-data-annotated.csv` записать данные из CSV в созданную корзину (Flux scripting language) \
+`.\influx write --bucket test-bucket --url https://influx-testdata.s3.amazonaws.com/air-sensor-data-annotated.csv` записать данные из CSV в созданную корзину (Flux language) \
 `.\influx query 'from(bucket:\"test-bucket\") |> range(start:-30m) |> mean()'` получить записанные данные
 
 ### user
@@ -3584,7 +3583,7 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 [http]
   enabled = true # включить API
   bind-address = "192.168.3.104:8086"
-  auth-enabled = true # включить аудентификацию
+  auth-enabled = true # включить авторизацию
 ```
 `apt install influxdb-client` \
 `influx` \
@@ -3602,28 +3601,39 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 
 ### DATABASE
 `CREATE DATABASE powershell` создать БД \
+`CREATE DATABASE powershell WITH DURATION 48h REPLICATION 1 NAME "del2d"` создать БД с политикой хранения 2 дня \
+`CREATE RETENTION POLICY del2h ON powershell DURATION 2h REPLICATION 1` создать новую политику хранения для БД \
+`ALTER RETENTION POLICY del2h ON powershell DURATION 2h REPLICATION 1 DEFAULT` изменить (ALTER) политику хранения для БД на DEFAULT \
+`DROP RETENTION POLICY del2d ON powershell` удаление политики хранения приводит к безвозвратному удалению всех измерений (таблиц) и данных, хранящихся в политике хранения \
 `SHOW DATABASES` отобразить список БД \
+`DROP DATABASE powershell` удалить БД \
 `USE powershell` \
 `SHOW measurements` отобразить все таблицы \
-`INSERT counters,host=console,counter=CPU value=0.88` записать данные в таблицу counters \
-`SELECT * FROM counters` отобразить все данные в таблице \
-`SELECT * FROM counters limit 10` отобразить 10 единиц данных \
-`SELECT * FROM counters WHERE time > now() -2d` отобразить данные за последние 2 дня \
-`DELETE FROM counters WHERE time > now() - 2h` удалить данные за последние 2 часа \
-`DELETE FROM counters WHERE time < now() - 24h` удалить данные старше 24 часов
+`INSERT performance,host=console,counter=CPU value=0.88` записать данные в таблицу performance \
+`SELECT * FROM performance` отобразить все данные в таблице \
+`SELECT value FROM performance` отфильтровать по столбцу value (только Field Keys) \
+`SELECT * FROM performance limit 10` отобразить 10 единиц данных \
+`SELECT * FROM performance WHERE time > now() -1d` отобразить данные за последние 1/4 дня \
+`SELECT * FROM performance WHERE time > now() +3h -5m` данные за последние 5 минут (+3 часа от текущего времени -5 минут) \
+`SELECT * FROM performance WHERE counter = 'CPU'` выборка по тэгу \
+`DELETE FROM performance WHERE time > now() -1h` удалить данные за последние 1/4 часа \
+`DELETE FROM performance WHERE time < now() -24h` удалить данные старше 24 часов
 
-`SELECT/DELETE/SHOW/CREATE/DROP/EXPLAIN/GRANT/REVOKE/ALTER/SET/KILL`
+`SELECT/DELETE/SHOW/CREATE/DROP/EXPLAIN/GRANT/REVOKE/ALTER/SET/KILL` \
+`SELECT upload/1000 FROM speedtest WHERE upload/1000 <= 250` отфильтровать по столбцу upload и разделить вывод на 1000, вывести upload меньше 250
 
 ### API POST
+
+Вместо таблиц в InfluxDB имеются измерения. Вместо столбцов в ней есть теги и поля.
 ```
-   Table                        Tag (string)                              Field (double/int)           TIMESTAMP
+   Table                        Tag (string/int)                          Field (double/int)           TIMESTAMP
 measurement,Tag_Keys1=Tag_Values1,Tag_Keys2=Tag_Values2 Field_Keys1="Values",Field_Keys2="Values" 0000000000000000000
            1                                           2                                         3
 
 $ip        = "192.168.3.104"
 $port      = "8086"
 $db        = "powershell"
-$table     = "speedtest_test"
+$table     = "speedtest"
 $ipp       = $ip+":"+$port
 $url       = "http://$ipp/write?db=$db"
 $user      = "admin"
@@ -3645,7 +3655,7 @@ Invoke-RestMethod -Method POST -Uri $url -Body "$table,host=$(hostname) download
 $ip    = "192.168.3.104"
 $port  = "8086"
 $db    = "powershell"
-$table = "speedtest_test"
+$table = "speedtest"
 $query = "SELECT * FROM $table"
 $ipp   = $ip+":"+$port
 $url   = "http://$ipp/query?db=$db&q=$query"
@@ -3659,6 +3669,20 @@ $data.results.series.values  # данные построчно
 `irm http://localhost:8086/api/v2/setup` \
 `irm http://localhost:8086/api/v2/config` \
 `irm http://localhost:8086/api/v2/write`
+
+### PingTo-InfluxDB
+```
+while ($true) {
+	$unixtime  = (New-TimeSpan -Start (Get-Date "01/01/1970") -End (Get-Date)).TotalSeconds
+	$timestamp = ([string]$unixtime -replace "\..+") + "000000000"
+	$tnc = tnc 8.8.8.8
+	$Status = $tnc.PingSucceeded
+	$RTime = $tnc.PingReplyDetails.RoundtripTime
+	Invoke-RestMethod -Method POST -Uri "http://192.168.3.104:8086/write?db=powershell" -Body "ping,host=$(hostname) status=$status,rtime=$RTime $timestamp"
+	sleep 1
+}
+```
+`SELECT * FROM ping WHERE status = false`
 
 ### PerformanceTo-InfluxDB
 ```
@@ -3697,7 +3721,40 @@ $Script_Path = "C:\NSSM\PerformanceTo-InfluxDB.ps1"
 $Service_Name = "PerformanceTo-InfluxDB"
 & $NSSM_Path install $Service_Name $powershell_Path -ExecutionPolicy Bypass -NoProfile -f $Script_Path
 Get-Service $Service_Name | Start-Service
+Get-Service $Service_Name | Set-Service -StartupType Automatic
 ```
+### Telegraf
+
+Plugins: https://docs.influxdata.com/telegraf/v1.27/plugins/#input-plugins
+```
+iwr https://dl.influxdata.com/telegraf/releases/telegraf-1.27.1_windows_amd64.zip -UseBasicParsing -OutFile telegraf-1.27.1_windows_amd64.zip
+Expand-Archive .\telegraf-1.27.1_windows_amd64.zip -DestinationPath "C:\Program Files\InfluxData\telegraf"
+cd "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1"
+.\telegraf.exe --service install --config "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"
+.\telegraf.exe --service uninstall
+.\telegraf.exe -sample-config --input-filter cpu:mem:dns_query --output-filter influxdb > telegraf.conf # создать конфигурацию с выбарнными плагинами для сбора метрик
+.\telegraf.exe --test # тест конфигурации
+ii "C:\Program Files\InfluxData\telegraf\telegraf-1.27.1\telegraf.conf"
+[[outputs.influxdb]]
+  urls = ["http://192.168.3.104:8086"]
+  username = "username"
+  password = "userpass"
+[[inputs.cpu]]
+  percpu = false
+  totalcpu = true
+[[inputs.dns_query]]
+  servers = ["8.8.8.8"]
+  network = "udp"
+  domains = ["."]
+  ## Possible values: A, AAAA, CNAME, MX, NS, PTR, TXT, SOA, SPF, SRV.
+  record_type = "A"
+  port = 53
+  timeout = "2s"
+Get-Service telegraf | Start-Service
+```
+`USE telegraf` \
+`SELECT usage_idle,usage_system,usage_user FROM cpu`
+
 # Elasticsearch
 
 `Install-Module -Name Elastic.Console -AllowPrerelease` https://github.com/elastic/powershell/blob/master/Elastic.Console/README.md \
@@ -3781,20 +3838,21 @@ $dt
 
 Скачать и установить драйвер: https://www.postgresql.org/ftp/odbc/versions/msi/
 ```
-$dbServer = "192.168.1.105" 
+$dbServer = "192.168.3.101"
+$port = "5432"
 $dbName = "test"
 $dbUser = "admin"
 $dbPass = "admin"
-$port = "5432"
-[string]$szConnect = "Driver={PostgreSQL Unicode(x64)};Server=$dbServer;Port=$port;Database=$dbName;Uid=$dbUser;Pwd=$dbPass;" 
+$szConnect = "Driver={PostgreSQL Unicode(x64)};Server=$dbServer;Port=$port;Database=$dbName;Uid=$dbUser;Pwd=$dbPass;" 
+
 $cnDB = New-Object System.Data.Odbc.OdbcConnection($szConnect)
 $dsDB = New-Object System.Data.DataSet
 try {
     $cnDB.Open()
-    $adDB = New-Object System.Data.Odbc.OdbcDataAdapter    
-    $adDB.SelectCommand = New-Object System.Data.Odbc.OdbcCommand("SELECT id, name, age, login FROM public.users" , $cnDB) 
-    $adDB.Fill($dsDB) 
-    $cnDB.Close() 
+    $adDB = New-Object System.Data.Odbc.OdbcDataAdapter
+    $adDB.SelectCommand = New-Object System.Data.Odbc.OdbcCommand("SELECT id, name, age, login FROM public.users" , $cnDB)
+    $adDB.Fill($dsDB)
+    $cnDB.Close()
 }
 catch [System.Data.Odbc.OdbcException] {
     $_.Exception
