@@ -271,7 +271,7 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 </NotepadPlus>
 ```
 `Parsing text to Markdown:` \
-`Macros: FnLeft+'+FnRight+FnRight>+Down` \
+`Macros: FnLeft+'+FnRight+FnRight+\s\\+Down` \
 `Replace: "# ","'"`
 ```
 .		# Обозначает любой символ
@@ -4679,6 +4679,8 @@ ansible_shell_type=powershell
 `ansible-doc -l | grep win_` список всех модулей Windows (https://docs.ansible.com/ansible/latest/collections/ansible/windows/) \
 `ansible ws -m win_ping` windows модуль \
 `ansible ws -m win_ping -u WinRM-Writer` указать логин \
+`ansible ws -m setup` собрать подробную информацию о системе \
+`ansible ws -m win_whoami` информация о правах доступах, группах доступа \
 `ansible ws -m win_shell -a '$PSVersionTable'` \
 `ansible ws -m win_shell -a 'Get-Service | where name -match "ssh|winrm"'` \
 `ansible ws -m win_service -a "name=sshd state=stopped"` \
@@ -4728,7 +4730,7 @@ ansible_shell_type=powershell
 
 ### win_chocolatey
 
-`nano /etc/ansible/setup-chocolatey.yml`
+`nano /etc/ansible/setup-adobe-acrobat.yml`
 ```
 - hosts: ws
   tasks:
@@ -4737,9 +4739,9 @@ ansible_shell_type=powershell
       name: adobereader
       state: present
 ```
-`ansible-playbook /etc/ansible/setup-chocolatey.yml`
+`ansible-playbook /etc/ansible/setup-adobe-acrobat.yml`
 
-`nano /etc/ansible/setup-chocolatey.yml`
+`nano /etc/ansible/setup-openssh.yml`
 ```
 - hosts: ws
   tasks:
@@ -4749,7 +4751,7 @@ ansible_shell_type=powershell
       package_params: /SSHServerFeature
       state: present
 ```
-`ansible-playbook /etc/ansible/setup-chocolatey.yml`
+`ansible-playbook /etc/ansible/setup-openssh.yml`
 
 ### win_regedit
 
@@ -4766,7 +4768,60 @@ ansible_shell_type=powershell
       type: string
       state: present
 ```
-`ansible-playbook /etc/ansible/win-set-shell-ssh-ps7.yml -i /etc/ansible/hosts`
+`ansible-playbook /etc/ansible/win-set-shell-ssh-ps7.yml`
+
+### win_service
+
+`nano /etc/ansible/win-service.yml`
+```
+- hosts: ws
+  tasks:
+  - name: Start service
+    win_service:
+      name: sshd
+      state: started
+#     state: stopped
+#     state: restarted
+#     start_mode: auto
+```
+`ansible-playbook /etc/ansible/win-service.yml`
+
+### win_service_info
+
+`nano /etc/ansible/get-service.yml`
+```
+- hosts: ws
+  tasks:
+  - name: Get info for a single service
+    win_service_info:
+      name: sshd
+    register: service_info
+  - name: Print returned information
+    ansible.builtin.debug:
+      var: service_info.services
+```
+`ansible-playbook /etc/ansible/get-service.yml`
+
+### fetch/slurp
+
+`nano /etc/ansible/copy-from-win-to-local.yml`
+```
+- hosts: ws
+  tasks:
+  - name: Retrieve remote file on a Windows host
+#   Скопировать файл из Windows-системы
+    ansible.builtin.fetch:
+#   Прочитать файл (передать в память в формате Base64)
+#   ansible.builtin.slurp:
+      src: C:\Telegraf\telegraf.conf
+      dest: /root/telegraf.conf
+      flat: yes
+    register: telegraf_conf
+  - name: Print returned information
+    ansible.builtin.debug:
+      msg: "{{ telegraf_conf['content'] | b64decode }}"
+```
+`ansible-playbook /etc/ansible/copy-from-win-to-local.yml`
 
 ### win_copy
 
@@ -4869,6 +4924,33 @@ ansible_shell_type=powershell
 ```
 `ansible-playbook /etc/ansible/add-user-to-group.yml`
 
+### win_user
+
+`nano /etc/ansible/creat-win-user.yml`
+```
+- hosts: ws
+  tasks:
+  - name: Creat user
+    win_user:
+      name: test
+      password: 123098
+      state: present
+      groups:
+        - deploy
+```
+`ansible-playbook /etc/ansible/creat-win-user.yml`
+
+`nano /etc/ansible/delete-win-user.yml`
+```
+- hosts: ws
+  tasks:
+  - name: Delete user
+    ansible.windows.win_user:
+      name: test
+      state: absent
+```
+`ansible-playbook /etc/ansible/delete-win-user.yml`
+
 ### win_feature
 
 `nano /etc/ansible/install-feature.yml`
@@ -4893,3 +4975,27 @@ ansible_shell_type=powershell
       reboot_timeout: 3600
 ```
 `ansible-playbook /etc/ansible/win-reboot.yml`
+
+### win_find
+
+`nano /etc/ansible/win-ls.yml`
+```
+- hosts: ws
+  tasks:
+  - name: Find files in multiple paths
+    ansible.windows.win_find:
+      paths:
+      - D:\Install\OpenSource
+      patterns: ['*.rar','*.zip','*.msi']
+      # Файл созданный менее 7 дней назад
+      age: -7d
+      # Размер файла больше 10MB
+      size: 10485760
+      # Рекурсивный поиск (в дочерних директориях)
+      recurse: true
+    register: command_output
+  - name: Output port ssh
+    debug:
+      var: command_output
+```
+`ansible-playbook /etc/ansible/win-ls.yml`
