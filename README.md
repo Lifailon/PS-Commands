@@ -271,8 +271,8 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 </NotepadPlus>
 ```
 `Parsing text to Markdown:` \
-`Macros: Fn<+`+Fn>+Fn>+`+>` \
-`Replace: "# " -> "`"`
+`Macros: FnLeft+'+FnRight+FnRight>+Down` \
+`Replace: "# ","'"`
 ```
 .		# Обозначает любой символ
 \		# Экранирующий символ. Символы которые экранируются: ^, [, ., $, {, *, (, ), \, +, |, ?, <, >
@@ -303,7 +303,7 @@ $		# Конец строки
 \d{2,4}	# Найти две или четыре
 {4,}	# Найти четыре и более
 
-^\s{0,}#.+
+^\s{1,}#.+ # поиск вначале строки комментария и пробел после него 1 или больше и любое кол-во символов
 ```
 # Regex
 
@@ -476,7 +476,7 @@ fun-switch -param
 ```
 # Bit
 ```
-Двоичная    Десятичная  
+Двоичное    Десятичное
 1           1
 10          2
 11          3
@@ -494,7 +494,7 @@ fun-switch -param
 1111        15
 1 0000      16
 
-Двоичное    Десятичное  Номер разряда  
+Двоичное    Десятичное  Номер разряда
 1           1           0
 10          2           1
 100         4           2
@@ -1741,8 +1741,8 @@ Start-MTPing -Network 192.168.3.0
 
 `Install-WindowsFeature -Name Hyper-V -IncludeManagementTools -Restart` установить роль на Windows Server \
 `Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V –All` установить роль на  Windows Desktop \
-`Get-Command -Module hyper-v \
-`Get-VMHost
+`Get-Command -Module hyper-v` \
+`Get-VMHost`
 ```
 New-VMSwitch -name NAT -SwitchType Internal # создать виртуальный коммутатор и адаптер для него
 Get-NetAdapter | where InterfaceDescription -match Hyper-V # список сетевых адаптеров
@@ -1751,13 +1751,13 @@ Get-NetAdapter "vEthernet (NAT)" | New-NetIPAddress -IPAddress 192.168.3.200 -Ad
 Add-NetNatStaticMapping -NatName LocalNat -Protocol TCP -ExternalIPAddress 0.0.0.0 -ExternalPort 2222 -InternalIPAddress 192.168.3.103 -InternalPort 2121 # проброс, вест трафик который приходит на хост Hyper-V TCP/2222, будет перенаправляться на соответствующий порт виртуальной машины за NAT.
 (Get-NetAdapter | where Name -match NAT).Status
 ```
-`Get-NetNatStaticMapping` отобразить пробросы \
+`Get-NetNatStaticMapping` отобразить пробросы (NAT) \
 `Get-NetNat` список сетей \
 `Remove-NetNatStaticMapping -StaticMappingID 0` удалить проброс \
 `Remove-NetNat -Name LocalNat` удалить сеть
 
-`New-VMSwitch -Name Local -AllowManagementOS $True -NetAdapterName "Ethernet 4" -SwitchType External # создать вшений (External) виртуальный коммутатор \
-`$VMName = "hv-dc-01"
+`New-VMSwitch -Name Local -AllowManagementOS $True -NetAdapterName "Ethernet 4" -SwitchType External` создать вшений (External) виртуальный коммутатор \
+`$VMName = "hv-dc-01"`
 ```
 $VM = @{
 Name = $VMName
@@ -1771,16 +1771,16 @@ SwitchName = "NAT"
 }
 New-VM @VM
 ```
-`Set-VMDvdDrive -VMName $VMName -Path "C:\Users\Lifailon\Documents\WS-2016.iso" \
+`Set-VMDvdDrive -VMName $VMName -Path "C:\Users\Lifailon\Documents\WS-2016.iso"` \
 `New-VHD -Path "D:\VM\$VMName\disk_d.vhdx" -SizeBytes 10GB` создать VHDX диск \
 `Add-VMHardDiskDrive -VMName $VMName -Path "D:\VM\$VMName\disk_d.vhdx"` примонтировать диск \
 `Get-VM –VMname $VMName | Set-VM –AutomaticStartAction Start` автозапуск \
-`Get-VM -Name $VMName | Set-VMMemory -StartupBytes 8Gb \
-`Set-VMProcessor $VMName -Count 2 \
-`Get-VM -Name $VMName | Checkpoint-VM -SnapshotName "Snapshot-1" \
-`Restore-VMCheckpoint -Name Snapshot-1" -VMName $VMName -Confirm:$false \
+`Get-VM -Name $VMName | Set-VMMemory -StartupBytes 8Gb` \
+`Set-VMProcessor $VMName -Count 2` \
+`Get-VM -Name $VMName | Checkpoint-VM -SnapshotName "Snapshot-1"` \
+`Restore-VMCheckpoint -Name Snapshot-1" -VMName $VMName -Confirm:$false` \
 `Get-VM | Select -ExpandProperty NetworkAdapters | Select VMName,IPAddresses,Status` получить IP адрес всех ВМ \
-`vmconnect.exe localhost $VMHost
+`vmconnect.exe localhost $VMHost`
 
 # VMWare/PowerCLI
 
@@ -4484,7 +4484,7 @@ New-WSManInstance -ResourceURI "winrm/config/Listener" -SelectorSet $selector_se
 `Export-PfxCertificate -FilePath $home\Desktop\certificate.pfx -Password $pass -Cert $certificate` экспортировать сертификат с закрытым ключем
 
 `Import-Certificate -FilePath $home\Desktop\certificate.cer -CertStoreLocation Cert:\CurrentUser\My` импортировать сертификат \
-`Import-PfxCertificate -Exportable -Password $pass -CertStoreLocation Cert:\CurrentUser\My -FilePath $home\Desktop\certificate.pfx
+`Import-PfxCertificate -Exportable -Password $pass -CertStoreLocation Cert:\CurrentUser\My -FilePath $home\Desktop\certificate.pfx`
 
 # DSC
 
