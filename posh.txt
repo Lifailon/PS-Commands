@@ -4686,18 +4686,21 @@ ansible ws -m win_shell -a 'Get-Service | where name -match "ssh|winrm"'
 ansible ws -m win_service -a "name=sshd state=stopped"
 ansible ws -m win_service -a "name=sshd state=started"
 
-### win_shell
+### win_shell (vars/debug)
 
-nano /etc/ansible/Get-PowerShell.yml
+nano /etc/ansible/PowerShell-Vars.yml
 
 - hosts: ws
   # Указать коллекцию модулей
   collections:
   - ansible.windows
+  # Задать переменные
+  vars:
+    SearchName: PermitRoot
   tasks:
   - name: Get port ssh
     win_shell: |
-      Get-Content "C:\Programdata\ssh\sshd_config" | Select-String "port\s"
+      Get-Content "C:\Programdata\ssh\sshd_config" | Select-String "{{SearchName}}"
     # Зарегистрировать вывод в переменную
     register: command_output
   - name: Output port ssh
@@ -4705,7 +4708,8 @@ nano /etc/ansible/Get-PowerShell.yml
     debug:
       var: command_output.stdout_lines
 
-ansible-playbook /etc/ansible/Get-PowerShell.yml
+ansible-playbook /etc/ansible/PowerShell-Vars.yml
+ansible-playbook /etc/ansible/PowerShell-Vars.yml --extra-vars "SearchName='LogLevel|Syslog'" # передать переменную
 
 ### win_powershell
 
@@ -4976,24 +4980,6 @@ nano /etc/ansible/win-reboot.yml
 
 ansible-playbook /etc/ansible/win-reboot.yml
 
-### win_updates
-
-nano /etc/ansible/win-update.yml
-
-- hosts: ws
-  tasks:
-  - name: Install only particular updates based on the KB numbers
-    ansible.windows.win_updates:
-      category_names:
-      - SecurityUpdates
-      # accept_list:
-      # - KB4056892
-      # - KB4073117
-      reboot: true
-      reboot_timeout: 3600
-
-ansible-playbook /etc/ansible/win-update.yml
-
 ### win_find
 
 nano /etc/ansible/win-ls.yml
@@ -5034,6 +5020,37 @@ nano /etc/ansible/rest-get.yml
 
 ansible-playbook /etc/ansible/rest-get.yml
 
+### win_updates
+
+nano /etc/ansible/win-update.yml
+
+- hosts: ws
+  tasks:
+  - name: Install only particular updates based on the KB numbers
+    ansible.windows.win_updates:
+      category_names:
+      - SecurityUpdates
+      - CriticalUpdates
+      - UpdateRollups
+      - Drivers
+      # Фильтрация
+      # accept_list:
+      # - KB2267602
+      # Поиск обновлений
+      # state: searched
+      # Загрузить обновления
+      # state: downloaded
+      # Установить обновления
+      state: installed
+      log_path: C:\Ansible-Windows-Upadte-Log.txt
+      reboot: false
+    register: wu_output
+  - name: Output
+    debug:
+      var: wu_output
+
+ansible-playbook /etc/ansible/win-update.yml
+
 # Jenkins
 
 nano /etc/apt/sources.list.d/jenkins.list
@@ -5044,14 +5061,46 @@ apt-get install -y jenkins
 systemctl status jenkins
 cat /var/lib/jenkins/secrets/initialAdminPassword
 
+Item - Freestyle
+This build is parameterized - Add Parameter - String Parameter - ProcessName
+Add build step - PowerShell
+Command:
+pwsh -command Get-Process -name *$env:ProcessName*
+
 Item - Pipeline
 SCM - Git
 Repository URL: https://github.com/Lifailon/Deploy-PS-Module.git
 Branch: */rsa
-Script Path: Pipeline/jenkinsfile.groovy
+Script Path: Win-Get-Service/jenkinsfile.groovy
 
-Item - Freestyle
-This build is parameterized - Add Parameter - String Parameter - Process_Name
-Add build step - PowerShell
-Command:
-pwsh -command Get-Process -name *$env:Process_Name*
+### jenkinsfile.groovy
+
+pipeline {
+  agent any
+  parameters {
+    string(name: "ServiceName", defaultValue: "WinRM", trim: true, description: "Введите имя службы") // создать параметр
+  }
+  stages {
+    stage('Before Deploy Version') {
+      steps {
+        echo "Имя выбранной службы: $params.ServiceName"
+        sh "ansible-playbook Win-Get-Service/Get-Service.yml -e ServiceName=$params.ServiceName" // передать параметр на вход переменной playbook
+      }
+    }
+  }
+}
+
+### Get-Service.yml
+
+- name: win_powershell
+  vars:
+    ServiceName: WinRM
+  hosts: ws
+  tasks:
+    - name: Run PowerShell Commands
+      win_shell: |
+        Get-Service *"{{ServiceName}}"*
+      register: command_output
+    - name: Command Output
+      debug:
+        var: command_output.stdout_lines
