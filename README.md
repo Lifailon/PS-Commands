@@ -4976,6 +4976,24 @@ ansible_shell_type=powershell
 ```
 `ansible-playbook /etc/ansible/win-reboot.yml`
 
+### win_updates
+
+`nano /etc/ansible/win-update.yml`
+```
+- hosts: ws
+  tasks:
+  - name: Install only particular updates based on the KB numbers
+    ansible.windows.win_updates:
+      category_names:
+      - SecurityUpdates
+      # accept_list:
+      # - KB4056892
+      # - KB4073117
+      reboot: true
+      reboot_timeout: 3600
+```
+`ansible-playbook /etc/ansible/win-update.yml`
+
 ### win_find
 
 `nano /etc/ansible/win-ls.yml`
@@ -4994,8 +5012,24 @@ ansible_shell_type=powershell
       # Рекурсивный поиск (в дочерних директориях)
       recurse: true
     register: command_output
-  - name: Output port ssh
+  - name: Output
     debug:
       var: command_output
 ```
 `ansible-playbook /etc/ansible/win-ls.yml`
+
+### win_uri
+
+`nano /etc/ansible/rest-get.yml`
+```
+- hosts: ws
+  tasks:
+  - name: REST GET request to endpoint github
+    ansible.windows.win_uri:
+      url: https://api.github.com/repos/Lifailon/pSyslog/releases/latest
+    register: http_output
+  - name: Output
+    debug:
+      var: http_output
+```
+`ansible-playbook /etc/ansible/rest-get.yml`
