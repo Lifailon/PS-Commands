@@ -58,7 +58,7 @@ foreach ($h in $hosts) {
     }
 }
 
-### Получить все историю элемента данных по его уникальному id для каждого хоста 
+### Получить всю историю элемента данных по его id для каждого хоста 
 $Collections_output = New-Object System.Collections.Generic.List[System.Object]
 foreach ($c in $Collections) {
     $data = @{
