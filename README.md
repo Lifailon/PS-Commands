@@ -53,13 +53,13 @@
 - [Performance](#performance)
 - [SNMP](#snmp)
 - [Zabbix](#zabbix)
+# [pki](#pki)
+# [OpenSSL](#openssl)
 - [OpenSSH](#openssh)
 - [WinRM](#winrm)
 - [pki](#pki)
-- [DSC](#dsc)
 - [Git](#git)
 - [Ansible](#ansible)
-- [Jenkins](#jenkins)
 
 ### Help
 `Get-Verb` действия/глаголы, утвержденные для использования в командлетах \
@@ -316,6 +316,17 @@ $		# Конец строки
 `-match "zabbix|rpc"` условия, для поиска по нескольким словам \
 `-NotMatch` проверка на отсутствие вхождения \
 
+### Matches
+`$ip = "192.168.10.1"` \
+`$ip -match "(\.\d{1,3})\.\d{1,2}"` True \
+`$Matches` отобразить все подходящие переменные последнего поиска, которые входят и не входят в группы ()
+
+`$String = "09/14/2017 12:00:27 - mtbill_post_201709141058.txt 7577_Delivered: OK"` \
+`$String -Match ".*(?=\.txt)" | Out-Null` \
+`$Matches[0][-4..-1] -Join ""`
+
+`$string.Substring($string.IndexOf(".txt")-4, 4) # 2-й вариант (IndexOf)`
+
 ### Форматирование (.NET method format)
 `[string]::Format("{1} {0}","Index0","Index1")` \
 `"{1} {0}" -f "Index0","Index1"` \
@@ -330,17 +341,6 @@ foreach ($p in $gp) {
 "{0} - {1:N2}" -f $p.processname, $p.cpu # округлить
 }
 ```
-### Matches
-`$ip = "192.168.10.1"` \
-`$ip -match "(\.\d{1,3})\.\d{1,2}"` True \
-`$Matches` отобразить все подходящие переменные последнего поиска, которые входят и не входят в группы ()
-
-`$String = "09/14/2017 12:00:27 - mtbill_post_201709141058.txt 7577_Delivered: OK"` \
-`$String -Match ".*(?=\.txt)" | Out-Null` \
-`$Matches[0][-4..-1] -Join ""`
-
-`$string.Substring($string.IndexOf(".txt")-4, 4) # 2-й вариант (IndexOf)`
-
 ### Условный оператор
 `$rh = Read-Host` \
 `if ($rh -eq 1) {ipconfig} elseif ($rh -eq 2) {getmac} else {hostname}` \
@@ -2481,6 +2481,12 @@ $Explorer = $Folder.GetExplorer()
 $Explorer.Display()	
 $Outlook.Quit()
 ```
+### Microsoft.Update
+
+`(New-Object -com 'Microsoft.Update.AutoUpdate').Settings` \
+`(New-Object -com 'Microsoft.Update.AutoUpdate').Results` \
+`(New-Timespan -Start ((New-Object -com 'Microsoft.Update.AutoUpdate').Results|Select -ExpandProperty LastInstallationSuccessDate) -End (Get-Date)).hours` кол-во часов, прошедших с последней даты установки обновления безопасности в Windows.
+
 # dotNET
 
 `[System.Diagnostics.EventLog] | select Assembly,Module` \
@@ -3870,7 +3876,9 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `DROP DATABASE powershell` удалить БД \
 `USE powershell` \
 `SHOW measurements` отобразить все таблицы \
-`INSERT performance,host=console,counter=CPU value=0.88` записать данные в таблицу performance \
+`INSERT performance,host=console,counter=CPU value=0.88` записать данные в таблицу performance
+
+### SELECT/WHERE
 `SELECT * FROM performance` отобразить все данные в таблице \
 `SELECT value FROM performance` отфильтровать по столбцу value (только Field Keys) \
 `SELECT * FROM performance limit 10` отобразить 10 единиц данных \
@@ -3881,7 +3889,24 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `DELETE FROM performance WHERE time > now() -1h` удалить данные за последние 1/4 часа \
 `DELETE FROM performance WHERE time < now() -24h` удалить данные старше 24 часов
 
-`SELECT/DELETE/SHOW/CREATE/DROP/EXPLAIN/GRANT/REVOKE/ALTER/SET/KILL`
+### REGEX
+`SELECT * FROM "performance" WHERE host =~ /.*-Pro/` приблизительно равно любое значение и на конце -Pro \
+`SELECT * FROM "win_pdisk" WHERE instance =~/.*C:/ and time > now() - 5m` и \
+`SELECT * FROM "win_pdisk" WHERE instance =~/.*E:/ or instance =~ /.*F:/` или \
+`SELECT * FROM "win_pdisk" WHERE instance !~ /.*Total/` не равно (исключить) \
+
+### GROUP BY tag_key
+`SELECT * FROM "win_pdisk" WHERE instance !~ /.*Total/ and instance !~/.*C:/ GROUP BY instance` группировать результаты по тегу
+
+### Functions(field_key)
+https://docs.influxdata.com/influxdb/v1.8/query_language/functions/ \
+`SELECT instance,LAST(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод по последнему/текущему значению \
+`SELECT instance,FIRST(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод по первому значению за весь или указанный отрезок времени \
+`SELECT instance,MIN(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод с отображением минимального значения \
+`SELECT instance,MAX(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод с отображением максимального значения \
+`SELECT SUM(Bytes_Received_persec) FROM "win_net" GROUP BY instance` суммах всех значений \
+`SELECT COUNT(Bytes_Received_persec) FROM "win_net" WHERE Bytes_Received_persec >= 0 GROUP BY instance` кол-во данных, где значение выше или равно 0 \
+`SELECT MEAN(Bytes_Received_persec) FROM "win_net" WHERE Bytes_Received_persec < 1000 GROUP BY instance` среднее значение данных с показателем от 0 до 1000 (509)
 
 ### POLICY
 `CREATE DATABASE powershell WITH DURATION 48h REPLICATION 1 NAME "del2d"` создать БД с политикой хранения 2 дня \
@@ -4358,6 +4383,333 @@ $results2 +=[PSCustomObject]@{'ID'=$d.id.ToString();'Data'=$d.Data.ToString()} #
 }
 $results2
 ```
+# Zabbix
+
+### Zabbix Agent Deploy
+```
+$url = "https://cdn.zabbix.com/zabbix/binaries/stable/6.4/6.4.5/zabbix_agent2-6.4.5-windows-amd64-static.zip"
+$path = "$home\Downloads\zabbix-agent2-6.4.5.zip"
+$WebClient = New-Object System.Net.WebClient
+$WebClient.DownloadFile($url, $path) # скачать файл
+Expand-Archive $path -DestinationPath "C:\zabbix-agent2-6.4.5\" # разархивировать
+Remove-Item $path # удалить архив
+New-NetFirewallRule -DisplayName "Zabbix-Agent" -Profile Any -Direction Inbound -Action Allow -Protocol TCP -LocalPort 10050,10051 # открыть порты в FW
+
+$Zabbix_Server = "192.168.3.102"
+$conf = "C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.conf"
+$cat = cat $conf
+$rep = $cat -replace "Server=.+","Server=$Zabbix_Server"
+$rep | Select-String Server=
+$rep > $conf
+
+$exe = "C:\zabbix-agent2-6.4.5\bin\zabbix_agent2.exe"
+.$exe --config $conf --install # установить службу
+Get-Service *Zabbix*Agent* | Start-Service # запустить службу
+#.$exe --config $conf --uninstall # удалить службу
+```
+### zabbix_sender
+
+Создать host - задать произвольное имя (powershell-host) и добавить в группу \
+Создать Items \
+Name: Service Count \
+Type: Zabbix trapper \
+Key: service.count \
+Type of Information: Numeric
+```
+$path = "C:\zabbix-agent2-6.4.5\bin"
+$scount = (Get-Service).Count
+.$path\zabbix_sender.exe -z 192.168.3.102 -s "powershell-host" -k service.count -o $scount
+```
+### zabbix_get
+
+`apt install zabbix-get` \
+`nano /etc/zabbix/zabbix_agentd.conf` \
+`Server=127.0.0.1,192.168.3.102,192.168.3.99` добавить сервера для получения данных zabbix_get с агента (как их запрашивает сервер)
+
+`.$path\zabbix_get -s 192.168.3.101 -p 10050 -k agent.version` проверить версию агента \
+`.$path\zabbix_get -s 192.168.3.101 -p 10050 -k agent.ping` 1 - ok \
+`.$path\zabbix_get -s 192.168.3.101 -p 10050 -k net.if.discovery` список сетевых интерфейсов \
+`.$path\zabbix_get -s 192.168.3.101 -p 10050 -k net.if.in["ens33"]` \
+`.$path\zabbix_get -s 192.168.3.101 -p 10050 -k net.if.out["ens33"]`
+
+### UserParameter
+
+`UserParameter=process.count,powershell -Command "(Get-Process).Count" \
+`UserParameter=process.vm[*],powershell -Command "(Get-Process $1).ws"
+
+Test: \
+`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.count \
+`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.vm[zabbix_agent2] \
+`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.vm[powershell]
+
+Создать новые Items: \
+key: process.count \
+key: process.vm[zabbix_agent2]
+
+### Include
+
+- Добавить параметр Include для включения конфигурационных файлов подключаемых плагинов
+`'Include=.\zabbix_agent2.d\plugins.d\*.conf' >> C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.conf`
+
+- Создать конфигурационный файл с пользовательскими параметрами в каталоге, путь к которому указан в zabbix_agentd.conf
+`'UserParameter=Get-Query-Param[*],powershell.exe -noprofile -executionpolicy bypass -File C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\scripts\User-Sessions\Get-Query-Param.ps1 $1' > C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\plugins.d\User-Sessions.conf`
+
+- Поместить скрипт Get-Query-Param.ps1 в каталог, путь к которому указан в User-Sessions.conf. Скрипт содержим пользовательские параметры, которые он принимает от Zabbix сервера.
+```
+Param([string]$select)
+if ($select -eq "ACTIVEUSER") {
+(Get-Query | where status -match "Active").User
+}
+if ($select -eq "INACTIVEUSER") {
+(Get-Query | where status -match "Disconnect").User
+}
+if ($select -eq "ACTIVECOUNT") {
+(Get-Query | where status -match "Active").Status.Count
+}
+if ($select -eq "INACTIVECOUNT") {
+(Get-Query | where status -match "Disconnect").Status.Count
+}
+```
+- Проверить работу скрипта:
+
+`$path = "C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\scripts\User-Sessions" \
+`.$path\Get-Query-Param.ps1 ACTIVEUSER \
+`.$path\Get-Query-Param.ps1 INACTIVEUSER \
+`.$path\Get-Query-Param.ps1 ACTIVECOUNT \
+`.$path\Get-Query-Param.ps1 INACTIVECOUNT
+
+- Создать Items с ключами:
+
+`Get-Query-Param[ACTIVEUSER]` Type: Text \
+`Get-Query-Param[INACTIVEUSER]` Type: Text \
+`Get-Query-Param[ACTIVECOUNT]` Type: Int \
+`Get-Query-Param[INACTIVECOUNT]` Type: Int
+
+- Макросы:
+
+`{$ACTIVEMAX} = 16 \
+`{$ACTIVEMIN} = 0
+
+- Триггеры:
+
+`last(/Windows-User-Sessions/Get-Query-Param[ACTIVECOUNT])>{$ACTIVEMAX} \
+`min(/Windows-User-Sessions/Get-Query-Param[ACTIVECOUNT],24h)={$ACTIVEMIN}
+
+### zabbix_agent2.conf
+```
+# Агент может работать в пассивном (сервер забирает сам информацию) и активном режиме (агент сам отправляет):
+Server=192.168.3.102
+ServerActive=192.168.3.102
+# Требуется указать hostname для ServerActive:
+Hostname=huawei-book-01
+# Если не указано, используется для генерации имени хоста (игнорируется, если имя хоста определено):
+# HostnameItem=system.hostname
+# Как часто обновляется список активных проверок, в секундах (Range: 60-3600):
+RefreshActiveChecks=120
+# IP-адрес источника для исходящих соединений:
+# SourceIP=
+# Агент будет слушать на этом порту соединения с сервером (Range: 1024-32767):
+# ListenPort=10050
+# Список IP-адресов, которые агент должен прослушивать через запятую
+# ListenIP=0.0.0.0
+# Агент будет прослушивать этот порт для запросов статуса HTTP (Range: 1024-32767):
+# StatusPort=
+ControlSocket=\\.\pipe\agent.sock
+# Куда вести журнал (file/syslog/console):
+LogType=file
+LogFile=C:\zabbix-agent2-6.4.5\zabbix_agent2.log
+# Размер лога от 0-1024 MB (0 - отключить автоматическую ротацию логов)
+LogFileSize=100
+# Уровень логирования. 4 - для отладки (выдает много информации)
+DebugLevel=4
+```
+### API Token
+
+https://www.zabbix.com/documentation/current/en/manual/api/reference
+
+`$ip = "192.168.3.102" \
+`$url = "http://$ip/zabbix/api_jsonrpc.php"
+```
+$data = @{
+    "jsonrpc"="2.0";
+    "method"="user.login";
+    "params"=@{
+        "username"="Admin"; # в версии до 6.4 параметр "user"
+        "password"="zabbix";
+    };
+    "id"=1;
+}
+$token = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
+```
+`$token = "914ee100f4e8c4b68a70eab2a0a1fb153cfcd4905421d0ffacb82c20a57aa50e"` создать токен в UI (http://192.168.3.102/zabbix/zabbix.php?action=token.list)
+
+### user.get
+```
+$data = @{
+    "jsonrpc"="2.0";
+    "method"="user.get";
+    "params"=@{
+    };
+    "auth"=$token;
+    "id"=1;
+}
+$users = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
+```
+### problem.get
+```
+$data = @{
+    "jsonrpc"="2.0";
+    "method"="problem.get";
+    "params"=@{
+    };
+    "auth"=$token;
+    "id"=1;
+}
+(Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
+```
+### host.get
+
+https://www.zabbix.com/documentation/current/en/manual/api/reference/host
+
+host.create - creating new hosts \
+host.delete - deleting hosts \
+host.get - retrieving hosts \
+host.massadd - adding related objects to hosts \
+host.massremove - removing related objects from hosts \
+host.massupdate - replacing or removing related objects from hosts \
+host.update - updating hosts
+```
+$data = @{
+    "jsonrpc"="2.0";
+    "method"="host.get";
+    "params"=@{
+        "output"=@( # отфильтровать вывод
+            "hostid";
+            "host";
+        );
+    };
+    "id"=2;
+    "auth"=$token;
+}
+$hosts = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
+$host_id = $hosts[3].hostid # забрать id хоста по индексу
+```
+### item.get
+```
+$data = @{
+    "jsonrpc"="2.0";
+    "method"="item.get";
+    "params"=@{
+        "hostids"=@($host_id); # отфильтровать по хосту
+    };
+    "auth"=$token;
+    "id"=1;
+}
+$items = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
+$items_id = ($items | where key_ -match system.uptime).itemid # забрать id элемента данных
+```
+### history.get
+```
+$data = @{
+    "jsonrpc"="2.0";
+    "method"="history.get";
+    "params"=@{
+        "hostids"=@($host_id);  # фильтрация по хосту
+        "itemids"=@($items_id); # фильтрация по элементу данных
+    };
+    "auth"=$token;
+    "id"=1;
+}
+$items_data_uptime = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result # получить все данные по ключу у конкретного хоста
+```
+### Convert Secconds To TimeSpan and DateTime
+
+`$sec = $items_data_uptime.value`
+```
+function ConvertSecondsTo-TimeSpan {
+    param (
+        $insec
+    )
+    $TimeSpan = [TimeSpan]::fromseconds($insec)
+    "{0:dd' day 'hh\:mm\:ss}" -f $TimeSpan
+}
+```
+`$UpTime = ConvertSecondsTo-TimeSpan $sec[-1]`
+
+### Convert From Unix Time
+
+`$time = $items_data_uptime.clock`
+```
+function ConvertFrom-UnixTime {
+    param (
+        $intime
+    )
+    $EpochTime = [DateTime]"1/1/1970"
+    $TimeZone = Get-TimeZone
+    $UTCTime = $EpochTime.AddSeconds($intime)
+    $UTCTime.AddMinutes($TimeZone.BaseUtcOffset.TotalMinutes)
+}
+```
+`$GetDataTime = ConvertFrom-UnixTime $time[-1]`
+
+`($hosts | where hostid -eq $host_id).host` получить имя хоста \
+`$UpTime` последнее полученное значение времени работы хоста \
+`$GetDataTime` время последнего полученного значения
+
+# pki
+
+`New-SelfSignedCertificate -CertStoreLocation Cert:\LocalMachine\My -DnsName "$env:computername" -FriendlyName "Test Certificate" -NotAfter (Get-Date).AddYears(5)` создать самоподписанный сертификат (в LocalMachine\My - Сертификаты компьютера\Личное) с сроком действия 5 лет
+
+`Get-ChildItem -Path Cert:\CurrentUser\Root\` список всех установленных сертификатов в хранилище Доверенные корневые ЦС Текущего пользователя \
+`Get-ChildItem -Path Cert:\CurrentUser\My\` список самозаверяющих сертификатов в Личное хранилище Текущего пользователя \
+`Get-ChildItem -Path Cert:\LocalMachine\My\` список самозаверяющих сертификатов в Личное хранилище Локального компьютера \
+`Get-ChildItem -Path Cert:\LocalMachine\My\ | select NotBefore,NotAfter,Thumbprint,Subject` срок действия сертификата \
+`Get-ChildItem -Path Cert:\LocalMachine\My\ | where Thumbprint -eq D9356FB774EE0E6206B7D5B59B99102CA5B17BDA` поиск сертификат по отпечатку
+
+`Get-ChildItem -Path $env:APPDATA\Microsoft\SystemCertificates\My\Certificates\` сертификаты в файловой системе, каждый файл соответствует сертификату, установленному в личном хранилище текущего пользователя \
+`Get-ChildItem -Path $env:APPDATA\Microsoft\SystemCertificates\My\Keys\` ссылки на объекты закрытых ключей, созданных поставщиком хранилища ключей (KSP) \
+`Get-ChildItem -Path HKCU:\Software\Microsoft\SystemCertificates\CA\Certificates | ft -AutoSize` список сертификатов в реестре вошедшего в систему пользователя
+
+`$cert = (Get-ChildItem -Path Cert:\CurrentUser\My\)[1]` выбрать сертификат \
+`$cert | Remove-Item` удалить сертификат
+
+`Export-Certificate -FilePath $home\Desktop\certificate.cer -Cert $cert` экспортировать сертификат \
+`$cert.HasPrivateKey` проверить наличие закрытого ключа \
+`$pass = "password" | ConvertTo-SecureString -AsPlainText -Force` создать пароль для шифрования закрытого ключа \
+`Export-PfxCertificate -FilePath $home\Desktop\certificate.pfx -Password $pass -Cert $certificate` экспортировать сертификат с закрытым ключем
+
+`Import-Certificate -FilePath $home\Desktop\certificate.cer -CertStoreLocation Cert:\CurrentUser\My` импортировать сертификат \
+`Import-PfxCertificate -Exportable -Password $pass -CertStoreLocation Cert:\CurrentUser\My -FilePath $home\Desktop\certificate.pfx`
+
+# OpenSSL
+```
+Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL_Light-3_1_1.msi -OutFile $home\Downloads\OpenSSL-Light-3.1.1.msi
+Start-Process $home\Downloads\OpenSSL-Light-3.1.1.msi -ArgumentList '/quiet' -Wait # установить msi пакет в тихом режиме
+cd "C:\Program Files\OpenSSL-Win64\bin"
+```
+- Изменить пароль для PFX
+`openssl pkcs12 -in "C:\Cert\domain.ru.pfx" -out "C:\Cert\domain.ru.pem" -nodes` экспортируем имеющийся сертификат и закрытый ключ в .pem-файл без пароля с указанием текущего пароля \
+`openssl pkcs12 -export -in "C:\Cert\domain.ru.pem" -out "C:\Cert\domain.ru_password.pfx" -nodes` конвертируем .pem обратно в .pfx c указанием нового пароля
+
+- Конвертация из закрытого и открытого ключа PEM в PFX
+`openssl pkcs12 -export -in "C:\tmp\vpn\vpn.itproblog.ru-crt.pem" -inkey "C:\tmp\vpn\vpn.itproblog.ru-key.pem" -out "C:\tmp\vpn\vpn.iiproblog.ru.pfx" \
+in – путь до файла с открытым ключом \
+inkey – путь до файла с закрытым ключом \
+out – путь до файла, в который будет конвертирован сертификат (pfx)
+
+- Конвертация PFX в CRT
+`openssl pkcs12 -in "C:\OpenSSL-Win64\bin\_.domain.ru.pfx" -clcerts -out "C:\OpenSSL-Win64\bin\_.domain.ru.crt"` указывается текущий и 2 раза новый пароль PEM pass phrase (файл содержит EGIN CERTIFICATE и BEGIN ENCRYPTED PRIVATE KEY) \
+`openssl pkcs12 -in "C:\OpenSSL-Win64\bin\_.domain.ru.pfx" -clcerts -nokeys -out "C:\OpenSSL-Win64\bin\_.domain.ru.crt"` без ключа, получить открытую часть (файл содержит только EGIN CERTIFICATE)
+
+- Конвертация PFX в KEY
+`openssl pkcs12 -in "C:\OpenSSL-Win64\bin\_.domain.ru.pfx" -nocerts -out "C:\OpenSSL-Win64\bin\_.domain.ru.key"` файл содержит только BEGIN ENCRYPTED PRIVATE KEY
+
+- Снять пароль к закрытого ключа .key
+`openssl rsa -in "C:\OpenSSL-Win64\bin\_.domain.ru.key" -out "C:\OpenSSL-Win64\bin\_.domain.ru-decrypted.key"`
+
+- CRT и KEY в PFX:
+`openssl pkcs12 -inkey certificate.key -in certificate.crt -export -out certificate.pfx`
+
 # OpenSSH
 
 `Get-WindowsCapability -Online | ? Name -like 'OpenSSH.Client*'` \
@@ -4462,29 +4814,6 @@ New-WSManInstance -ResourceURI "winrm/config/Listener" -SelectorSet $selector_se
 `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\HTTP\Parameters` изменить размера, если заголовок пакета аутентификации превышает 16 Кб (из за большого кол-ва групп) \
 `MaxFieldLength увеличить до 0000ffff (65535)` \
 `MaxRequestBytes увеличить до 0000ffff (65535)`
-
-# pki
-
-`Get-ChildItem -Path Cert:\CurrentUser\Root\` список всех установленных сертификатов в хранилище Доверенные корневые ЦС Текущего пользователя \
-`Get-ChildItem -Path Cert:\CurrentUser\My\` список самозаверяющих сертификатов в Личное хранилище Текущего пользователя \
-`Get-ChildItem -Path Cert:\LocalMachine\My\` список самозаверяющих сертификатов в Личное хранилище Локального компьютера \
-`Get-ChildItem -Path Cert:\LocalMachine\My\ | select NotBefore,NotAfter,Thumbprint,Subject` срок действия сертификата \
-`Get-ChildItem -Path Cert:\LocalMachine\My\ | where Thumbprint -eq D9356FB774EE0E6206B7D5B59B99102CA5B17BDA` поиск сертификат по отпечатку
-
-`Get-ChildItem -Path $env:APPDATA\Microsoft\SystemCertificates\My\Certificates\` сертификаты в файловой системе, каждый файл соответствует сертификату, установленному в личном хранилище текущего пользователя \
-`Get-ChildItem -Path $env:APPDATA\Microsoft\SystemCertificates\My\Keys\` ссылки на объекты закрытых ключей, созданных поставщиком хранилища ключей (KSP) \
-`Get-ChildItem -Path HKCU:\Software\Microsoft\SystemCertificates\CA\Certificates | ft -AutoSize` список сертификатов в реестре вошедшего в систему пользователя
-
-`$cert = (Get-ChildItem -Path Cert:\CurrentUser\My\)[1]` выбрать сертификат \
-`$cert | Remove-Item` удалить сертификат
-
-`Export-Certificate -FilePath $home\Desktop\certificate.cer -Cert $cert` экспортировать сертификат \
-`$cert.HasPrivateKey` проверить наличие закрытого ключа \
-`$pass = "password" | ConvertTo-SecureString -AsPlainText -Force` создать пароль для шифрования закрытого ключа \
-`Export-PfxCertificate -FilePath $home\Desktop\certificate.pfx -Password $pass -Cert $certificate` экспортировать сертификат с закрытым ключем
-
-`Import-Certificate -FilePath $home\Desktop\certificate.cer -CertStoreLocation Cert:\CurrentUser\My` импортировать сертификат \
-`Import-PfxCertificate -Exportable -Password $pass -CertStoreLocation Cert:\CurrentUser\My -FilePath $home\Desktop\certificate.pfx`
 
 # DSC
 
@@ -4635,7 +4964,7 @@ path_user=/home/lifailon
 ansible_python_interpreter=/usr/bin/python3
 
 [ws]
-huawei-01 ansible_host=192.168.3.99
+huawei-book-01 ansible_host=192.168.3.99
 plex-01 ansible_host=192.168.3.100
 
 [ws:vars]
@@ -4652,7 +4981,7 @@ ansible_winrm_server_cert_validation=ignore
 validate_certs=false
 
 [win_ssh]
-huawei-01 ansible_host=192.168.3.99
+huawei-book-01 ansible_host=192.168.3.99
 plex-01 ansible_host=192.168.3.100
 
 [win_ssh:vars]
@@ -4701,7 +5030,7 @@ ansible_shell_type=powershell
   - name: Get port ssh
     win_shell: |
       Get-Content "C:\Programdata\ssh\sshd_config" | Select-String "{{SearchName}}"
-    # Зарегистрировать вывод в переменную
+    # Передать вывод в переменную
     register: command_output
   - name: Output port ssh
     # Вывести переменную на экран
@@ -5050,58 +5379,3 @@ ansible_shell_type=powershell
       var: wu_output
 ```
 `ansible-playbook /etc/ansible/win-update.yml`
-
-# Jenkins
-
-`nano /etc/apt/sources.list.d/jenkins.list` \
-`deb [trusted=yes] https://pkg.jenkins.io/debian binary/` \
-`apt-get update` \
-`apt-get install -y fontconfig openjdk-11-jre` \
-`apt-get install -y jenkins` \
-`systemctl status jenkins` \
-`cat /var/lib/jenkins/secrets/initialAdminPassword`
-
-`Item - Freestyle` \
-`This build is parameterized - Add Parameter - String Parameter - ProcessName` \
-`Add build step - PowerShell` \
-`Command:` \
-`pwsh -command Get-Process -name *$env:ProcessName*`
-
-`Item - Pipeline` \
-`SCM - Git` \
-`Repository URL: https://github.com/Lifailon/Deploy-PS-Module.git` \
-`Branch: */rsa` \
-`Script Path: Win-Get-Service/jenkinsfile.groovy` \
-
-### jenkinsfile.groovy
-```
-pipeline {
-  agent any
-  parameters {
-    string(name: "ServiceName", defaultValue: "WinRM", trim: true, description: "Введите имя службы") // создать параметр
-  }
-  stages {
-    stage('Before Deploy Version') {
-      steps {
-        echo "Имя выбранной службы: $params.ServiceName"
-        sh "ansible-playbook Win-Get-Service/Get-Service.yml -e ServiceName=$params.ServiceName" // передать параметр на вход переменной playbook
-      }
-    }
-  }
-}
-```
-### Get-Service.yml
-```
-- name: win_powershell
-  vars:
-    ServiceName: WinRM
-  hosts: ws
-  tasks:
-    - name: Run PowerShell Commands
-      win_shell: |
-        Get-Service *"{{ServiceName}}"*
-      register: command_output
-    - name: Command Output
-      debug:
-        var: command_output.stdout_lines
-```
