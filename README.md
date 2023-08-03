@@ -57,7 +57,7 @@
 - [OpenSSL](#openssl)
 - [OpenSSH](#openssh)
 - [WinRM](#winrm)
-- [pki](#pki)
+- [DSC](#dsc)
 - [Git](#git)
 - [Ansible](#ansible)
 
