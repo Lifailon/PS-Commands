@@ -53,8 +53,8 @@
 - [Performance](#performance)
 - [SNMP](#snmp)
 - [Zabbix](#zabbix)
-# [pki](#pki)
-# [OpenSSL](#openssl)
+- [pki](#pki)
+- [OpenSSL](#openssl)
 - [OpenSSH](#openssh)
 - [WinRM](#winrm)
 - [pki](#pki)
@@ -3861,6 +3861,7 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `influx --host 192.168.3.104 --username admin --password password`
 
 ### USERS
+
 `SHOW USERS` отобразить пользователей и их права доступа \
 `CREATE USER admin WITH PASSWORD 'password' WITH ALL PRIVILEGES` создать пользователя \
 `GRANT ALL PRIVILEGES TO "admin"` предоставить права доступа \
@@ -3871,6 +3872,7 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `DROP USER "admin"` удалить пользователя
 
 ### DATABASE
+
 `CREATE DATABASE powershell` создать БД \
 `SHOW DATABASES` отобразить список БД \
 `DROP DATABASE powershell` удалить БД \
@@ -3879,6 +3881,7 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `INSERT performance,host=console,counter=CPU value=0.88` записать данные в таблицу performance
 
 ### SELECT/WHERE
+
 `SELECT * FROM performance` отобразить все данные в таблице \
 `SELECT value FROM performance` отфильтровать по столбцу value (только Field Keys) \
 `SELECT * FROM performance limit 10` отобразить 10 единиц данных \
@@ -3890,16 +3893,19 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `DELETE FROM performance WHERE time < now() -24h` удалить данные старше 24 часов
 
 ### REGEX
+
 `SELECT * FROM "performance" WHERE host =~ /.*-Pro/` приблизительно равно любое значение и на конце -Pro \
 `SELECT * FROM "win_pdisk" WHERE instance =~/.*C:/ and time > now() - 5m` и \
 `SELECT * FROM "win_pdisk" WHERE instance =~/.*E:/ or instance =~ /.*F:/` или \
 `SELECT * FROM "win_pdisk" WHERE instance !~ /.*Total/` не равно (исключить) \
 
 ### GROUP BY tag_key
+
 `SELECT * FROM "win_pdisk" WHERE instance !~ /.*Total/ and instance !~/.*C:/ GROUP BY instance` группировать результаты по тегу
 
 ### Functions(field_key)
 https://docs.influxdata.com/influxdb/v1.8/query_language/functions/ \
+
 `SELECT instance,LAST(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод по последнему/текущему значению \
 `SELECT instance,FIRST(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод по первому значению за весь или указанный отрезок времени \
 `SELECT instance,MIN(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод с отображением минимального значения \
@@ -3909,6 +3915,7 @@ https://docs.influxdata.com/influxdb/v1.8/query_language/functions/ \
 `SELECT MEAN(Bytes_Received_persec) FROM "win_net" WHERE Bytes_Received_persec < 1000 GROUP BY instance` среднее значение данных с показателем от 0 до 1000 (509)
 
 ### POLICY
+
 `CREATE DATABASE powershell WITH DURATION 48h REPLICATION 1 NAME "del2d"` создать БД с политикой хранения 2 дня \
 `CREATE RETENTION POLICY del2h ON powershell DURATION 2h REPLICATION 1` создать новую политику хранения для БД \
 `CREATE RETENTION POLICY del6h ON powershell DURATION 6h REPLICATION 1 SHARD DURATION 2h` указать период хранения 6 часов + 2 часа до очистки (по умолчанию 1ч или больше) \
@@ -3957,7 +3964,7 @@ $data.results.series.name    # имя таблицы
 $data.results.series.columns # столбцы/ключи
 $data.results.series.values  # данные построчно
 ```
-### Endpoint
+### Endpoints
 https://docs.influxdata.com/influxdb/v1.7/tools/api/
 ```
 $stats = irm http://192.168.3.104:8086/debug/vars # статистика сервера
@@ -4410,7 +4417,7 @@ Get-Service *Zabbix*Agent* | Start-Service # запустить службу
 ### zabbix_sender
 
 Создать host - задать произвольное имя (powershell-host) и добавить в группу \
-Создать Items \
+Создать Items: \
 Name: Service Count \
 Type: Zabbix trapper \
 Key: service.count \
@@ -4434,13 +4441,13 @@ $scount = (Get-Service).Count
 
 ### UserParameter
 
-`UserParameter=process.count,powershell -Command "(Get-Process).Count" \
-`UserParameter=process.vm[*],powershell -Command "(Get-Process $1).ws"
+`UserParameter=process.count,powershell -Command "(Get-Process).Count"` \
+`UserParameter=process.vm[*],powershell -Command "(Get-Process $1).ws"`
 
 Test: \
-`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.count \
-`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.vm[zabbix_agent2] \
-`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.vm[powershell]
+`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.count` \
+`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.vm[zabbix_agent2] `\
+`C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.vm[powershell]`
 
 Создать новые Items: \
 key: process.count \
@@ -4451,7 +4458,7 @@ key: process.vm[zabbix_agent2]
 - Добавить параметр Include для включения конфигурационных файлов подключаемых плагинов
 `'Include=.\zabbix_agent2.d\plugins.d\*.conf' >> C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.conf`
 
-- Создать конфигурационный файл с пользовательскими параметрами в каталоге, путь к которому указан в zabbix_agentd.conf
+- Создать конфигурационный файл с пользовательскими параметрами в каталоге, путь к которому указан в zabbix_agentd.conf \
 `'UserParameter=Get-Query-Param[*],powershell.exe -noprofile -executionpolicy bypass -File C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\scripts\User-Sessions\Get-Query-Param.ps1 $1' > C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\plugins.d\User-Sessions.conf`
 
 - Поместить скрипт Get-Query-Param.ps1 в каталог, путь к которому указан в User-Sessions.conf. Скрипт содержим пользовательские параметры, которые он принимает от Zabbix сервера.
@@ -4472,11 +4479,11 @@ if ($select -eq "INACTIVECOUNT") {
 ```
 - Проверить работу скрипта:
 
-`$path = "C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\scripts\User-Sessions" \
-`.$path\Get-Query-Param.ps1 ACTIVEUSER \
-`.$path\Get-Query-Param.ps1 INACTIVEUSER \
-`.$path\Get-Query-Param.ps1 ACTIVECOUNT \
-`.$path\Get-Query-Param.ps1 INACTIVECOUNT
+`$path = "C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\scripts\User-Sessions"` \
+`.$path\Get-Query-Param.ps1 ACTIVEUSER` \
+`.$path\Get-Query-Param.ps1 INACTIVEUSER` \
+`.$path\Get-Query-Param.ps1 ACTIVECOUNT` \
+`.$path\Get-Query-Param.ps1 INACTIVECOUNT`
 
 - Создать Items с ключами:
 
@@ -4487,13 +4494,13 @@ if ($select -eq "INACTIVECOUNT") {
 
 - Макросы:
 
-`{$ACTIVEMAX} = 16 \
-`{$ACTIVEMIN} = 0
+`{$ACTIVEMAX} = 16` \
+`{$ACTIVEMIN} = 0`
 
 - Триггеры:
 
-`last(/Windows-User-Sessions/Get-Query-Param[ACTIVECOUNT])>{$ACTIVEMAX} \
-`min(/Windows-User-Sessions/Get-Query-Param[ACTIVECOUNT],24h)={$ACTIVEMIN}
+`last(/Windows-User-Sessions/Get-Query-Param[ACTIVECOUNT])>{$ACTIVEMAX}` \
+`min(/Windows-User-Sessions/Get-Query-Param[ACTIVECOUNT],24h)={$ACTIVEMIN}`
 
 ### zabbix_agent2.conf
 ```
@@ -4527,8 +4534,8 @@ DebugLevel=4
 
 https://www.zabbix.com/documentation/current/en/manual/api/reference
 
-`$ip = "192.168.3.102" \
-`$url = "http://$ip/zabbix/api_jsonrpc.php"
+`$ip = "192.168.3.102"` \
+`$url = "http://$ip/zabbix/api_jsonrpc.php"`
 ```
 $data = @{
     "jsonrpc"="2.0";
@@ -4687,27 +4694,27 @@ Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL_Light-3_1_1.ms
 Start-Process $home\Downloads\OpenSSL-Light-3.1.1.msi -ArgumentList '/quiet' -Wait # установить msi пакет в тихом режиме
 cd "C:\Program Files\OpenSSL-Win64\bin"
 ```
-- Изменить пароль для PFX
+- Изменить пароль для PFX \
 `openssl pkcs12 -in "C:\Cert\domain.ru.pfx" -out "C:\Cert\domain.ru.pem" -nodes` экспортируем имеющийся сертификат и закрытый ключ в .pem-файл без пароля с указанием текущего пароля \
 `openssl pkcs12 -export -in "C:\Cert\domain.ru.pem" -out "C:\Cert\domain.ru_password.pfx" -nodes` конвертируем .pem обратно в .pfx c указанием нового пароля
 
-- Конвертация из закрытого и открытого ключа PEM в PFX
+- Конвертация из закрытого и открытого ключа PEM в PFX \
 `openssl pkcs12 -export -in "C:\tmp\vpn\vpn.itproblog.ru-crt.pem" -inkey "C:\tmp\vpn\vpn.itproblog.ru-key.pem" -out "C:\tmp\vpn\vpn.iiproblog.ru.pfx" \
 in – путь до файла с открытым ключом \
 inkey – путь до файла с закрытым ключом \
 out – путь до файла, в который будет конвертирован сертификат (pfx)
 
-- Конвертация PFX в CRT
+- Конвертация PFX в CRT \
 `openssl pkcs12 -in "C:\OpenSSL-Win64\bin\_.domain.ru.pfx" -clcerts -out "C:\OpenSSL-Win64\bin\_.domain.ru.crt"` указывается текущий и 2 раза новый пароль PEM pass phrase (файл содержит EGIN CERTIFICATE и BEGIN ENCRYPTED PRIVATE KEY) \
 `openssl pkcs12 -in "C:\OpenSSL-Win64\bin\_.domain.ru.pfx" -clcerts -nokeys -out "C:\OpenSSL-Win64\bin\_.domain.ru.crt"` без ключа, получить открытую часть (файл содержит только EGIN CERTIFICATE)
 
-- Конвертация PFX в KEY
+- Конвертация PFX в KEY \
 `openssl pkcs12 -in "C:\OpenSSL-Win64\bin\_.domain.ru.pfx" -nocerts -out "C:\OpenSSL-Win64\bin\_.domain.ru.key"` файл содержит только BEGIN ENCRYPTED PRIVATE KEY
 
-- Снять пароль к закрытого ключа .key
+- Снять пароль к закрытого ключа .key \
 `openssl rsa -in "C:\OpenSSL-Win64\bin\_.domain.ru.key" -out "C:\OpenSSL-Win64\bin\_.domain.ru-decrypted.key"`
 
-- CRT и KEY в PFX:
+- CRT и KEY в PFX: \
 `openssl pkcs12 -inkey certificate.key -in certificate.crt -export -out certificate.pfx`
 
 # OpenSSH
