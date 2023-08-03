@@ -4450,8 +4450,8 @@ Test: \
 `C:\zabbix-agent2-6.4.5\bin\zabbix_get.exe -s 127.0.0.1 -p 10050 -k process.vm[powershell]`
 
 Создать новые Items: \
-key: process.count \
-key: process.vm[zabbix_agent2]
+key: `process.count` \
+key: `process.vm[zabbix_agent2]`
 
 ### Include
 
@@ -4461,7 +4461,7 @@ key: process.vm[zabbix_agent2]
 - Создать конфигурационный файл с пользовательскими параметрами в каталоге, путь к которому указан в zabbix_agentd.conf \
 `'UserParameter=Get-Query-Param[*],powershell.exe -noprofile -executionpolicy bypass -File C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\scripts\User-Sessions\Get-Query-Param.ps1 $1' > C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\plugins.d\User-Sessions.conf`
 
-- Поместить скрипт Get-Query-Param.ps1 в каталог, путь к которому указан в User-Sessions.conf. Скрипт содержим пользовательские параметры, которые он принимает от Zabbix сервера.
+- Поместить скрипт Get-Query-Param.ps1 в каталог, путь к которому указан в User-Sessions.conf. Скрипт содержим пользовательские параметры, которые он принимает от Zabbix сервера для передачи их в функции скрипта.
 ```
 Param([string]$select)
 if ($select -eq "ACTIVEUSER") {
@@ -4576,6 +4576,8 @@ $data = @{
 ```
 ### host.get
 
+Получить список всех хостов (имя и id)
+
 https://www.zabbix.com/documentation/current/en/manual/api/reference/host
 
 host.create - creating new hosts \
@@ -4602,6 +4604,8 @@ $hosts = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json
 $host_id = $hosts[3].hostid # забрать id хоста по индексу
 ```
 ### item.get
+
+Получить id элементов данных по наименованию ключа для конкретного хоста
 ```
 $data = @{
     "jsonrpc"="2.0";
@@ -4616,6 +4620,8 @@ $items = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json
 $items_id = ($items | where key_ -match system.uptime).itemid # забрать id элемента данных
 ```
 ### history.get
+
+Получить всю историю элемента данных по его id
 ```
 $data = @{
     "jsonrpc"="2.0";
@@ -4699,7 +4705,7 @@ cd "C:\Program Files\OpenSSL-Win64\bin"
 `openssl pkcs12 -export -in "C:\Cert\domain.ru.pem" -out "C:\Cert\domain.ru_password.pfx" -nodes` конвертируем .pem обратно в .pfx c указанием нового пароля
 
 - Конвертация из закрытого и открытого ключа PEM в PFX \
-`openssl pkcs12 -export -in "C:\tmp\vpn\vpn.itproblog.ru-crt.pem" -inkey "C:\tmp\vpn\vpn.itproblog.ru-key.pem" -out "C:\tmp\vpn\vpn.iiproblog.ru.pfx" \
+`openssl pkcs12 -export -in "C:\tmp\vpn\vpn.itproblog.ru-crt.pem" -inkey "C:\tmp\vpn\vpn.itproblog.ru-key.pem" -out "C:\tmp\vpn\vpn.iiproblog.ru.pfx"` \
 in – путь до файла с открытым ключом \
 inkey – путь до файла с закрытым ключом \
 out – путь до файла, в который будет конвертирован сертификат (pfx)
