@@ -4913,7 +4913,7 @@ verb 3
 `wg show` \
 `wg-quick-config -add -restart` add client
 
-`wiresock.conf`
+wiresock.conf
 ```
 [Interface]
 PrivateKey = gCHC0g2JPwr6sXPiaOL4/KTkMyjN9TculrJUA/GORV8=
@@ -4924,7 +4924,7 @@ ListenPort = 8181
 PublicKey = NoSxjew2RCHiUzI6mlahjd4I+0EcLsoYom/H01z91yU=
 AllowedIPs = 192.168.21.6/32
 ```
-`wsclient_1.conf` добавить маршруты для клиента в AllowedIPs
+wsclient_1.conf (добавить маршруты для клиента в AllowedIPs)
 ```
 [Interface]
 PrivateKey = yIpRQRmaGrrk9Y+49E8JhEpFmKzSeecvUAdeNgf1hUM=
