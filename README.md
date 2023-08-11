@@ -59,6 +59,7 @@
 - [Route](#route)
 - [NAT](#nat)
 - [WireGuard](#wireguard)
+- [VpnClient](#vpnclient)
 - [OpenSSH](#openssh)
 - [WinRM](#winrm)
 - [DSC](#dsc)
@@ -4906,11 +4907,58 @@ verb 3
 `wg-quick-config -add -start` \
 `26.115.154.67:8181` \
 `192.168.21.4/24` \
-`Successfully saved client configuration: C:\ProgramData\NT KERNEL\WireSock VPN Gateway\wsclient_1.conf` AllowedIPs = 192.168.21.0/24, 192.168.3.0/24 \
+`Successfully saved client configuration: C:\ProgramData\NT KERNEL\WireSock VPN Gateway\wsclient_1.conf` \
 `Successfully saved server configuration: C:\ProgramData\NT KERNEL\WireSock VPN Gateway\wiresock.conf` \
 `get-service *wire*` \
 `wg show` \
 `wg-quick-config -add -restart` add client
+
+`wiresock.conf`
+```
+[Interface]
+PrivateKey = gCHC0g2JPwr6sXPiaOL4/KTkMyjN9TculrJUA/GORV8=
+Address = 192.168.21.5/24
+ListenPort = 8181
+
+[Peer]
+PublicKey = NoSxjew2RCHiUzI6mlahjd4I+0EcLsoYom/H01z91yU=
+AllowedIPs = 192.168.21.6/32
+```
+`wsclient_1.conf` добавить маршруты для клиента в AllowedIPs
+```
+[Interface]
+PrivateKey = yIpRQRmaGrrk9Y+49E8JhEpFmKzSeecvUAdeNgf1hUM=
+Address = 192.168.21.6/24
+DNS = 8.8.8.8, 1.1.1.1
+MTU = 1420
+
+[Peer]
+PublicKey = Fp7674VSYeGj8CYt6RCKR7Qz1y/IKUXCw8ImOFhX3hk=
+AllowedIPs = 192.168.21.0/24, 192.168.3.0/24
+Endpoint = 26.115.154.67:8181
+PersistentKeepalive = 25
+```
+# VpnClient
+
+`Get-Command -Module VpnClient` \
+`Add-VpnConnection -Name "vpn-failon" -ServerAddress "26.115.154.67" -TunnelType L2TP -L2tpPsk "123098" -EncryptionLevel "Required" -AuthenticationMethod MSChapv2 -RememberCredential -AllUserConnection –PassThru -Force` \
+`-TunnelType PPTP/L2TP/SSTP/IKEv2/Automatic` \
+`-L2tpPsk` использовать общий ключ для аутентификации (без параметра, для L2TP аутентификации используется сертификат) \
+`-AuthenticationMethod Pap/Chap/MSChapv2/Eap/MachineCertificate` \
+`-EncryptionLevel NoEncryption/Optional/Required/Maximum/Custom` \
+`-SplitTunneling` заворачивать весь трафик через VPN-туннель (включение Use default gateway on remote network в настройках параметра VPN адаптера) \
+`-UseWinlogonCredential` использовать учетные данные текущего пользователя для аутентификации на VPN сервере \
+`-RememberCredential` разрешить сохранять учетные данные для VPN подключения (учетная запись и пароль сохраняются в диспетчер учетных данных Windows после первого успешного подключения) \
+`-DnsSuffix domain.local` \
+`-AllUserConnection` разрешить использовать VPN подключение для всех пользователей компьютера (сохраняется в конфигурационный файл: C:\ProgramData\Microsoft\Network\Connections\Pbk\rasphone.pbk)
+
+`Install-Module -Name VPNCredentialsHelper` модуль для сохранения логина и пароля в Windows Credential Manager для VPN подключения \
+`Set-VpnConnectionUsernamePassword -connectionname vpn-failon -username user1 -password password`
+
+`rasdial "vpn-failon"` подключиться \
+`Get-VpnConnection -AllUserConnection | select *` список VPN подключения, доступных для всех пользователей, найстройки и текущий статус подключения (ConnectionStatus) \
+`Add-VpnConnectionRoute -ConnectionName vpn-failon -DestinationPrefix 192.168.3.0/24 –PassThru` динамически добавить в таблицу маршрутизации маршрут, который будет активен при подключении к VPN \
+`Remove-VpnConnection -Name vpn-failon -AllUserConnection -Force` удалить
 
 # OpenSSH
 
