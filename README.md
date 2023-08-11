@@ -4741,8 +4741,7 @@ out – путь до файла, в который будет конверти�
 `rm $home\Downloads\OpenVPN-2.6.5.msi`
 
 `cd "C:\Program Files\OpenVPN\easy-rsa"` \
-`Copy-Item vars.example vars` файл конфигурации для EasyRSA \
-`Start-Process notepad++ "vars"
+`Copy-Item vars.example vars` файл конфигурации для EasyRSA
 ```
 set_var EASYRSA_TEMP_DIR "$EASYRSA_PKI"
 set_var EASYRSA_REQ_COUNTRY "RU"
@@ -4761,7 +4760,7 @@ set_var EASYRSA_REQ_OU "IT"
 `easyrsa gen-req server nopass` генерация запроса сертификата и ключ для сервера OpenVPN - yes (\pki\reqs\server.req и \pki\private\server.key) \
 `easyrsa sign-req server server` подписать запрос на выпуск сертификата сервера с помощью CA - yes (\pki\issued\server.crt) \
 `easyrsa gen-dh` создать ключ Диффи-Хеллмана (\pki\dh.pem) \
-`easyrsa gen-req client1` nopass` генерация запроса сертификата и ключ для клиента OpenVPN (\pki\reqs\client1.req и \pki\private\client1.key) \
+`easyrsa gen-req client1` nopass` генерация запроса сертификата и ключ для клиента OpenVPN (\pki\reqs\client1.req и \pki\private\client1.key)` \
 `easyrsa sign-req client client1` подписать запрос на выпуск сертификата клиента с помощью CA - yes (\pki\issued\client1.crt) \
 `easyrsa revoke client1` отозвать сертификат пользователя \
 `openssl rsa -in "C:\Program Files\OpenVPN\easy-rsa\pki\private\client1.key" -out "C:\Program Files\OpenVPN\easy-rsa\pki\private\client1_nopass.key"` снять защиту паролем для ключа (BEGIN ENCRYPTED PRIVATE KEY -> BEGIN PRIVATE KEY) \
@@ -4843,7 +4842,7 @@ verb 3
 ### Client
 
 `iwr -Uri https://openvpn.net/downloads/openvpn-connect-v3-windows.msi -OutFile "$home\downloads\OpenVPN-Connect-3.msi"` \
-Передать конфигурацию и ключи (или вложить в конфигурацию <tls-auth>-----BEGIN OpenVPN Static key V1-----</tls-auth>): \
+Передать конфигурацию и ключи: \
 `client.ovpn` \
 `ca.crt` \
 `dh.pem` \
@@ -4857,19 +4856,20 @@ verb 3
 `Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "IPEnableRouter" -Value 1` включает IP маршрутизацию \
 `(Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters").IPEnableRouter` \
 `Get-NetIPInterface | select ifIndex,InterfaceAlias,AddressFamily,ConnectionState,Forwarding | ft` отобразить сетевые интерфейсы \
-`Set-NetIPInterface -ifIndex 13 -Forwarding Enabled` включить переадресацию на интерфейсе \
+`Set-NetIPInterface -ifIndex 13 -Forwarding Enabled` включить переадресацию на интерфейсе
+
 `sysctl net.ipv4.ip_forward=1` \
 `echo "sysctl net.ipv4.ip_forward = 1" >> /etc/sysctl.conf`
 
 `Get-NetRoute` \
-`New-NetRoute -DestinationPrefix "0.0.0.0/0" -NextHop "192.168.3.1" -InterfaceIndex 8` \
+`New-NetRoute -DestinationPrefix "192.168.3.0/24" -NextHop "192.168.4.1" -InterfaceIndex 8` \
 `route -p add 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 1` \
 `route -p change 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 2` \
 `route -p add 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 1 if 7` указать номер сетевого интерфейса на который необходимо посылать пакет (Wintun Userspace Tunnel) \
 `route print -4` \
 `route delete 192.168.3.0`
 
-`tracert 192.168.3.101`
+`tracert 192.168.3.101` с 192.168.4.6
 ```
 1    17 ms     *       22 ms  192.168.4.1
 2    12 ms    13 ms    14 ms  192.168.3.101
@@ -4877,13 +4877,13 @@ verb 3
 `route add -net 192.168.4.0 netmask 255.255.255.0 gw 192.168.3.100` \
 `route -e`
 
-`traceroute 192.168.4.6 # с 192.168.3.101`
+`traceroute 192.168.4.6` с 192.168.3.101
 ```
 1  192.168.3.100 (192.168.3.100)  0.148 ms  0.110 ms  0.106 ms
 2  192.168.4.6 (192.168.4.6)  14.573 ms * *
 ```
 `ping 192.168.3.101 -t` с 192.168.4.6 \
-`tcpdump -n -i ens33 icmp` на 192.168.4.6
+`tcpdump -n -i ens33 icmp` на 192.168.3.101
 ```
 14:36:34.533771 IP 192.168.4.6 > 192.168.3.101: ICMP echo request, id 1, seq 2962, length 40 # отправил запрос
 14:36:34.533806 IP 192.168.3.101 > 192.168.4.6: ICMP echo reply, id 1, seq 2962, length 40 # отправил ответ
