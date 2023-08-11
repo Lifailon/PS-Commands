@@ -55,6 +55,10 @@ PowerShell Commands
 # Zabbix
 # pki
 # OpenSSL
+# OpenVPN
+# Route
+# NAT
+# WireGuard
 # OpenSSH
 # WinRM
 # DSC
@@ -988,10 +992,6 @@ nslookup -type=any ya.ru # указать тип записи
 Resolve-DnsName ya.ru -Type MX # ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf)
 [System.Net.Dns]::GetHostEntry("ya.ru")
 
-### route
-Get-NetRoute
-New-NetRoute -DestinationPrefix "0.0.0.0/0" -NextHop "192.168.3.1" -InterfaceIndex 8
-
 ### ipconfig
 Get-NetIPConfiguration
 Get-NetIPConfiguration -InterfaceIndex 14 -Detailed
@@ -1093,6 +1093,13 @@ Get-WindowsUpdateLog
 
 ### shutdown
 shutdown /r /o # перезагрузка в безопасный режим
+shutdown /s /t 600 /c "Power off after 10 minutes"
+shutdown /a # отмена
+shutdown /r /t 0 /m \\192.168.3.100
+Restart-Computer -ComputerName 192.168.3.100 -Protocol WSMan # через WinRM
+Restart-Computer –ComputerName 192.168.3.100 –Force # через WMI
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Start\HideShutDown" -Name "value" -Value 1 # скрыть кнопку выключения
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Start\HideRestart" -Name "value" -Value 1 # скрыть кнопку перезагрузки
 
 # LocalAccounts
 
@@ -4697,7 +4704,8 @@ Import-PfxCertificate -Exportable -Password $pass -CertStoreLocation Cert:\Curre
 # OpenSSL
 
 Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL_Light-3_1_1.msi -OutFile $home\Downloads\OpenSSL-Light-3.1.1.msi
-Start-Process $home\Downloads\OpenSSL-Light-3.1.1.msi -ArgumentList '/quiet' -Wait # установить msi пакет в тихом режиме
+Start-Process $home\Downloads\OpenSSL-Light-3.1.1.msi -ArgumentList '/quiet' -Wait # установить msi пакет в тихом режиме (запуск от имени Администратора)
+rm $home\Downloads\OpenSSL-Light-3.1.1.msi
 cd "C:\Program Files\OpenSSL-Win64\bin"
 
 - Изменить пароль для PFX
@@ -4722,6 +4730,187 @@ openssl rsa -in "C:\OpenSSL-Win64\bin\_.domain.ru.key" -out "C:\OpenSSL-Win64\bi
 
 - CRT и KEY в PFX:
 openssl pkcs12 -inkey certificate.key -in certificate.crt -export -out certificate.pfx
+
+# OpenVPN
+
+Invoke-WebRequest -Uri https://swupdate.openvpn.org/community/releases/OpenVPN-2.6.5-I001-amd64.msi -OutFile $home\Downloads\OpenVPN-2.6.5.msi
+Start-Process $home\Downloads\OpenVPN-2.6.5.msi -ArgumentList '/quiet /SELECT_OPENSSL_UTILITIES=1' -Wait
+msiexec /i $home\Downloads\OpenVPN-2.6.5.msi ADDLOCAL=EasyRSA /passive /quiet # установить отдельный компонент EasyRSA Certificate Management Scripts
+# msiexec /i $home\Downloads\OpenVPN-2.6.5.msi ADDLOCAL=OpenVPN.Service,Drivers,Drivers.Wintun,OpenVPN,OpenVPN.GUI,OpenVPN.GUI.OnLogon,EasyRSA /passive # выборочная установка
+# Invoke-WebRequest -Uri https://github.com/OpenVPN/easy-rsa/releases/download/v3.1.5/EasyRSA-3.1.5-win64.zip -OutFile $home\Downloads\EasyRSA-3.1.5.zip # скачать отдельный пакет EasyRSA
+rm $home\Downloads\OpenVPN-2.6.5.msi
+
+cd "C:\Program Files\OpenVPN\easy-rsa"
+Copy-Item vars.example vars # файл конфигурации для EasyRSA
+
+set_var EASYRSA_TEMP_DIR "$EASYRSA_PKI"
+set_var EASYRSA_REQ_COUNTRY "RU"
+set_var EASYRSA_REQ_PROVINCE "MSK"
+set_var EASYRSA_REQ_CITY "MSK"
+set_var EASYRSA_REQ_ORG "FAILON.NET"
+set_var EASYRSA_REQ_EMAIL "lifailon@domain.ru"
+set_var EASYRSA_REQ_OU "IT"
+#set_var EASYRSA_KEY_SIZE 2048
+#set_var EASYRSA_CA_EXPIRE 3650
+#set_var EASYRSA_CERT_EXPIRE 825
+
+.\EasyRSA-Start.bat # среда EasyRSA Shell
+easyrsa init-pki # инициализация PKI, создает директорию: C:\Program Files\OpenVPN\easy-rsa\pki и читает переменные файла \easy-rsa\vars
+easyrsa build-ca # генерация корневого CA с указанием пароля и произвольное имя сервера (\pki\ca.crt и \pki\private\ca.key)
+easyrsa gen-req server nopass # генерация запроса сертификата и ключ для сервера OpenVPN - yes (\pki\reqs\server.req и \pki\private\server.key)
+easyrsa sign-req server server # подписать запрос на выпуск сертификата сервера с помощью CA - yes (\pki\issued\server.crt)
+easyrsa gen-dh # создать ключ Диффи-Хеллмана (\pki\dh.pem)
+easyrsa gen-req client1 # nopass # генерация запроса сертификата и ключ для клиента OpenVPN (\pki\reqs\client1.req и \pki\private\client1.key)
+easyrsa sign-req client client1 # подписать запрос на выпуск сертификата клиента с помощью CA - yes (\pki\issued\client1.crt)
+easyrsa revoke client1 # отозвать сертификат пользователя
+openssl rsa -in "C:\Program Files\OpenVPN\easy-rsa\pki\private\client1.key" -out "C:\Program Files\OpenVPN\easy-rsa\pki\private\client1_nopass.key" # снять защиту паролем для ключа (BEGIN ENCRYPTED PRIVATE KEY -> BEGIN PRIVATE KEY)
+exit
+cd "C:\Program Files\OpenVPN\bin"
+.\openvpn --genkey secret ta.key # генерация ключа tls-auth (\bin\ta.key)
+Move-Item "C:\Program Files\OpenVPN\bin\ta.key" "C:\Program Files\OpenVPN\easy-rsa\pki\"
+
+### server.ovpn
+
+# Copy-Item "C:\Program Files\OpenVPN\sample-config\server.ovpn" "C:\Program Files\OpenVPN\config-auto\server.ovpn"
+New-Item -ItemType File -Path "C:\Program Files\OpenVPN\config-auto\server.ovpn"
+
+port 1194
+proto udp
+# Что именно инкапсулировать в туннеле (ethernet фреймы - tap или ip пакеты - tun)
+dev tun
+ca "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\ca.crt"
+cert "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\issued\\server.crt"
+key "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\private\\server.key"
+dh "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\dh.pem"
+server 192.168.4.0 255.255.255.0
+# Хранит список сопоставления ip для клиентов, что бы назначить тот же адрес при перезапуске сервера
+# ifconfig-pool-persist "C:\\Program Files\\OpenVPN\\dhcp-client-list.txt"
+# Разрешить клиентам подключаться под одним ключом
+# duplicate-cn
+# max-clients 30
+# Разрешить обмен трафиком между клиентами
+client-to-client
+# compress
+tls-auth "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\ta.key" 0
+cipher AES-256-GCM
+keepalive 20 60
+# Не перечитавать файлы ключей при перезапуске туннеля
+persist-key
+# Оставляет без изменения устройства tun/tap при перезапуске OpenVPN
+persist-tun
+status "C:\\Program Files\\OpenVPN\\log\\status.log"
+log "C:\\Program Files\\OpenVPN\\log\\openvpn.log"
+verb 3
+mute 20
+windows-driver wintun
+# Открыть доступ к подсети за сервером
+push "route 192.168.3.0 255.255.255.0"
+push "route 192.168.4.0 255.255.255.0"
+# Завернуть все запросы клиента (в том числе Интернет трафик) на OpenVPN сервер
+# push "redirect-gateway def1"
+# push "dhcp-option DNS 192.168.3.101"
+# push "dhcp-option DOMAIN failon.net"
+
+New-NetFirewallRule -DisplayName "AllowOpenVPN-In" -Direction Inbound -Protocol UDP –LocalPort 1194 -Action Allow # на сервере
+New-NetFirewallRule -DisplayName "AllowOpenVPN-Out" -Direction Outbound -Protocol UDP –LocalPort 1194 -Action Allow # на клиенте
+Get-Service *openvpn* | Restart-Service
+
+### client.ovpn
+
+# Copy-Item "C:\Program Files\OpenVPN\sample-config\client.ovpn" "C:\Program Files\OpenVPN\config-auto\client.ovpn"
+New-Item -ItemType File -Path "C:\Program Files\OpenVPN\config-auto\client.ovpn"
+
+client
+dev tun
+proto udp
+remote 26.115.154.67 1194
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+ca ca.crt
+cert client1.crt
+key client1.key
+remote-cert-tls server
+tls-auth ta.key 1
+cipher AES-256-GCM
+connect-retry-max 25
+# Использовать драйвер wintun и полный путь до сертификатов при использовании openvpn gui
+windows-driver wintun
+verb 3
+
+### Client
+
+iwr -Uri https://openvpn.net/downloads/openvpn-connect-v3-windows.msi -OutFile "$home\downloads\OpenVPN-Connect-3.msi"
+Передать конфигурацию и ключи:
+client.ovpn
+ca.crt
+dh.pem
+ta.key
+client1.crt
+client1.key
+
+# Route
+
+Get-Service RemoteAccess | Stop-Service
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "IPEnableRouter" -Value 1 # включает IP маршрутизацию
+(Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters").IPEnableRouter
+Get-NetIPInterface | select ifIndex,InterfaceAlias,AddressFamily,ConnectionState,Forwarding | ft # отобразить сетевые интерфейсы
+Set-NetIPInterface -ifIndex 13 -Forwarding Enabled # включить переадресацию на интерфейсе
+
+sysctl net.ipv4.ip_forward=1
+echo "sysctl net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+
+Get-NetRoute
+New-NetRoute -DestinationPrefix "192.168.3.0/24" -NextHop "192.168.4.1" -InterfaceIndex 8
+route -p add 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 1
+route -p change 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 2
+route -p add 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 1 if 7 # указать номер сетевого интерфейса на который необходимо посылать пакет (Wintun Userspace Tunnel)
+route print -4
+route delete 192.168.3.0
+
+tracert 192.168.3.101 # с 192.168.4.6
+
+1    17 ms     *       22 ms  192.168.4.1
+2    12 ms    13 ms    14 ms  192.168.3.101
+
+route add -net 192.168.4.0 netmask 255.255.255.0 gw 192.168.3.100
+route -e
+
+traceroute 192.168.4.6 # с 192.168.3.101
+
+1  192.168.3.100 (192.168.3.100)  0.148 ms  0.110 ms  0.106 ms
+2  192.168.4.6 (192.168.4.6)  14.573 ms * *
+
+ping 192.168.3.101 -t # с 192.168.4.6
+tcpdump -n -i ens33 icmp # на 192.168.3.101
+
+14:36:34.533771 IP 192.168.4.6 > 192.168.3.101: ICMP echo request, id 1, seq 2962, length 40 # отправил запрос
+14:36:34.533806 IP 192.168.3.101 > 192.168.4.6: ICMP echo reply, id 1, seq 2962, length 40 # отправил ответ
+
+# NAT
+
+Get-Command -Module NetNat
+New-NetNat -Name LocalNat -InternalIPInterfaceAddressPrefix "192.168.3.0/24"
+Add-NetNatStaticMapping -NatName LocalNat -Protocol TCP -ExternalIPAddress 0.0.0.0 -ExternalPort 80 -InternalIPAddress 192.168.3.102 -InternalPort 80
+Remove-NetNatStaticMapping -StaticMappingID 0
+Remove-NetNat -Name LocalNat
+
+# WireGuard
+
+Invoke-WebRequest "https://download.wireguard.com/windows-client/wireguard-amd64-0.5.3.msi" -OutFile "$home\Downloads\WireGuard-Client-0.5.3.msi"
+msiexec.exe /i "$home\Downloads\WireGuard-Client-0.5.3.msi" DO_NOT_LAUNCH=1 /qn
+Invoke-WebRequest "http://www.wiresock.net/downloads/wiresock-vpn-gateway-x64-1.1.4.1.msi" -OutFile "$home\Downloads\WireSock-VPN-Gateway-1.1.4.1.msi"
+msiexec.exe /i "http://www.wiresock.net/downloads/wiresock-vpn-gateway-x64-1.1.4.1.msi" /qn
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+wg-quick-config -add -start
+26.115.154.67:8181
+192.168.21.4/24
+Successfully saved client configuration: C:\ProgramData\NT KERNEL\WireSock VPN Gateway\wsclient_1.conf # AllowedIPs = 192.168.21.0/24, 192.168.3.0/24
+Successfully saved server configuration: C:\ProgramData\NT KERNEL\WireSock VPN Gateway\wiresock.conf
+get-service *wire*
+wg show
+wg-quick-config -add -restart # add client
 
 # OpenSSH
 
