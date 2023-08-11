@@ -55,6 +55,10 @@
 - [Zabbix](#zabbix)
 - [pki](#pki)
 - [OpenSSL](#openssl)
+- [OpenVPN](#openvpn)
+- [Route](#route)
+- [NAT](#nat)
+- [WireGuard](#wireguard)
 - [OpenSSH](#openssh)
 - [WinRM](#winrm)
 - [DSC](#dsc)
@@ -139,18 +143,18 @@ $array = "a","b","c","d"
 $num = 0
 foreach ($a in $array) {
 $num += 1
-$index = [array]::IndexOf($array, $a) # узнать номер индекса по зачению
-$array[$index] = $num # пересобрать исходный массив
+$index = [array]::IndexOf($array, $a)` узнать номер индекса по зачению
+$array[$index] = $num` пересобрать исходный массив
 }
 ```
 ### HashTable
 ```
-$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"} # создать
-$hashtable += @{"User2" = "$env:username"; "Server2" = "$env:computername"} # добавить ключи
-$hashtable.Keys # список всех ключей
-$hashtable["User"] # получить значение (Values) по ключу
-$hashtable["User"] = "Test" # изменить
-$hashtable.Remove("User") # удалить ключ
+$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"}` создать
+$hashtable += @{"User2" = "$env:username"; "Server2" = "$env:computername"}` добавить ключи
+$hashtable.Keys` список всех ключей
+$hashtable["User"]` получить значение (Values) по ключу
+$hashtable["User"] = "Test"` изменить
+$hashtable.Remove("User")` удалить ключ
 ```
 `$Tag = @{$true = 'dev'; $false = 'prod'}[([System.Net.Dns]::GetHostEntry("localhost").HostName) -match '.*.TestDomain$']`
 
@@ -162,14 +166,14 @@ $Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computern
 ### PSCustomObject
 ```
 $CustomObject = [PSCustomObject][ordered]@{User = $env:username; Server = $env:computername}
-$CustomObject | Add-Member –MemberType NoteProperty –Name Arr –Value @(1,2,3) # добавить Property (свойство/стобец)
-$CustomObject.Arr = @(1,3,5) # изменить содержимое
-$CustomObject.PsObject.Properties.Remove('User') # удалить Property
+$CustomObject | Add-Member –MemberType NoteProperty –Name Arr –Value @(1,2,3)` добавить Property (свойство/стобец)
+$CustomObject.Arr = @(1,3,5)` изменить содержимое
+$CustomObject.PsObject.Properties.Remove('User')` удалить Property
 ```
 ### Add-Member
 ```
 $ScriptBlock = {Get-Service}
-$CustomObject | Add-Member -Name "TestMethod" -MemberType ScriptMethod -Value $ScriptBlock # Добавить Method
+$CustomObject | Add-Member -Name "TestMethod" -MemberType ScriptMethod -Value $ScriptBlock` Добавить Method
 $CustomObject | Get-Member
 $CustomObject.TestMethod()
 ```
@@ -200,10 +204,10 @@ $Class.Start(1)
 
 ### Expression
 ```
-ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортировка по CPU, вывести первых 10 значений (-first)
-@{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}}, # затрачено процессорного времени в минутах
-@{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}}, # делим байты на КБ
-@{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}} # вычесть из текущего времени - время запуска, и удалить milisec
+ps | Sort-Object -Descending CPU | select -first 10 ProcessName,` сортировка по CPU, вывести первых 10 значений (-first)
+@{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}},` затрачено процессорного времени в минутах
+@{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}},` делим байты на КБ
+@{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}}` вычесть из текущего времени - время запуска, и удалить milisec
 ```
 ### Select-String
 `ipconfig /all | Select-String dns` поиск текста
@@ -247,7 +251,7 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 
 `pwsh -NoExit -ExecutionPolicy Unrestricted -WindowStyle Maximized -File "$(FULL_CURRENT_PATH)"`
 
-%AppData%\Notepad++ # themes/shortcuts.xml
+%AppData%\Notepad++` themes/shortcuts.xml
 ```
 <?xml version="1.0" encoding="UTF-8" ?>
 <NotepadPlus>
@@ -303,7 +307,7 @@ $		# Конец строки
 \d{2,4}	# Найти две или четыре
 {4,}	# Найти четыре и более
 
-^\s{1,}#.+ # поиск вначале строки комментария и пробел после него 1 или больше и любое кол-во символов
+^\s{1,}#.+` поиск вначале строки комментария и пробел после него 1 или больше и любое кол-во символов
 ```
 # Regex
 
@@ -325,7 +329,7 @@ $		# Конец строки
 `$String -Match ".*(?=\.txt)" | Out-Null` \
 `$Matches[0][-4..-1] -Join ""`
 
-`$string.Substring($string.IndexOf(".txt")-4, 4) # 2-й вариант (IndexOf)`
+`$string.Substring($string.IndexOf(".txt")-4, 4)` 2-й вариант (IndexOf)`
 
 ### Форматирование (.NET method format)
 `[string]::Format("{1} {0}","Index0","Index1")` \
@@ -338,7 +342,7 @@ $		# Конец строки
 ```
 $gp = Get-Process | sort cpu -Descending | select -First 10
 foreach ($p in $gp) {
-"{0} - {1:N2}" -f $p.processname, $p.cpu # округлить
+"{0} - {1:N2}" -f $p.processname, $p.cpu` округлить
 }
 ```
 ### Условный оператор
@@ -391,10 +395,10 @@ foreach ($p in $gp) {
 `[]` поиск совпадения любой буквы, например, [A-z0-9] от A до z и цифры от 0 до 9 ("192.168.1.1" -match "192.1[6-7][0-9]")
 
 ### Якори
-`^` или `\A` определяет начало строки. $url -replace '^','https:' # добавить в начало; \
+`^` или `\A` определяет начало строки. $url -replace '^','https:'` добавить в начало; \
 `$` или `\Z` обозначают конец строки. $ip -replace "\d{1,3}$","0" \
 `(?=text)` поиск слова слева. Пишем слева на право от искомого (ищет только целые словосочетания) "Server:\s(.{1,30})\s(?=$username)" \
-`(?<=text)` поиск слова справа. $in_time -replace ".+(?<=Last)" # удалить все до слова Last \
+`(?<=text)` поиск слова справа. $in_time -replace ".+(?<=Last)"` удалить все до слова Last \
 `(?!text)` не совпадает со словом слева \
 `(?<!text)` не совпадает со словом справа
 
@@ -510,7 +514,7 @@ fun-switch -param
 
 2-й вариант
 7654 3210 (разряды двоичного выражения) = (1*2^7)+(0*2^6)+(0*2^5)+(1*2^4)+(0*2^3)+(0*2^2)+(1*2^1)+(1*2^0) = 147
-[math]::Pow(2,7) + [math]::Pow(2,4) + [math]::Pow(2,1) + [math]::Pow(2,0) = 147 # исключить 0 и сложить степень
+[math]::Pow(2,7) + [math]::Pow(2,4) + [math]::Pow(2,1) + [math]::Pow(2,0) = 147` исключить 0 и сложить степень
 
 Из десятичного => двоичное (1-й вариант по таблице)
 347 вычесть ближайшие 256 = 91 (+ 1 0000 0000 забрать двоичный остаток)
@@ -605,7 +609,7 @@ function ConvertFrom-Bit {
 
 ### DateTime
 `Get-TimeZone` часовой пояс \
-`[DateTime]::UtcNow # время в формате UTC 0` \
+`[DateTime]::UtcNow` время в формате UTC 0` \
 `(Get-Date).AddHours(-3)` \
 `$Date = (Get-Date -Format "dd/MM/yyyy hh:mm:ss")` \
 `$Date = Get-Date -f "dd/MM/yyyy"` получаем тип данных [string] \
@@ -650,25 +654,25 @@ function ConvertFrom-Bit {
 `$srv = "yandex.ru"` \
 `$out2 = "Есть пинг"` \
 `$out3 = "Нет пинга"` \
-`$out = $false` # предварительно сбросить переменную, While проверяет условие до запуска цикла \
-`While ($out -eq $false){` # пока условие является $true, цикл будет повторяться \
+`$out = $false`` предварительно сбросить переменную, While проверяет условие до запуска цикла \
+`While ($out -eq $false){`` пока условие является $true, цикл будет повторяться \
 `$out = ping -n 1 -w 50 $srv` \
 `if ($out -match "ttl") {$out = $true; $out2} else {$out = $false; $out3; sleep 1}` \
 `}`
 
-`while ($True){` # запустить бесконечный цикл \
+`while ($True){`` запустить бесконечный цикл \
 `$result = ping yandex.ru -n 1 -w 50` \
-`if ($result -match "TTL"){` # условие, при котором будет выполнен break \
+`if ($result -match "TTL"){`` условие, при котором будет выполнен break \
 `Write-Host "Сайт доступен"` \
-`break` # остановит цикл \
+`break`` остановит цикл \
 `} else {Write-Host "Сайт недоступен"; sleep 1}` \
 `}`
 
 ### Try-Catch-Finally
 ```
 Try {$out = pping 192.168.3.1}
-Catch {Write-Warning "$($error[0])"} # выводит в случае ошибки (вместо ошибки)
-finally {$out = "End"} # выполняется в конце в любом случае
+Catch {Write-Warning "$($error[0])"}` выводит в случае ошибки (вместо ошибки)
+finally {$out = "End"}` выполняется в конце в любом случае
 ```
 ### Error
 `$Error` выводит все ошибки текущего сеанса \
@@ -693,7 +697,7 @@ finally {$out = "End"} # выполняется в конце в любом сл
 
 `Get-Content $home/desktop\test.txt -Wait` аналог tail \
 `Test-Path $path` проверить доступность пути \
-`Get-ChildItem $path -Filter *.txt -Recurse` # отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) и отфильтровать вывод \
+`Get-ChildItem $path -Filter *.txt -Recurse`` отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) и отфильтровать вывод \
 `Get-Location` отобразить текущие месторасположение (Alias: pwd/gl) \
 `Set-Location $path` перемещение по каталогам (Alias: cd/sl) \
 `Invoke-Item $path` открыть файл (Alias: ii/start) \
@@ -725,8 +729,8 @@ finally {$out = "End"} # выполняется в конце в любом сл
 `}`
 
 `ls (pwd).Path | %{` \
-`$size = "{0:N1} Mb" -f ((ls $_.FullName -Recurse -Force | Measure-Object -Property Length -Sum).Sum / 1Mb) # посчитать размер всех дочерних директория в Mb (округлить до одного символа после запятой)` \
-`$hashtable += @{"$_.Name" = $size} # заполнить hashtable` \
+`$size = "{0:N1} Mb" -f ((ls $_.FullName -Recurse -Force | Measure-Object -Property Length -Sum).Sum / 1Mb)` посчитать размер всех дочерних директория в Mb (округлить до одного символа после запятой)` \
+`$hashtable += @{"$_.Name" = $size}` заполнить hashtable` \
 `}`
 
 ### Filehash
@@ -829,14 +833,14 @@ $query = '
 '
 Get-WinEvent -LogName System -FilterXPath $query
 
-41   # Система была перезагружена без корректного завершения работы.
-1074 # Система была корректного выключена пользователем или процессом.
-1076 # Следует за Event ID 6008 и означает, что первый пользователь (с правом выключения системы) подключившийся к серверу после неожиданной перезагрузки или выключения, указал причину этого события.
-6005 # Запуск "Журнала событий Windows" (Event Log). Указывает на включение системы.
-6006 # Остановка «Журнала событий Windows». Указывает на выключение системы.
-6008 # Предыдущее выключение системы было неожиданным.
-6009 # Версия операционной системы, зафиксированная при загрузке системы.
-6013 # Время работы системы (system uptime) в секундах.
+41  ` Система была перезагружена без корректного завершения работы.
+1074` Система была корректного выключена пользователем или процессом.
+1076` Следует за Event ID 6008 и означает, что первый пользователь (с правом выключения системы) подключившийся к серверу после неожиданной перезагрузки или выключения, указал причину этого события.
+6005` Запуск "Журнала событий Windows" (Event Log). Указывает на включение системы.
+6006` Остановка «Журнала событий Windows». Указывает на выключение системы.
+6008` Предыдущее выключение системы было неожиданным.
+6009` Версия операционной системы, зафиксированная при загрузке системы.
+6013` Время работы системы (system uptime) в секундах.
 ```
 ### Logon
 ```
@@ -988,10 +992,6 @@ $ping = New-Object System.Net.Networkinformation.Ping
 `Resolve-DnsName ya.ru -Type MX` ALL,ANY,A,NS,SRV,CNAME,PTR,TXT(spf) \
 `[System.Net.Dns]::GetHostEntry("ya.ru")`
 
-### route
-`Get-NetRoute` \
-`New-NetRoute -DestinationPrefix "0.0.0.0/0" -NextHop "192.168.3.1" -InterfaceIndex 8`
-
 ### ipconfig
 `Get-NetIPConfiguration` \
 `Get-NetIPConfiguration -InterfaceIndex 14 -Detailed`
@@ -1026,7 +1026,7 @@ $ping = New-Object System.Net.Networkinformation.Ping
 `netstat -anop tcp` -n/-f/-b \
 `Get-NetTCPConnection -State Established,Listen | ? LocalPort -Match 3389` \
 `Get-NetTCPConnection -State Established,Listen | ? RemotePort -Match 22` \
-`Get-NetUDPEndpoint | ? LocalPort -Match 514 # netstat -ap udp`
+`Get-NetUDPEndpoint | ? LocalPort -Match 514` netstat -ap udp`
 
 ### Statistics
 `netstat -se` \
@@ -1092,7 +1092,14 @@ $mac_coll
 `Get-WindowsUpdateLog`
 
 ### shutdown
-`shutdown /r /o` перезагрузка в безопасный режим
+`shutdown /r /o` перезагрузка в безопасный режим \
+`shutdown /s /t 600 /c "Power off after 10 minutes"` \
+`shutdown /a` отмена \
+`shutdown /r /t 0 /m \\192.168.3.100` \
+`Restart-Computer -ComputerName 192.168.3.100 -Protocol WSMan` через WinRM \
+`Restart-Computer –ComputerName 192.168.3.100 –Force` через WMI \
+`Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Start\HideShutDown" -Name "value" -Value 1` скрыть кнопку выключения \
+`Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Start\HideRestart" -Name "value" -Value 1` скрыть кнопку перезагрузки
 
 # LocalAccounts
 
@@ -1195,7 +1202,7 @@ icm $_ {Get-LocalGroupMember "Administrators"}
 `Get-WindowsCapability -Name RSAT* -Online | Select-Object -Property DisplayName, State` отобразить список установленных компанентов
 
 ### Import-Module ActiveDirectory
-`$Session = New-PSSession -ComputerName $srv # -Credential $cred` \
+`$Session = New-PSSession -ComputerName $srv` -Credential $cred` \
 `Export-PSsession -Session $Session -Module ActiveDirectory -OutputModule ActiveDirectory` экспортировать модуль из удаленной сесси (например, с DC) \
 `Remove-PSSession -Session $Session` \
 `Import-Module ActiveDirectory` \
@@ -1270,7 +1277,7 @@ CN (Common Name) - общее имя
 
 USN (Update Sequence Numbers) - счетчик номера последовательного обновления, который существует у каждого объекта AD. При репликации контроллеры обмениваются значениями USN, объект с более низким USN будет при репликации перезаписан объектом с более высоким USN. Находится в свойствах - Object (включить View - Advanced Features). Каждый контроллер домена содержит отдельный счетчик USN, который начинает отсчет в момент запуска процесса Dcpromo и продолжает увеличивать значения в течение всего времени существования контроллера домена. Значение счетчика USN увеличивается каждый раз, когда на контроллере домена происходит транзакция, это операции создания, обновления или удаления объекта.
 
-`Get-ADDomainController -Filter * | % { # отобразить USN объекта на всех DC в домене` \
+`Get-ADDomainController -Filter * | % {` отобразить USN объекта на всех DC в домене` \
 `Get-ADUser -Server $_.HostName -Identity support4 -Properties uSNChanged | select SamAccountName,uSNChanged` \
 `}`
 
@@ -1352,10 +1359,10 @@ USN (Update Sequence Numbers) - счетчик номера последоват
 `repadmin /showrepl $srv` отображает всех партнеров по реплкации и их статус для всех разделов Naming Contexts (DC=ForestDnsZones, DC=DomainDnsZones, CN=Schema, CN=Configuration) \
 `repadmin /replicate $srv2 $srv1 DC=domain,DC=local ` выполнить репликацию с $srv1 на $srv2 только указанный раздела домена \
 `repadmin /SyncAll /AdeP` запустить межсайтовую исходящую репликацию всех разделов от текущего сервера со всеми партнерами по репликации \
-/A # выполнить для всех разделов NC \
-/d # в сообщениях идентифицировать серверы по DN (вместо GUID DNS - глобальным уникальным идентификаторам) \
-/e # межсайтовая синхронизация (по умолчанию синхронизирует только с DC текущего сайта) \
-/P # извещать об изменениях с этого сервера (по умолчанию: опрашивать об изменениях) \
+/A` выполнить для всех разделов NC \
+/d` в сообщениях идентифицировать серверы по DN (вместо GUID DNS - глобальным уникальным идентификаторам) \
+/e` межсайтовая синхронизация (по умолчанию синхронизирует только с DC текущего сайта) \
+/P` извещать об изменениях с этого сервера (по умолчанию: опрашивать об изменениях) \
 `repadmin /Queue $srv` отображает кол-во запросов входящей репликации (очередь), которое необходимо обработать (причиной может быть большое кол-во партнеров или формирование 1000 объектов скриптом) \
 `repadmin /showbackup *` узнать дату последнего Backup
 
@@ -1430,7 +1437,7 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 
 Ошибка 0x00002e2 при загрузке ОС. \
 Загрузиться в режиме восстанавления WinRE (Windows Recovery Environment) - Startup Settings - Restart - DSRM (Directory Services Restore Mode) \
-`reagentc /boottore # shutdown /f /r /o /t 0` перезагрузка в режиме WinRE - ОС на базе WinPE (Windows Preinstallation Environment), образ winre.wim находится на скрытом разделе System Restore \
+`reagentc /boottore` shutdown /f /r /o /t 0` перезагрузка в режиме WinRE - ОС на базе WinPE (Windows Preinstallation Environment), образ winre.wim находится на скрытом разделе System Restore \
 На контроллере домена единственная локальная учетная запись — администратор DSRM. Пароль создается при установке роли контроллера домена ADDS на сервере (SafeModeAdministratorPassword). \
 `ntdsutil` \
 `activate instance ntds` \
@@ -1441,9 +1448,9 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `mkdir c:\ntds_bak` \
 `xcopy c:\Windows\NTDS\*.* c:\ntds_bak` backup содержимого каталога с БД \
 `esentutl /g c:\windows\ntds\ntds.dit` проверим целостность файла \
-Вывод: Integrity check completed. Database is CORRUPTED # ошибка, база AD повреждена \
+Вывод: Integrity check completed. Database is CORRUPTED` ошибка, база AD повреждена \
 `esentutl /p c:\windows\ntds\ntds.dit` исправить ошибки \
-Вывод: Operation completed successfully in xx seconds. # нет ошибок \
+Вывод: Operation completed successfully in xx seconds.` нет ошибок \
 `esentutl /g c:\windows\ntds\ntds.dit` проверим целостность файла \
 Выполнить анализ семантики базы с помощью ntdsutil: \
 `ntdsutil` \
@@ -1493,9 +1500,9 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 ```
 $path="\\$srv\bak-dc\dc-03\"
 [string]$TargetUNC=$path+(get-date -f 'yyyy-MM-dd')
-if ((Test-Path -Path $path) -eq $true) {New-Item -Path $TargetUNC -ItemType directory} # если путь доступен, создать новую директорию по дате
+if ((Test-Path -Path $path) -eq $true) {New-Item -Path $TargetUNC -ItemType directory}` если путь доступен, создать новую директорию по дате
 $WBadmin_cmd = "wbadmin.exe START BACKUP -backupTarget:$TargetUNC -systemState -noverify -vssCopy -quiet"
-# $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet" # Backup DB NTDS
+# $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet"` Backup DB NTDS
 Invoke-Expression $WBadmin_cmd
 ```
 ### RDS
@@ -1681,17 +1688,17 @@ $ip = $RNetwork+$4
 (Start-Job {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
 }
 while ($True){
-$status_job = (Get-Job).State[-1] # забираем статус последнего задания
-if ($status_job -like "Completed"){ # проверяем на выполнение (задания выполняются по очереди сверху вниз)
-$ping_out = Get-Job | Receive-Job # если выполнен, забираем вывод всех заданий
-Get-Job | Remove-Job -Force # удаляем задания
+$status_job = (Get-Job).State[-1]` забираем статус последнего задания
+if ($status_job -like "Completed"){` проверяем на выполнение (задания выполняются по очереди сверху вниз)
+$ping_out = Get-Job | Receive-Job` если выполнен, забираем вывод всех заданий
+Get-Job | Remove-Job -Force` удаляем задания
 $ping_out
-break # завершаем цикл
+break` завершаем цикл
 }}
 }
 
 Start-MTPing -Network 192.168.3.0
-(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 60 Seconds
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds` 60 Seconds
 ```
 ### ThreadJob
 `Install-Module -Name ThreadJob` \
@@ -1709,17 +1716,17 @@ $ip = $RNetwork+$4
 (Start-ThreadJob {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
 }
 while ($True){
-$status_job = (Get-Job).State[-1] # забираем статус последнего задания
-if ($status_job -like "Completed"){ # проверяем на выполнение (задания выполняются по очереди сверху вниз)
-$ping_out = Get-Job | Receive-Job # если выполнен, забираем вывод всех заданий
-Get-Job | Remove-Job -Force # удаляем задания
+$status_job = (Get-Job).State[-1]` забираем статус последнего задания
+if ($status_job -like "Completed"){` проверяем на выполнение (задания выполняются по очереди сверху вниз)
+$ping_out = Get-Job | Receive-Job` если выполнен, забираем вывод всех заданий
+Get-Job | Remove-Job -Force` удаляем задания
 $ping_out
-break # завершаем цикл
+break` завершаем цикл
 }}
 }
 
 Start-MTPing -Network 192.168.3.0
-(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 24 Seconds
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds` 24 Seconds
 ```
 ### PoshRSJob
 ```
@@ -1735,7 +1742,7 @@ Get-RSJob | Remove-RSJob
 }
 
 Start-MTPing -Network 192.168.3.0
-(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds # 10 Seconds
+(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds` 10 Seconds
 ```
 # Hyper-V
 
@@ -1744,11 +1751,11 @@ Start-MTPing -Network 192.168.3.0
 `Get-Command -Module hyper-v` \
 `Get-VMHost`
 ```
-New-VMSwitch -name NAT -SwitchType Internal # создать виртуальный коммутатор и адаптер для него
-Get-NetAdapter | where InterfaceDescription -match Hyper-V # список сетевых адаптеров
-New-NetNat -Name LocalNat -InternalIPInterfaceAddressPrefix "192.168.3.0/24" # задать сеть
-Get-NetAdapter "vEthernet (NAT)" | New-NetIPAddress -IPAddress 192.168.3.200 -AddressFamily IPv4 -PrefixLength 24 # присвоить адрес, необходимо на ВМ указать шлюз 192.168.3.200, что бы находиться за NAT, или в настройка ВМ указать соответствующий адаптер
-Add-NetNatStaticMapping -NatName LocalNat -Protocol TCP -ExternalIPAddress 0.0.0.0 -ExternalPort 2222 -InternalIPAddress 192.168.3.103 -InternalPort 2121 # проброс, вест трафик который приходит на хост Hyper-V TCP/2222, будет перенаправляться на соответствующий порт виртуальной машины за NAT.
+New-VMSwitch -name NAT -SwitchType Internal` создать виртуальный коммутатор и адаптер для него
+Get-NetAdapter | where InterfaceDescription -match Hyper-V` список сетевых адаптеров
+New-NetNat -Name LocalNat -InternalIPInterfaceAddressPrefix "192.168.3.0/24"` задать сеть
+Get-NetAdapter "vEthernet (NAT)" | New-NetIPAddress -IPAddress 192.168.3.200 -AddressFamily IPv4 -PrefixLength 24` присвоить адрес, необходимо на ВМ указать шлюз 192.168.3.200, что бы находиться за NAT, или в настройка ВМ указать соответствующий адаптер
+Add-NetNatStaticMapping -NatName LocalNat -Protocol TCP -ExternalIPAddress 0.0.0.0 -ExternalPort 2222 -InternalIPAddress 192.168.3.103 -InternalPort 2121` проброс, вест трафик который приходит на хост Hyper-V TCP/2222, будет перенаправляться на соответствующий порт виртуальной машины за NAT.
 (Get-NetAdapter | where Name -match NAT).Status
 ```
 `Get-NetNatStaticMapping` отобразить пробросы (NAT) \
@@ -1784,7 +1791,7 @@ New-VM @VM
 
 # VMWare/PowerCLI
 
-`Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
+`Install-Module -Name VMware.PowerCLI` -AllowClobber` установить модуль (PackageProvider: nuget) \
 `Get-Module -ListAvailable VMware* | Select Name,Version` \
 `Import-Module VMware.VimAutomation.Core` импортировать в сессию \
 `Get-PSProvider | format-list Name,PSSnapIn,ModuleName` список оснасток Windows PowerShell
@@ -1859,7 +1866,7 @@ New-VM @VM
 # Exchange/EMShell
 
 `$srv_cas = "exchange-cas"` \
-`$session_exchange = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$srv_cas/PowerShell/ # -Credential $Cred -Authentication Kerberos` \
+`$session_exchange = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$srv_cas/PowerShell/` -Credential $Cred -Authentication Kerberos` \
 `Get-PSSession` \
 `Import-PSSession $session_exchange -DisableNameChecking` импортировать в текущую сессию
 
@@ -2095,7 +2102,7 @@ PickupDirectoryMaxMessagesPerMinute — скорость внутренней о
 `Get-ClientAccessServer | Update-FileDistributionService`
 
 ### PST
-`New-MailboxExportRequest -Mailbox $name -filepath "\\$srv\pst\$name.PST" # -ContentFilter {(Received -lt "01/01/2021")} -Priority Highest/Lower # -IsArchive` выполнить экспорт из архива пользователя \
+`New-MailboxExportRequest -Mailbox $name -filepath "\\$srv\pst\$name.PST"` -ContentFilter {(Received -lt "01/01/2021")} -Priority Highest/Lower` -IsArchive` выполнить экспорт из архива пользователя \
 `New-MailboxExportRequest -Mailbox $name -IncludeFolders "#Inbox#" -FilePath "\\$srv\pst\$name.PST"` только папку входящие \
 `New-MailboxImportRequest -Mailbox $name "\\$srv\pst\$name.PST"` импорт из PST \
 `Get-MailboxExportRequest` статус запросов \
@@ -2245,7 +2252,7 @@ CopyQueue Length - длина репликационной очереди коп
 `choco install veeam-backup-and-replication-console` \
 `Get-Module Veeam.Backup.PowerShell` \
 `Get-Command -Module Veeam.Backup.PowerShell` or Get-VBRCommand \
-`Connect-VBRServer -Server $srv -Credential $cred` or -User and -Password # - Port 9392 # default \
+`Connect-VBRServer -Server $srv -Credential $cred` or -User and -Password` - Port 9392` default \
 `Get-VBRJob` \
 `Get-VBRCommand *get*backup*` \
 `Get-VBRComputerBackupJob` \
@@ -2340,14 +2347,14 @@ $path = "$home\Documents\Selenium"
 if (($env:Path -split ';') -notcontains $path) {
 $env:Path += ";$path"
 }
-Import-Module "$path\WebDriver.dll" # Add-Type -Path "$path\WebDriver.dll"
+Import-Module "$path\WebDriver.dll"` Add-Type -Path "$path\WebDriver.dll"
 $selenium_options = New-Object OpenQA.Selenium.Chrome.ChromeOptions
 $selenium_options.AddArgument('start-maximized')
 $selenium_options.AcceptInsecureCertificates = $True
 $selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver($selenium_options)
 # $selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver
 $selenium.Navigate().GoToURL('https://yandex.ru')
-$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button'))[2].Click() # нажать на кнопку "Войти"
+$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button'))[2].Click()` нажать на кнопку "Войти"
 $button = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('SPAN')) | ? Text -like "Войти через Яндекс ID"
 $button.Click()
 ($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('Button')))[1].Click()
@@ -2395,22 +2402,22 @@ $ie.Quit()
 `$wshell.Exec("notepad.exe")` запустить приложение \
 `$wshell.AppActivate("Блокнот")` развернуть запущенное приложение
 ```
-$wshell.SendKeys("Login") # текст
-$wshell.SendKeys("{A 5}") # напечатать букву 5 раз подряд
-$wshell.SendKeys("%{TAB}") # ALT+TAB
-$wshell.SendKeys("^") # CTRL
-$wshell.SendKeys("%") # ALT
-$wshell.SendKeys("+") # SHIFT
-$wshell.SendKeys("{DOWN}") # вниз
-$wshell.SendKeys("{UP}") # вверх
-$wshell.SendKeys("{LEFT}") # влево
-$wshell.SendKeys("{RIGHT}") # вправо
-$wshell.SendKeys("{PGUP}") # PAGE UP
-$wshell.SendKeys("{PGDN}") # PAGE DOWN
-$wshell.SendKeys("{BACKSPACE}") # BACKSPACE/BKSP/BS
-$wshell.SendKeys("{DEL}") # DEL/DELETE
-$wshell.SendKeys("{INS}") # INS/INSERT
-$wshell.SendKeys("{PRTSC}") # PRINT SCREEN
+$wshell.SendKeys("Login")` текст
+$wshell.SendKeys("{A 5}")` напечатать букву 5 раз подряд
+$wshell.SendKeys("%{TAB}")` ALT+TAB
+$wshell.SendKeys("^")` CTRL
+$wshell.SendKeys("%")` ALT
+$wshell.SendKeys("+")` SHIFT
+$wshell.SendKeys("{DOWN}")` вниз
+$wshell.SendKeys("{UP}")` вверх
+$wshell.SendKeys("{LEFT}")` влево
+$wshell.SendKeys("{RIGHT}")` вправо
+$wshell.SendKeys("{PGUP}")` PAGE UP
+$wshell.SendKeys("{PGDN}")` PAGE DOWN
+$wshell.SendKeys("{BACKSPACE}")` BACKSPACE/BKSP/BS
+$wshell.SendKeys("{DEL}")` DEL/DELETE
+$wshell.SendKeys("{INS}")` INS/INSERT
+$wshell.SendKeys("{PRTSC}")` PRINT SCREEN
 $wshell.SendKeys("{ENTER}")
 $wshell.SendKeys("{ESC}")
 $wshell.SendKeys("{TAB}")
@@ -2430,26 +2437,26 @@ $wshell.SendKeys("{+}{^}{%}{~}{(}{)}{[}{]}{{}{}}")
 `if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}`
 ```
 Type:
-0 # ОК
-1 # ОК и Отмена
-2 # Стоп, Повтор, Пропустить
-3 # Да, Нет, Отмена
-4 # Да и Нет
-5 # Повтор и Отмена
-16 # Stop
-32 # Question
-48 # Exclamation
-64 # Information
+0` ОК
+1` ОК и Отмена
+2` Стоп, Повтор, Пропустить
+3` Да, Нет, Отмена
+4` Да и Нет
+5` Повтор и Отмена
+16` Stop
+32` Question
+48` Exclamation
+64` Information
 
 Output:
--1 # Timeout
-1 # ОК
-2 # Отмена
-3 # Стоп
-4 # Повтор
-5 # Пропустить
-6 # Да
-7 # Нет
+-1` Timeout
+1` ОК
+2` Отмена
+3` Стоп
+4` Повтор
+5` Пропустить
+6` Да
+7` Нет
 ```
 ### WScript.Network
 `$wshell = New-Object -ComObject WScript.Network` \
@@ -2475,8 +2482,8 @@ Output:
 ```
 $Outlook = New-Object -ComObject Outlook.Application
 $Namespace = $Outlook.GetNamespace("MAPI")
-$Folder = $namespace.GetDefaultFolder(4) # исходящие
-$Folder = $namespace.GetDefaultFolder(6) # входящие
+$Folder = $namespace.GetDefaultFolder(4)` исходящие
+$Folder = $namespace.GetDefaultFolder(6)` входящие
 $Explorer = $Folder.GetExplorer()
 $Explorer.Display()	
 $Outlook.Quit()
@@ -2686,11 +2693,11 @@ public static class Netapi32
 "@
 # Create SessionInfo10 Struct
 $SessionInfo10 = New-Object SESSION_INFO_10
-$SessionInfo10StructSize = [System.Runtime.InteropServices.Marshal]::SizeOf($SessionInfo10) # Grab size to loop bufptr
-$SessionInfo10 = $SessionInfo10.GetType() # Hacky, but we need this ;))
+$SessionInfo10StructSize = [System.Runtime.InteropServices.Marshal]::SizeOf($SessionInfo10)` Grab size to loop bufptr
+$SessionInfo10 = $SessionInfo10.GetType()` Hacky, but we need this ;))
 # NetSessionEnum params
-$OutBuffPtr = [IntPtr]::Zero # Struct output buffer
-$EntriesRead = $TotalEntries = $ResumeHandle = 0 # Counters & ResumeHandle
+$OutBuffPtr = [IntPtr]::Zero` Struct output buffer
+$EntriesRead = $TotalEntries = $ResumeHandle = 0` Counters & ResumeHandle
 $CallResult = [Netapi32]::NetSessionEnum($HostName, "", "", 10, [ref]$OutBuffPtr, -1, [ref]$EntriesRead, [ref]$TotalEntries, [ref]$ResumeHandle)
 if ($CallResult -ne 0){
 echo "Mmm something went wrong!`nError Code: $CallResult"
@@ -3001,16 +3008,16 @@ $Collections
 ```
 $path = "$home\Desktop\Services-to-Excel.xlsx"
 $Excel = New-Object -ComObject Excel.Application
-$Excel.Visible = $false # отключить открытие GUI
-$ExcelWorkBook = $Excel.Workbooks.Add() # Создать книгу
-$ExcelWorkSheet = $ExcelWorkBook.Worksheets.Item(1) # Создать лист
-$ExcelWorkSheet.Name = "Services" # задать имя листа
+$Excel.Visible = $false` отключить открытие GUI
+$ExcelWorkBook = $Excel.Workbooks.Add()` Создать книгу
+$ExcelWorkSheet = $ExcelWorkBook.Worksheets.Item(1)` Создать лист
+$ExcelWorkSheet.Name = "Services"` задать имя листа
 $ExcelWorkSheet.Cells.Item(1,1) = "Name service"
 # Задать имена столбцов:
 $ExcelWorkSheet.Cells.Item(1,2) = "Description"
 $ExcelWorkSheet.Cells.Item(1,3) = "Status"
 $ExcelWorkSheet.Cells.Item(1,4) = "Startup type"
-$ExcelWorkSheet.Rows.Item(1).Font.Bold = $true # выделить жирным шрифтом
+$ExcelWorkSheet.Rows.Item(1).Font.Bold = $true` выделить жирным шрифтом
 $ExcelWorkSheet.Rows.Item(1).Font.size=14
 # Задать ширину колонок:
 $ExcelWorkSheet.Columns.Item(1).ColumnWidth=30
@@ -3018,7 +3025,7 @@ $ExcelWorkSheet.Columns.Item(2).ColumnWidth=80
 $ExcelWorkSheet.Columns.Item(3).ColumnWidth=15
 $ExcelWorkSheet.Columns.Item(4).ColumnWidth=25
 $services =  Get-Service
-$counter = 2 # задать начальный номер строки для записи
+$counter = 2` задать начальный номер строки для записи
 foreach ($service in $services) {
 $status = $service.Status
 if ($status -eq 1) {
@@ -3043,7 +3050,7 @@ $ExcelWorkSheet.Columns.Item(4).Rows.Item($counter) = $start_type
 if ($status_type -eq "Running") {
 $ExcelWorkSheet.Columns.Item(3).Rows.Item($counter).Font.Bold = $true
 }
-$counter++ # +1 увеличить для счетчика строки Rows
+$counter++` +1 увеличить для счетчика строки Rows
 }
 $ExcelWorkBook.SaveAs($path)
 $ExcelWorkBook.close($true)
@@ -3053,10 +3060,10 @@ $Excel.Quit()
 ```
 $Excel = New-Object -ComObject Excel.Application
 $Excel.Visible = $false
-$ExcelWorkBook = $excel.Workbooks.Open($path) # открыть xlsx-файл
-$ExcelWorkBook.Sheets | select Name,Index # отобразить листы
-$ExcelWorkSheet = $ExcelWorkBook.Sheets.Item(1) # открыть лист по номеру Index
-1..100 | %{$ExcelWorkSheet.Range("A$_").Text} # прочитать значение из столбца А строки c 1 по 100
+$ExcelWorkBook = $excel.Workbooks.Open($path)` открыть xlsx-файл
+$ExcelWorkBook.Sheets | select Name,Index` отобразить листы
+$ExcelWorkSheet = $ExcelWorkBook.Sheets.Item(1)` открыть лист по номеру Index
+1..100 | %{$ExcelWorkSheet.Range("A$_").Text}` прочитать значение из столбца А строки c 1 по 100
 $Excel.Quit()
 ```
 ### ImportExcel
@@ -3090,7 +3097,7 @@ log =
 {
    level = 4;
 };
-' | ConvertFrom-String # создает PSCustomObject (разбивает по пробелам, удаляет все пробелы и пустые строки)
+' | ConvertFrom-String` создает PSCustomObject (разбивает по пробелам, удаляет все пробелы и пустые строки)
 ```
 ### ConvertFrom-StringData
 ```
@@ -3101,15 +3108,15 @@ key2 = value2
 ```
 # XML
 ```
-$xml = [xml](Get-Content $home\desktop\test.rdg) # прочитать содержимое XML-файла
-$xml.load("$home\desktop\test.rdg") # открыть файл
-$xml.RDCMan.file.group.properties.name # имена групп
-$xml.RDCMan.file.group.server.properties # имена всех серверов
-$xml.RDCMan.file.group[3].server.properties # список серверов в 4-й группе
-($xml.RDCMan.file.group[3].server.properties | ? name -like ADIRK).Name = "New-Name" # изменить значение
+$xml = [xml](Get-Content $home\desktop\test.rdg)` прочитать содержимое XML-файла
+$xml.load("$home\desktop\test.rdg")` открыть файл
+$xml.RDCMan.file.group.properties.name` имена групп
+$xml.RDCMan.file.group.server.properties` имена всех серверов
+$xml.RDCMan.file.group[3].server.properties` список серверов в 4-й группе
+($xml.RDCMan.file.group[3].server.properties | ? name -like ADIRK).Name = "New-Name"` изменить значение
 $xml.RDCMan.file.group[3].server[0].properties.displayName = "New-displayName" 
-$xml.RDCMan.file.group[3].server[1].RemoveAll() # удалить объект (2-й сервер в списке)
-$xml.Save($file) # сохранить содержимое объекта в файла
+$xml.RDCMan.file.group[3].server[1].RemoveAll()` удалить объект (2-й сервер в списке)
+$xml.Save($file)` сохранить содержимое объекта в файла
 ```
 `Get-Service | Export-Clixml -path $home\desktop\test.xml` экспортировать объект PowerShell в XML \
 `Import-Clixml -Path $home\desktop\test.xml` импортировать объект XML в PowerShell \
@@ -3129,25 +3136,25 @@ return
 ### XmlWriter (Extensible Markup Language)
 ```
 $XmlWriterSettings = New-Object System.Xml.XmlWriterSettings
-$XmlWriterSettings.Indent = $true # включить отступы
-$XmlWriterSettings.IndentChars = "    " # задать отступ
+$XmlWriterSettings.Indent = $true` включить отступы
+$XmlWriterSettings.IndentChars = "    "` задать отступ
 
 $XmlFilePath = "$home\desktop\test.xml"
-$XmlObjectWriter = [System.XML.XmlWriter]::Create($XmlFilePath, $XmlWriterSettings) # создать документ
-$XmlObjectWriter.WriteStartDocument() # начать запись в документ
+$XmlObjectWriter = [System.XML.XmlWriter]::Create($XmlFilePath, $XmlWriterSettings)` создать документ
+$XmlObjectWriter.WriteStartDocument()` начать запись в документ
 
 $XmlObjectWriter.WriteComment("Comment")
-$XmlObjectWriter.WriteStartElement("Root") # создать стартовый элемент, который содержит дочерние объекты
-    $XmlObjectWriter.WriteStartElement("Configuration") # создать первый дочерний элемент для BaseSettings
+$XmlObjectWriter.WriteStartElement("Root")` создать стартовый элемент, который содержит дочерние объекты
+    $XmlObjectWriter.WriteStartElement("Configuration")` создать первый дочерний элемент для BaseSettings
         $XmlObjectWriter.WriteElementString("Language","RU")
         $XmlObjectWriter.WriteStartElement("Fonts")   		# <Fonts>
             $XmlObjectWriter.WriteElementString("Name","Arial")
             $XmlObjectWriter.WriteElementString("Size","12")
         $XmlObjectWriter.WriteEndElement()               	# </Fonts>
-    $XmlObjectWriter.WriteEndElement() # конечный элемент </Configuration>
-$XmlObjectWriter.WriteEndElement() # конечный элемент </Root>
+    $XmlObjectWriter.WriteEndElement()` конечный элемент </Configuration>
+$XmlObjectWriter.WriteEndElement()` конечный элемент </Root>
 
-$XmlObjectWriter.WriteEndDocument() # завершить запись в документ
+$XmlObjectWriter.WriteEndDocument()` завершить запись в документ
 $XmlObjectWriter.Flush()
 $XmlObjectWriter.Close()
 ```
@@ -3155,9 +3162,9 @@ $XmlObjectWriter.Close()
 ```
 $xml = [xml](gc $home\desktop\test.xml)
 $xml.Root.Configuration.Fonts
-$NewElement = $xml.CreateElement("Fonts") # выбрать элемент куда добавить
-$NewElement.set_InnerXML("<Name>Times New Roman</Name><Size>14</Size>") # Заполнить значениями дочерние элементы Fonts
-$xml.Root.Configuration.AppendChild($NewElement) # добавить элемент новой строкой в Configuration (родитель Fonts)
+$NewElement = $xml.CreateElement("Fonts")` выбрать элемент куда добавить
+$NewElement.set_InnerXML("<Name>Times New Roman</Name><Size>14</Size>")` Заполнить значениями дочерние элементы Fonts
+$xml.Root.Configuration.AppendChild($NewElement)` добавить элемент новой строкой в Configuration (родитель Fonts)
 $xml.Save("$home\desktop\test.xml")
 ```
 # JSON
@@ -3185,15 +3192,15 @@ $ookla.result
 ```
 # YAML
 ```
-Import-Module PSYaml # используется в Docker/Ansible
+Import-Module PSYaml` используется в Docker/Ansible
 $netplan = "
-network: # словарь по типу - ключ : значение с вложенными словарями
+network:` словарь по типу - ключ : значение с вложенными словарями
   ethernets:
     ens160:
       dhcp4: yes
       dhcp6: no
       nameservers:
-        addresses: # [8.8.8.8, 1.1.1.1] # список данных (строк)
+        addresses:` [8.8.8.8, 1.1.1.1]` список данных (строк)
 		  - 8.8.8.8
 		  - 1.1.1.1
   version: 2
@@ -3205,7 +3212,7 @@ $DataType = "
 int: !!int 10.1
 flo: !!float 10.1
 str: !!str string
-bool: !!bool # boolean
+bool: !!bool` boolean
 "
 ```
 # HTML
@@ -3302,40 +3309,40 @@ Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=pa
 `DATETIME` 25.05.2023 23:30:55.1234567
 ```
 ### DATABASE
-SHOW databases; # вывести список БД
-CREATE DATABASE db_aduser; # создать БД
-CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci; # создать БД с кодировкой UTF-8
-DROP DATABASE db_rep; # удалить БД
-USE db_aduser; # выбрать/переключиться на выбранную БД
-SELECT database(); # отобразить выбранную БД
+SHOW databases;` вывести список БД
+CREATE DATABASE db_aduser;` создать БД
+CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;` создать БД с кодировкой UTF-8
+DROP DATABASE db_rep;` удалить БД
+USE db_aduser;` выбрать/переключиться на выбранную БД
+SELECT database();` отобразить выбранную БД
 
 ### USER
-SELECT USER,HOST FROM mysql.user; # вывести список УЗ
-CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; # создать УЗ, которая будет подключаться с локального сервера
-CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; # создать УЗ, которая будет подключаться с указанного сервера
-CREATE USER posh@'192.168.1.247' IDENTIFIED BY '1qaz!QAZ'; # УЗ для доступа с любого сервера
-DROP USER posh@localhost; # удалить пользователя
-SHOW GRANTS FOR posh@'%'; # отобразить права доступа пользователя
-GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'192.168.1.247'; # полный доступ для posh к БД db_aduser
-GRANT ALL PRIVILEGES ON *.* TO posh@'%'; # доступ к всем БД c любого клиентского хоста
-GRANT SELECT,DELETE ON mysql.* TO posh@'%'; # права SELECT и DELETE на встроенную БД mysql
-REVOKE DELETE ON mysql.* FROM posh@'%'; # удалить доступ DELETE
-UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%'; # изменить привелегии для пользователя
-SELECT USER,HOST,super_priv FROM mysql.user; # список УЗ и таблица с правами SUPER privilege
-FLUSH PRIVILEGES; # обновить права доступа
+SELECT USER,HOST FROM mysql.user;` вывести список УЗ
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ';` создать УЗ, которая будет подключаться с локального сервера
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ';` создать УЗ, которая будет подключаться с указанного сервера
+CREATE USER posh@'192.168.1.247' IDENTIFIED BY '1qaz!QAZ';` УЗ для доступа с любого сервера
+DROP USER posh@localhost;` удалить пользователя
+SHOW GRANTS FOR posh@'%';` отобразить права доступа пользователя
+GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'192.168.1.247';` полный доступ для posh к БД db_aduser
+GRANT ALL PRIVILEGES ON *.* TO posh@'%';` доступ к всем БД c любого клиентского хоста
+GRANT SELECT,DELETE ON mysql.* TO posh@'%';` права SELECT и DELETE на встроенную БД mysql
+REVOKE DELETE ON mysql.* FROM posh@'%';` удалить доступ DELETE
+UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%';` изменить привелегии для пользователя
+SELECT USER,HOST,super_priv FROM mysql.user;` список УЗ и таблица с правами SUPER privilege
+FLUSH PRIVILEGES;` обновить права доступа
 
 ### TABLE
-SHOW TABLES; # отобразить список всех таблиц
-SHOW TABLES LIKE '%user'; # поиск таблицы по wildcard-имени
-CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID)); # оздать таблицу
-DROP TABLE table_aduser; # удалить таблицу
+SHOW TABLES;` отобразить список всех таблиц
+SHOW TABLES LIKE '%user';` поиск таблицы по wildcard-имени
+CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID));` оздать таблицу
+DROP TABLE table_aduser;` удалить таблицу
 
 ### COLUMN
-SHOW COLUMNS FROM table_aduser; # отобразить название стобцов и их свойства
-ALTER TABLE table_aduser DROP COLUMN id; # удалить столбец id
-ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10); # добавить столбец info
-ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100); # изменить имя столбца info на new_info и его тип данных
-ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID)); # добавить столбец id
+SHOW COLUMNS FROM table_aduser;` отобразить название стобцов и их свойства
+ALTER TABLE table_aduser DROP COLUMN id;` удалить столбец id
+ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10);` добавить столбец info
+ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100);` изменить имя столбца info на new_info и его тип данных
+ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID));` добавить столбец id
 
 ### INSERT
 INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
@@ -3344,39 +3351,39 @@ INSERT table_aduser (Name) VALUES ('Support');
 INSERT table_aduser (Name) VALUES ('Jack');
 
 ### SELECT
-SELECT * FROM table_aduser; # содержимое всех стобцов в выбранной (FROM) таблице
-SELECT Name,email FROM table_aduser; # содержимое указанных стобцов
-SELECT DISTINCT Name,Email FROM table_aduser; # отобразить уникальные записи (без повторений)
-SELECT * FROM table_aduser ORDER BY Name; # отсортировать по Name
-SELECT * FROM table_aduser ORDER BY Name DESC; # обратная сортировка
-SELECT COUNT(*) FROM table_aduser; # количество строк в таблице
-SELECT COUNT(new_info) FROM table_aduser; # количество строк в столбце
+SELECT * FROM table_aduser;` содержимое всех стобцов в выбранной (FROM) таблице
+SELECT Name,email FROM table_aduser;` содержимое указанных стобцов
+SELECT DISTINCT Name,Email FROM table_aduser;` отобразить уникальные записи (без повторений)
+SELECT * FROM table_aduser ORDER BY Name;` отсортировать по Name
+SELECT * FROM table_aduser ORDER BY Name DESC;` обратная сортировка
+SELECT COUNT(*) FROM table_aduser;` количество строк в таблице
+SELECT COUNT(new_info) FROM table_aduser;` количество строк в столбце
 
 ### WHERE
-NOT; AND; OR # по приоритетам условий
-SELECT * FROM table_aduser WHERE Name = 'Alex'; # поиск по содержимому
-SELECT * FROM table_aduser WHERE NOT Name != 'Alex'; # условие NOT где Name не равен значению
-SELECT * FROM table_aduser WHERE email != ''; # вывести строки, где содержимое email не рано null
-SELECT * FROM table_aduser WHERE email != '' OR id > 1000; # или id выше 1000
-SELECT * FROM table_aduser WHERE Name RLIKE "support"; # регистронезависемый (RLIKE) поиск
-SELECT * FROM table_aduser WHERE Name RLIKE "^support"; # начинаются только с этого словосочетания
+NOT; AND; OR` по приоритетам условий
+SELECT * FROM table_aduser WHERE Name = 'Alex';` поиск по содержимому
+SELECT * FROM table_aduser WHERE NOT Name != 'Alex';` условие NOT где Name не равен значению
+SELECT * FROM table_aduser WHERE email != '';` вывести строки, где содержимое email не рано null
+SELECT * FROM table_aduser WHERE email != '' OR id > 1000;` или id выше 1000
+SELECT * FROM table_aduser WHERE Name RLIKE "support";` регистронезависемый (RLIKE) поиск
+SELECT * FROM table_aduser WHERE Name RLIKE "^support";` начинаются только с этого словосочетания
 
 ### DELETE
-SELECT * FROM table_aduser WHERE Name RLIKE "alex"; # найти и проверить значения перед удалением
-DELETE FROM table_aduser WHERE Name RLIKE "alex"; # Query OK, 2 rows affected # удалено две строки
-DELETE FROM table_aduser; # удалить ВСЕ значения
+SELECT * FROM table_aduser WHERE Name RLIKE "alex";` найти и проверить значения перед удалением
+DELETE FROM table_aduser WHERE Name RLIKE "alex";` Query OK, 2 rows affected` удалено две строки
+DELETE FROM table_aduser;` удалить ВСЕ значения
 
 ### UPDATE
-SELECT * FROM table_aduser WHERE Name = 'Jack'; # найти и проверить значение перед изменением
-UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack'; # изменить значение 'Jack' на 'Alex'
-UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1; # изменить значение в строке с ID 1
+SELECT * FROM table_aduser WHERE Name = 'Jack';` найти и проверить значение перед изменением
+UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack';` изменить значение 'Jack' на 'Alex'
+UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1;` изменить значение в строке с ID 1
 
 ### CHECK
-CHECK TABLE db_aduser.table_aduser; # проверить
-ANALYZE TABLE db_aduser.table_aduser; # анализировать
-OPTIMIZE TABLE db_aduser.table_aduser; # оптимизировать
-REPAIR TABLE db_aduser.table_aduser; # восстановить
-TRUNCATE TABLE db_aduser.table_aduser; # очистить
+CHECK TABLE db_aduser.table_aduser;` проверить
+ANALYZE TABLE db_aduser.table_aduser;` анализировать
+OPTIMIZE TABLE db_aduser.table_aduser;` оптимизировать
+REPAIR TABLE db_aduser.table_aduser;` восстановить
+TRUNCATE TABLE db_aduser.table_aduser;` очистить
 ```
 ### DUMP
 ```
@@ -3472,15 +3479,15 @@ $srv  = "192.168.3.103"
 $SqlConnection = New-Object System.Data.SqlClient.SqlConnection
 $SqlConnection.ConnectionString = "server=$srv;database=$db;user id=$user;password=$pass;Integrated Security=false"
 
-$SqlCommand = New-Object System.Data.SqlClient.SqlCommand # класс формата команды
-$SqlCommand.CommandText = "SELECT * FROM ITINVENT.dbo.USERS" # отобразить содержимое таблицы
+$SqlCommand = New-Object System.Data.SqlClient.SqlCommand` класс формата команды
+$SqlCommand.CommandText = "SELECT * FROM ITINVENT.dbo.USERS"` отобразить содержимое таблицы
 #$SqlCommand.CommandText = "SELECT LICENCE_DATE,DESCR,MODEL_NO,TYPE_NO FROM ITINVENT.dbo.ITEMS where LICENCE_DATE IS NOT NULL"
-$SqlCommand.Connection = $SqlConnection # передать формат подключения
-$SqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter # создать адаптер подключения для выполнения SELECT запросов к БД
-$SqlAdapter.SelectCommand = $SqlCommand # передать команду
+$SqlCommand.Connection = $SqlConnection` передать формат подключения
+$SqlAdapter = New-Object System.Data.SqlClient.SqlDataAdapter` создать адаптер подключения для выполнения SELECT запросов к БД
+$SqlAdapter.SelectCommand = $SqlCommand` передать команду
 
-$DataSet = New-Object System.Data.DataSet # создать объект приема данных формата XML
-$SqlAdapter.Fill($DataSet) # заполнить данными полученные от адаптера (возвращает кол-во объектов)
+$DataSet = New-Object System.Data.DataSet` создать объект приема данных формата XML
+$SqlAdapter.Fill($DataSet)` заполнить данными полученные от адаптера (возвращает кол-во объектов)
 $SqlConnection.Close()
 $Data = $DataSet.Tables
 $Data[0] | ft
@@ -3491,14 +3498,14 @@ $user = "itinvent"
 $pass = "itinvent"
 $db   = "db_test"
 $srv  = "192.168.3.103"
-$sql = "INSERT INTO table_test (column_user) VALUES ('lifailon')" # добавить данные в таблицу table_test в колонку column_user
+$sql = "INSERT INTO table_test (column_user) VALUES ('lifailon')"` добавить данные в таблицу table_test в колонку column_user
 $SqlConnection = New-Object System.Data.SqlClient.SqlConnection
 $SqlConnection.ConnectionString = "server=$srv;database=$db;user id=$user;password=$pass;Integrated Security=false"
 $SqlCommand = New-Object System.Data.SqlClient.SqlCommand
 $SqlCommand.CommandText = $sql
 $SqlCommand.Connection = $SqlConnection
 $SqlConnection.Open()
-$rowsAffected = $SqlCommand.ExecuteNonQuery(); # для запросов INSERT/UPDATE/DELETE не используется SqlDataAdapter
+$rowsAffected = $SqlCommand.ExecuteNonQuery();` для запросов INSERT/UPDATE/DELETE не используется SqlDataAdapter
 $SqlConnection.Close()
 ```
 ### SSMS INSERT
@@ -3654,7 +3661,7 @@ set nocount on
 declare @name varchar(128), @substr nvarchar(4000), @column varchar(128)
 set @substr = '%2023%'
 declare @sql nvarchar(max);
-create table #rslt 
+create table`rslt 
 (table_name varchar(128), field_name varchar(128), [value] nvarchar(max))
 declare s cursor for select table_name as table_name from information_schema.tables where table_type = 'BASE TABLE' order by table_name
 open s
@@ -3670,7 +3677,7 @@ fetch next from c into @column
 while @@fetch_status = 0
 begin
 --print 'Processing table - ' + @name + ', column - ' + @column
-set @sql='insert into #rslt select ''' + @name + ''' as Table_name, ''' + @column + ''', cast(' + @column + 
+set @sql='insert into`rslt select ''' + @name + ''' as Table_name, ''' + @column + ''', cast(' + @column + 
 ' as nvarchar(max)) from' + @name + ' where cast(' + @column + ' as nvarchar(max)) like ''' + @substr + '''';
 print @sql;
 exec(@sql);
@@ -3680,10 +3687,10 @@ close c
 deallocate c
 fetch next from s into @name
 end
-select table_name as [Table Name], field_name as [Field Name], count(*) as [Found Mathes] from #rslt
+select table_name as [Table Name], field_name as [Field Name], count(*) as [Found Mathes] from`rslt
 group by table_name, field_name
 order by table_name, field_name
-drop table #rslt
+drop table`rslt
 close s
 deallocate s
 
@@ -3797,7 +3804,7 @@ MODIFY FILE (NAME = temp2, FILENAME = 'F:\tempdb_mssql_2.ndf' , SIZE = 1048576KB
 
 # InfluxDB
 
-https://community.influxdata.com/t/influxdb-1-7-11-download-links/18898 # InfluxDB1 \
+https://community.influxdata.com/t/influxdb-1-7-11-download-links/18898` InfluxDB1 \
 `wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.1-windows-amd64.zip -UseBasicParsing -OutFile influxdb2-2.7.1-windows-amd64.zip` скачать InfluxDB2 \
 `Expand-Archive .\influxdb2-2.7.1-windows-amd64.zip -DestinationPath 'C:\Program Files\InfluxData\influxdb\'` разархивировать \
 `cd "C:\Program Files\InfluxData\influxdb\influxdb2_windows_amd64"` \
@@ -3820,7 +3827,7 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 --host-url "http://localhost:8086" `
 --org "test" `
 --token "wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIosiCFkhi4EoWfHxwIlAA==" `
---active # создать и активировать конфигурацию, что бы не передавать свой хост InfluxDB, токен API и организацию с каждой командой
+--active` создать и активировать конфигурацию, что бы не передавать свой хост InfluxDB, токен API и организацию с каждой командой
 ```
 `.\influx config list` список конфигураций \
 `.\influx config list --json | ConvertFrom-Json` отобразить конфигурацию с выводом токена \
@@ -3852,9 +3859,9 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `nano /etc/influxdb/influxdb.conf` v1
 ```
 [http]
-  enabled = true # включить API
+  enabled = true` включить API
   bind-address = "192.168.3.104:8086"
-  auth-enabled = true # включить авторизацию
+  auth-enabled = true` включить авторизацию
 ```
 `apt install influxdb-client` \
 `influx` \
@@ -3959,21 +3966,21 @@ $table = "speedtest"
 $query = "SELECT * FROM $table"
 $ipp   = $ip+":"+$port
 $url   = "http://$ipp/query?db=$db&q=$query"
-$data  = Invoke-RestMethod -Method GET -Uri $url # -Credential $cred 
-$data.results.series.name    # имя таблицы
-$data.results.series.columns # столбцы/ключи
-$data.results.series.values  # данные построчно
+$data  = Invoke-RestMethod -Method GET -Uri $url` -Credential $cred 
+$data.results.series.name   ` имя таблицы
+$data.results.series.columns` столбцы/ключи
+$data.results.series.values ` данные построчно
 ```
 ### Endpoints
 https://docs.influxdata.com/influxdb/v1.7/tools/api/
 ```
-$stats = irm http://192.168.3.104:8086/debug/vars # статистика сервера
-$stats."database:powershell".values # кол-во таблиц к БД
-$stats.queryExecutor.values # количество query-запросов (обращений к endpoint /query)
-$stats.write.values # количество write-запросов
+$stats = irm http://192.168.3.104:8086/debug/vars` статистика сервера
+$stats."database:powershell".values` кол-во таблиц к БД
+$stats.queryExecutor.values` количество query-запросов (обращений к endpoint /query)
+$stats.write.values` количество write-запросов
 $stats.system.uptime
 ```
-`http://192.168.3.104:8086/debug/requests # кол-во клиентских HTTP-запросов к конечным точкам /writeи /query` \
+`http://192.168.3.104:8086/debug/requests` кол-во клиентских HTTP-запросов к конечным точкам /writeи /query` \
 `http://192.168.3.104:8086/debug/pprof` \
 `http://192.168.3.104:8086/ping` \
 `http://192.168.3.104:8086/query` \
@@ -3987,7 +3994,7 @@ $stats.system.uptime
 ```
 while ($true) {
 	$tz = (Get-TimeZone).BaseUtcOffset.TotalMinutes
-	$unixtime  = (New-TimeSpan -Start (Get-Date "01/01/1970") -End ((Get-Date).AddMinutes(-$tz))).TotalSeconds # -3h UTC
+	$unixtime  = (New-TimeSpan -Start (Get-Date "01/01/1970") -End ((Get-Date).AddMinutes(-$tz))).TotalSeconds` -3h UTC
 	$timestamp = ([string]$unixtime -replace "\..+") + "000000000"
 	$tnc = tnc 8.8.8.8
 	$Status = $tnc.PingSucceeded
@@ -4012,18 +4019,18 @@ function ConvertTo-Encoding ([string]$From, [string]$To) {
     }
 }
 
-$localization = (Get-Culture).LCID # текущая локализация
+$localization = (Get-Culture).LCID` текущая локализация
 if ($localization -eq 1049) {
-	$performance = "\\$(hostname)\Процессор(_Total)\% загруженности процессора" | ConvertTo-Encoding UTF-8 windows-1251 # декодировать кириллицу
+	$performance = "\\$(hostname)\Процессор(_Total)\% загруженности процессора" | ConvertTo-Encoding UTF-8 windows-1251` декодировать кириллицу
 } else {
 	$performance = "\Processor(_Total)\% Processor Time"
 }
 
 $tz = (Get-TimeZone).BaseUtcOffset.TotalMinutes
 while ($true) {
-	$unixtime  = (New-TimeSpan -Start (Get-Date "01/01/1970") -End ((Get-Date).AddMinutes(-$tz))).TotalSeconds # -3h UTC
+	$unixtime  = (New-TimeSpan -Start (Get-Date "01/01/1970") -End ((Get-Date).AddMinutes(-$tz))).TotalSeconds` -3h UTC
 	$timestamp = ([string]$unixtime -replace "\..+") + "000000000"
-	[double]$value = (Get-Counter $performance).CounterSamples.CookedValue.ToString("0.00").replace(",",".") # округлить в тип данных Double
+	[double]$value = (Get-Counter $performance).CounterSamples.CookedValue.ToString("0.00").replace(",",".")` округлить в тип данных Double
 	Invoke-RestMethod -Method POST -Uri "http://192.168.3.104:8086/write?db=powershell" -Body "performance,host=$(hostname),counter=CPU value=$value $timestamp"
 	sleep 5
 }
@@ -4093,8 +4100,8 @@ https://www.cdata.com/kb/tech/elasticsearch-ado-powershell.rst
 ```
 $elasticsearch = Connect-Elasticsearch  -Server "$Server" -Port "$Port" -User "$User" -Password "$Password"
 $shipcity = "New York"
-$orders = Select-Elasticsearch -Connection $elasticsearch -Table "Orders" -Where "ShipCity = `'$ShipCity`'" # поиск и получение данных
-$orders = Invoke-Elasticsearch -Connection $elasticsearch -Query 'SELECT * FROM Orders WHERE ShipCity = @ShipCity' -Params @{'@ShipCity'='New York'} # SQL запросы
+$orders = Select-Elasticsearch -Connection $elasticsearch -Table "Orders" -Where "ShipCity = `'$ShipCity`'"` поиск и получение данных
+$orders = Invoke-Elasticsearch -Connection $elasticsearch -Query 'SELECT * FROM Orders WHERE ShipCity = @ShipCity' -Params @{'@ShipCity'='New York'}` SQL запросы
 ```
 ### ADO.NET Assembly
 
@@ -4210,8 +4217,8 @@ foreach ($row in $dsDB[0].Tables[0].Rows) {
 `(gwmi Win32_OperatingSystem -EnableAllPrivileges).Win32Shutdown(0)` завершение сеанса пользователя
 ```
 $system = Get-WmiObject -Class Win32_OperatingSystem
-$InstallDate = [Management.ManagementDateTimeconverter]::ToDateTime($system.installdate) # Получаем дату установки ОС
-$AfterInstallDays = ((Get-Date) — $Installdate).Days # Вычисляем время, прошедшее с момента установки
+$InstallDate = [Management.ManagementDateTimeconverter]::ToDateTime($system.installdate)` Получаем дату установки ОС
+$AfterInstallDays = ((Get-Date) — $Installdate).Days` Вычисляем время, прошедшее с момента установки
 $ShortInstallDate = "{0:yyyy-MM-dd HH:MM}" -f ($InstallDate)
 "Система установлена: $ShortInstallDate (Прошло $AfterInstalldays дней)"
 ```
@@ -4302,7 +4309,7 @@ Write-Output "OK: $($NetworkUtilisation) % Network utilisation, $($TransferRate.
 
 `Install-WindowsFeature SNMP-Service,SNMP-WMI-Provider -IncludeManagementTools` установить роль SNMP и WMI провайдер через Server Manager \
 `Get-WindowsFeature SNMP*` \
-`Add-WindowsCapability -Online -Name SNMP.Client~~~~0.0.1.0 # установить компонент Feature On Demand для Windows 10/11` \
+`Add-WindowsCapability -Online -Name SNMP.Client~~~~0.0.1.0` установить компонент Feature On Demand для Windows 10/11` \
 `Get-Service SNMP*` \
 `Get-NetFirewallrule -DisplayName *snmp* | ft` \
 `Get-NetFirewallrule -DisplayName *snmp* | Enable-NetFirewallRule`
@@ -4370,8 +4377,8 @@ $message.Data.ToString()
 ```
 ### Walk
 ```
-[Lextm.SharpSnmpLib.ObjectIdentifier]$OID = "1.3.6.1.2.1.1" # дерево или конечный OID
-$WalkMode = [Lextm.SharpSnmpLib.Messaging.WalkMode]::WithinSubtree # режим обхода по дереву
+[Lextm.SharpSnmpLib.ObjectIdentifier]$OID = "1.3.6.1.2.1.1"` дерево или конечный OID
+$WalkMode = [Lextm.SharpSnmpLib.Messaging.WalkMode]::WithinSubtree` режим обхода по дереву
 $results = New-Object Collections.Generic.List[Lextm.SharpSnmpLib.Variable]
 $message = [Lextm.SharpSnmpLib.Messaging.Messenger]::Walk(
   $Version,
@@ -4386,7 +4393,7 @@ $results
 
 $results2 = @()
 foreach ($d in $results) {
-$results2 +=[PSCustomObject]@{'ID'=$d.id.ToString();'Data'=$d.Data.ToString()} # перекодировать вывод построчно в строку
+$results2 +=[PSCustomObject]@{'ID'=$d.id.ToString();'Data'=$d.Data.ToString()}` перекодировать вывод построчно в строку
 }
 $results2
 ```
@@ -4397,10 +4404,10 @@ $results2
 $url = "https://cdn.zabbix.com/zabbix/binaries/stable/6.4/6.4.5/zabbix_agent2-6.4.5-windows-amd64-static.zip"
 $path = "$home\Downloads\zabbix-agent2-6.4.5.zip"
 $WebClient = New-Object System.Net.WebClient
-$WebClient.DownloadFile($url, $path) # скачать файл
-Expand-Archive $path -DestinationPath "C:\zabbix-agent2-6.4.5\" # разархивировать
-Remove-Item $path # удалить архив
-New-NetFirewallRule -DisplayName "Zabbix-Agent" -Profile Any -Direction Inbound -Action Allow -Protocol TCP -LocalPort 10050,10051 # открыть порты в FW
+$WebClient.DownloadFile($url, $path)` скачать файл
+Expand-Archive $path -DestinationPath "C:\zabbix-agent2-6.4.5\"` разархивировать
+Remove-Item $path` удалить архив
+New-NetFirewallRule -DisplayName "Zabbix-Agent" -Profile Any -Direction Inbound -Action Allow -Protocol TCP -LocalPort 10050,10051` открыть порты в FW
 
 $Zabbix_Server = "192.168.3.102"
 $conf = "C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.conf"
@@ -4410,9 +4417,9 @@ $rep | Select-String Server=
 $rep > $conf
 
 $exe = "C:\zabbix-agent2-6.4.5\bin\zabbix_agent2.exe"
-.$exe --config $conf --install # установить службу
-Get-Service *Zabbix*Agent* | Start-Service # запустить службу
-#.$exe --config $conf --uninstall # удалить службу
+.$exe --config $conf --install` установить службу
+Get-Service *Zabbix*Agent* | Start-Service` запустить службу
+#.$exe --config $conf --uninstall` удалить службу
 ```
 ### zabbix_sender
 
@@ -4541,7 +4548,7 @@ $data = @{
     "jsonrpc"="2.0";
     "method"="user.login";
     "params"=@{
-        "username"="Admin"; # в версии до 6.4 параметр "user"
+        "username"="Admin";` в версии до 6.4 параметр "user"
         "password"="zabbix";
     };
     "id"=1;
@@ -4592,7 +4599,7 @@ $data = @{
     "jsonrpc"="2.0";
     "method"="host.get";
     "params"=@{
-        "output"=@( # отфильтровать вывод
+        "output"=@(` отфильтровать вывод
             "hostid";
             "host";
         );
@@ -4601,7 +4608,7 @@ $data = @{
     "auth"=$token;
 }
 $hosts = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
-$host_id = $hosts[3].hostid # забрать id хоста по индексу
+$host_id = $hosts[3].hostid` забрать id хоста по индексу
 ```
 ### item.get
 
@@ -4611,13 +4618,13 @@ $data = @{
     "jsonrpc"="2.0";
     "method"="item.get";
     "params"=@{
-        "hostids"=@($host_id); # отфильтровать по хосту
+        "hostids"=@($host_id);` отфильтровать по хосту
     };
     "auth"=$token;
     "id"=1;
 }
 $items = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
-$items_id = ($items | where key_ -match system.uptime).itemid # забрать id элемента данных
+$items_id = ($items | where key_ -match system.uptime).itemid` забрать id элемента данных
 ```
 ### history.get
 
@@ -4627,13 +4634,13 @@ $data = @{
     "jsonrpc"="2.0";
     "method"="history.get";
     "params"=@{
-        "hostids"=@($host_id);  # фильтрация по хосту
-        "itemids"=@($items_id); # фильтрация по элементу данных
+        "hostids"=@($host_id); ` фильтрация по хосту
+        "itemids"=@($items_id);` фильтрация по элементу данных
     };
     "auth"=$token;
     "id"=1;
 }
-$items_data_uptime = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result # получить все данные по ключу у конкретного хоста
+$items_data_uptime = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result` получить все данные по ключу у конкретного хоста
 ```
 ### Convert Secconds To TimeSpan and DateTime
 
@@ -4697,7 +4704,8 @@ function ConvertFrom-UnixTime {
 # OpenSSL
 ```
 Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL_Light-3_1_1.msi -OutFile $home\Downloads\OpenSSL-Light-3.1.1.msi
-Start-Process $home\Downloads\OpenSSL-Light-3.1.1.msi -ArgumentList '/quiet' -Wait # установить msi пакет в тихом режиме
+Start-Process $home\Downloads\OpenSSL-Light-3.1.1.msi -ArgumentList '/quiet' -Wait` установить msi пакет в тихом режиме (запуск от имени Администратора)
+rm $home\Downloads\OpenSSL-Light-3.1.1.msi
 cd "C:\Program Files\OpenSSL-Win64\bin"
 ```
 - Изменить пароль для PFX \
@@ -4722,6 +4730,187 @@ out – путь до файла, в который будет конверти�
 
 - CRT и KEY в PFX: \
 `openssl pkcs12 -inkey certificate.key -in certificate.crt -export -out certificate.pfx`
+
+# OpenVPN
+
+`Invoke-WebRequest -Uri https://swupdate.openvpn.org/community/releases/OpenVPN-2.6.5-I001-amd64.msi -OutFile $home\Downloads\OpenVPN-2.6.5.msi` \
+`Start-Process $home\Downloads\OpenVPN-2.6.5.msi -ArgumentList '/quiet /SELECT_OPENSSL_UTILITIES=1' -Wait` \
+`msiexec /i $home\Downloads\OpenVPN-2.6.5.msi ADDLOCAL=EasyRSA /passive /quiet # установить отдельный компонент EasyRSA Certificate Management Scripts` \
+`# msiexec /i $home\Downloads\OpenVPN-2.6.5.msi ADDLOCAL=OpenVPN.Service,Drivers,Drivers.Wintun,OpenVPN,OpenVPN.GUI,OpenVPN.GUI.OnLogon,EasyRSA /passive` выборочная установка \
+`# Invoke-WebRequest -Uri https://github.com/OpenVPN/easy-rsa/releases/download/v3.1.5/EasyRSA-3.1.5-win64.zip -OutFile $home\Downloads\EasyRSA-3.1.5.zip` скачать отдельный пакет EasyRSA \
+`rm $home\Downloads\OpenVPN-2.6.5.msi`
+
+`cd "C:\Program Files\OpenVPN\easy-rsa"` \
+`Copy-Item vars.example vars` файл конфигурации для EasyRSA \
+`Start-Process notepad++ "vars"
+```
+set_var EASYRSA_TEMP_DIR "$EASYRSA_PKI"
+set_var EASYRSA_REQ_COUNTRY "RU"
+set_var EASYRSA_REQ_PROVINCE "MSK"
+set_var EASYRSA_REQ_CITY "MSK"
+set_var EASYRSA_REQ_ORG "FAILON.NET"
+set_var EASYRSA_REQ_EMAIL "lifailon@domain.ru"
+set_var EASYRSA_REQ_OU "IT"
+#set_var EASYRSA_KEY_SIZE 2048
+#set_var EASYRSA_CA_EXPIRE 3650
+#set_var EASYRSA_CERT_EXPIRE 825
+```
+`.\EasyRSA-Start.bat` среда EasyRSA Shell \
+`easyrsa init-pki` инициализация PKI, создает директорию: C:\Program Files\OpenVPN\easy-rsa\pki и читает переменные файла \easy-rsa\vars \
+`easyrsa build-ca` генерация корневого CA с указанием пароля и произвольное имя сервера (\pki\ca.crt и \pki\private\ca.key) \
+`easyrsa gen-req server nopass` генерация запроса сертификата и ключ для сервера OpenVPN - yes (\pki\reqs\server.req и \pki\private\server.key) \
+`easyrsa sign-req server server` подписать запрос на выпуск сертификата сервера с помощью CA - yes (\pki\issued\server.crt) \
+`easyrsa gen-dh` создать ключ Диффи-Хеллмана (\pki\dh.pem) \
+`easyrsa gen-req client1` nopass` генерация запроса сертификата и ключ для клиента OpenVPN (\pki\reqs\client1.req и \pki\private\client1.key) \
+`easyrsa sign-req client client1` подписать запрос на выпуск сертификата клиента с помощью CA - yes (\pki\issued\client1.crt) \
+`easyrsa revoke client1` отозвать сертификат пользователя \
+`openssl rsa -in "C:\Program Files\OpenVPN\easy-rsa\pki\private\client1.key" -out "C:\Program Files\OpenVPN\easy-rsa\pki\private\client1_nopass.key"` снять защиту паролем для ключа (BEGIN ENCRYPTED PRIVATE KEY -> BEGIN PRIVATE KEY) \
+`exit` \
+`cd "C:\Program Files\OpenVPN\bin"` \
+`.\openvpn --genkey secret ta.key` генерация ключа tls-auth (\bin\ta.key) \
+`Move-Item "C:\Program Files\OpenVPN\bin\ta.key" "C:\Program Files\OpenVPN\easy-rsa\pki\"`
+
+### server.ovpn
+
+`# Copy-Item "C:\Program Files\OpenVPN\sample-config\server.ovpn" "C:\Program Files\OpenVPN\config-auto\server.ovpn"` \
+`New-Item -ItemType File -Path "C:\Program Files\OpenVPN\config-auto\server.ovpn"`
+```
+port 1194
+proto udp
+# Что именно инкапсулировать в туннеле (ethernet фреймы - tap или ip пакеты - tun)
+dev tun
+ca "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\ca.crt"
+cert "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\issued\\server.crt"
+key "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\private\\server.key"
+dh "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\dh.pem"
+server 192.168.4.0 255.255.255.0
+# Хранит список сопоставления ip для клиентов, что бы назначить тот же адрес при перезапуске сервера
+# ifconfig-pool-persist "C:\\Program Files\\OpenVPN\\dhcp-client-list.txt"
+# Разрешить клиентам подключаться под одним ключом
+# duplicate-cn
+# max-clients 30
+# Разрешить обмен трафиком между клиентами
+client-to-client
+# compress
+tls-auth "C:\\Program Files\\OpenVPN\\easy-rsa\\pki\\ta.key" 0
+cipher AES-256-GCM
+keepalive 20 60
+# Не перечитавать файлы ключей при перезапуске туннеля
+persist-key
+# Оставляет без изменения устройства tun/tap при перезапуске OpenVPN
+persist-tun
+status "C:\\Program Files\\OpenVPN\\log\\status.log"
+log "C:\\Program Files\\OpenVPN\\log\\openvpn.log"
+verb 3
+mute 20
+windows-driver wintun
+# Открыть доступ к подсети за сервером
+push "route 192.168.3.0 255.255.255.0"
+push "route 192.168.4.0 255.255.255.0"
+# Завернуть все запросы клиента (в том числе Интернет трафик) на OpenVPN сервер
+# push "redirect-gateway def1"
+# push "dhcp-option DNS 192.168.3.101"
+# push "dhcp-option DOMAIN failon.net"
+```
+`New-NetFirewallRule -DisplayName "AllowOpenVPN-In" -Direction Inbound -Protocol UDP –LocalPort 1194 -Action Allow` на сервере \
+`New-NetFirewallRule -DisplayName "AllowOpenVPN-Out" -Direction Outbound -Protocol UDP –LocalPort 1194 -Action Allow` на клиенте \
+`Get-Service *openvpn* | Restart-Service`
+
+### client.ovpn
+
+`# Copy-Item "C:\Program Files\OpenVPN\sample-config\client.ovpn" "C:\Program Files\OpenVPN\config-auto\client.ovpn"` \
+`New-Item -ItemType File -Path "C:\Program Files\OpenVPN\config-auto\client.ovpn"`
+```
+client
+dev tun
+proto udp
+remote 26.115.154.67 1194
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+ca ca.crt
+cert client1.crt
+key client1.key
+remote-cert-tls server
+tls-auth ta.key 1
+cipher AES-256-GCM
+connect-retry-max 25
+# Использовать драйвер wintun и полный путь до сертификатов при использовании openvpn gui
+windows-driver wintun
+verb 3
+```
+### Client
+
+`iwr -Uri https://openvpn.net/downloads/openvpn-connect-v3-windows.msi -OutFile "$home\downloads\OpenVPN-Connect-3.msi"` \
+Передать конфигурацию и ключи (или вложить в конфигурацию <tls-auth>-----BEGIN OpenVPN Static key V1-----</tls-auth>): \
+`client.ovpn` \
+`ca.crt` \
+`dh.pem` \
+`ta.key` \
+`client1.crt` \
+`client1.key`
+
+# Route
+
+`Get-Service RemoteAccess | Stop-Service` \
+`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "IPEnableRouter" -Value 1` включает IP маршрутизацию \
+`(Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters").IPEnableRouter` \
+`Get-NetIPInterface | select ifIndex,InterfaceAlias,AddressFamily,ConnectionState,Forwarding | ft` отобразить сетевые интерфейсы \
+`Set-NetIPInterface -ifIndex 13 -Forwarding Enabled` включить переадресацию на интерфейсе \
+`sysctl net.ipv4.ip_forward=1` \
+`echo "sysctl net.ipv4.ip_forward = 1" >> /etc/sysctl.conf`
+
+`Get-NetRoute` \
+`New-NetRoute -DestinationPrefix "0.0.0.0/0" -NextHop "192.168.3.1" -InterfaceIndex 8` \
+`route -p add 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 1` \
+`route -p change 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 2` \
+`route -p add 192.168.3.0 mask 255.255.255.0 192.168.4.1 metric 1 if 7` указать номер сетевого интерфейса на который необходимо посылать пакет (Wintun Userspace Tunnel) \
+`route print -4` \
+`route delete 192.168.3.0`
+
+`tracert 192.168.3.101`
+```
+1    17 ms     *       22 ms  192.168.4.1
+2    12 ms    13 ms    14 ms  192.168.3.101
+```
+`route add -net 192.168.4.0 netmask 255.255.255.0 gw 192.168.3.100` \
+`route -e`
+
+`traceroute 192.168.4.6 # с 192.168.3.101`
+```
+1  192.168.3.100 (192.168.3.100)  0.148 ms  0.110 ms  0.106 ms
+2  192.168.4.6 (192.168.4.6)  14.573 ms * *
+```
+`ping 192.168.3.101 -t` с 192.168.4.6 \
+`tcpdump -n -i ens33 icmp` на 192.168.4.6
+```
+14:36:34.533771 IP 192.168.4.6 > 192.168.3.101: ICMP echo request, id 1, seq 2962, length 40 # отправил запрос
+14:36:34.533806 IP 192.168.3.101 > 192.168.4.6: ICMP echo reply, id 1, seq 2962, length 40 # отправил ответ
+```
+# NAT
+
+`Get-Command -Module NetNat` \
+`New-NetNat -Name LocalNat -InternalIPInterfaceAddressPrefix "192.168.3.0/24"` \
+`Add-NetNatStaticMapping -NatName LocalNat -Protocol TCP -ExternalIPAddress 0.0.0.0 -ExternalPort 80 -InternalIPAddress 192.168.3.102 -InternalPort 80` \
+`Remove-NetNatStaticMapping -StaticMappingID 0` \
+`Remove-NetNat -Name LocalNat`
+
+# WireGuard
+
+`Invoke-WebRequest "https://download.wireguard.com/windows-client/wireguard-amd64-0.5.3.msi" -OutFile "$home\Downloads\WireGuard-Client-0.5.3.msi"` \
+`msiexec.exe /i "$home\Downloads\WireGuard-Client-0.5.3.msi" DO_NOT_LAUNCH=1 /qn` \
+`Invoke-WebRequest "http://www.wiresock.net/downloads/wiresock-vpn-gateway-x64-1.1.4.1.msi" -OutFile "$home\Downloads\WireSock-VPN-Gateway-1.1.4.1.msi"` \
+`msiexec.exe /i "http://www.wiresock.net/downloads/wiresock-vpn-gateway-x64-1.1.4.1.msi" /qn` \
+`$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")` \
+`wg-quick-config -add -start` \
+`26.115.154.67:8181` \
+`192.168.21.4/24` \
+`Successfully saved client configuration: C:\ProgramData\NT KERNEL\WireSock VPN Gateway\wsclient_1.conf` AllowedIPs = 192.168.21.0/24, 192.168.3.0/24 \
+`Successfully saved server configuration: C:\ProgramData\NT KERNEL\WireSock VPN Gateway\wiresock.conf` \
+`get-service *wire*` \
+`wg show` \
+`wg-quick-config -add -restart` add client
 
 # OpenSSH
 
@@ -4835,7 +5024,7 @@ New-WSManInstance -ResourceURI "winrm/config/Listener" -SelectorSet $selector_se
 `Get-DscLocalConfigurationManager`
 
 `Get-DscResource` \
-`Get-DscResource -Name File -Syntax` # https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
+`Get-DscResource -Name File -Syntax`` https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
 
 `Ensure = Present` настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить) \
 `Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
@@ -4858,7 +5047,7 @@ Configuration DSConfigurationProxy
         Service StopW32time
         {
             Name = "w32time"
-            State = "Stopped" # Running
+            State = "Stopped"` Running
         }
 		WindowsProcess RunCalc
         {
@@ -4887,9 +5076,9 @@ Configuration DSConfigurationProxy
 `Start-DscConfiguration -Path $Path` \
 `Get-Job` \
 `$srv = "vproxy-01"` \
-`Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
-`icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
-`icm $srv {ls C:\ | ? name -match Temp} | ft # rm`
+`Get-Service -ComputerName $srv | ? name -match w32time` Start-Service` \
+`icm $srv {Get-Process | ? ProcessName -match calc} | ft` Stop-Process -Force` \
+`icm $srv {ls C:\ | ? name -match Temp} | ft` rm`
 
 # Git
 
@@ -4935,8 +5124,8 @@ Configuration DSConfigurationProxy
 # Ansible
 
 `apt -y update && apt -y upgrade` \
-`apt -y install ansible # v2.10.8` \
-`apt -y install ansible-core # v2.12.0` \
+`apt -y install ansible` v2.10.8` \
+`apt -y install ansible-core` v2.12.0` \
 `apt -y install sshpass`
 
 `ansible-galaxy collection install ansible.windows` установить коллекцию модулей \
@@ -4998,7 +5187,7 @@ huawei-book-01 ansible_host=192.168.3.99
 plex-01 ansible_host=192.168.3.100
 
 [win_ssh:vars]
-ansible_python_interpreter=C:\Users\Lifailon\AppData\Local\Programs\Python\Python311\ # добавить переменную среды интерпритатора Python в Windows
+ansible_python_interpreter=C:\Users\Lifailon\AppData\Local\Programs\Python\Python311\` добавить переменную среды интерпритатора Python в Windows
 ansible_connection=ssh
 #ansible_shell_type=cmd
 ansible_shell_type=powershell
@@ -5033,20 +5222,20 @@ ansible_shell_type=powershell
 `nano /etc/ansible/PowerShell-Vars.yml`
 ```
 - hosts: ws
-  # Указать коллекцию модулей
+ ` Указать коллекцию модулей
   collections:
   - ansible.windows
-  # Задать переменные
+ ` Задать переменные
   vars:
     SearchName: PermitRoot
   tasks:
   - name: Get port ssh
     win_shell: |
       Get-Content "C:\Programdata\ssh\sshd_config" | Select-String "{{SearchName}}"
-    # Передать вывод в переменную
+   ` Передать вывод в переменную
     register: command_output
   - name: Output port ssh
-    # Вывести переменную на экран
+   ` Вывести переменную на экран
     debug:
       var: command_output.stdout_lines
 ```
@@ -5109,7 +5298,7 @@ ansible_shell_type=powershell
     win_regedit:
       path: HKLM:\SOFTWARE\OpenSSH
       name: DefaultShell
-      # data: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+     ` data: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
       data: 'C:\Program Files\PowerShell\7\pwsh.exe'
       type: string
       state: present
@@ -5333,11 +5522,11 @@ ansible_shell_type=powershell
       paths:
       - D:\Install\OpenSource
       patterns: ['*.rar','*.zip','*.msi']
-      # Файл созданный менее 7 дней назад
+     ` Файл созданный менее 7 дней назад
       age: -7d
-      # Размер файла больше 10MB
+     ` Размер файла больше 10MB
       size: 10485760
-      # Рекурсивный поиск (в дочерних директориях)
+     ` Рекурсивный поиск (в дочерних директориях)
       recurse: true
     register: command_output
   - name: Output
@@ -5375,14 +5564,14 @@ ansible_shell_type=powershell
       - CriticalUpdates
       - UpdateRollups
       - Drivers
-      # Фильтрация
-      # accept_list:
-      # - KB2267602
-      # Поиск обновлений
-      # state: searched
-      # Загрузить обновления
-      # state: downloaded
-      # Установить обновления
+     ` Фильтрация
+     ` accept_list:
+     ` - KB2267602
+     ` Поиск обновлений
+     ` state: searched
+     ` Загрузить обновления
+     ` state: downloaded
+     ` Установить обновления
       state: installed
       log_path: C:\Ansible-Windows-Upadte-Log.txt
       reboot: false
