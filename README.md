@@ -3351,18 +3351,18 @@ log_error = /var/log/mysql/error.log
 `DATE` формат даты, например 25.05.2023 \
 `TIME` 23:30:55.1234567 \
 `DATETIME` 25.05.2023 23:30:55.1234567
-```
+
 ### DATABASE
-
-SHOW databases;` вывести список БД
-CREATE DATABASE db_aduser;` создать БД
-CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;` создать БД с кодировкой UTF-8
-DROP DATABASE db_rep;` удалить БД
-USE db_aduser;` выбрать/переключиться на выбранную БД
-SELECT database();` отобразить выбранную БД
-
+```
+SHOW databases; 																	# вывести список БД
+CREATE DATABASE db_aduser;															# создать БД
+CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci; 	# создать БД с кодировкой UTF-8
+DROP DATABASE db_rep; 																# удалить БД
+USE db_aduser; 																		# выбрать/переключиться на выбранную БД
+SELECT database(); 																	# отобразить выбранную БД
+```
 ### USER
-
+```
 SELECT USER,HOST FROM mysql.user; 			 							# вывести список УЗ
 CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с локального сервера
 CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с указанного сервера
@@ -3377,68 +3377,68 @@ REVOKE DELETE ON mysql.* FROM posh@'%'; 								# удалить доступ DE
 UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%'; 	# изменить привелегии для пользователя
 SELECT USER,HOST,super_priv FROM mysql.user; 							# список УЗ и таблица с правами SUPER privilege
 FLUSH PRIVILEGES; 														# обновить права доступа
-
+```
 ### TABLE
-
-SHOW TABLES;` отобразить список всех таблиц
-SHOW TABLES LIKE '%user';` поиск таблицы по wildcard-имени
-CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID));` оздать таблицу
-DROP TABLE table_aduser;` удалить таблицу
-
+```
+SHOW TABLES; 																											# отобразить список всех таблиц
+SHOW TABLES LIKE '%user'; 																								# поиск таблицы по wildcard-имени
+CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID)); 	# оздать таблицу
+DROP TABLE table_aduser; 																								# удалить таблицу
+```
 ### COLUMN
-
-SHOW COLUMNS FROM table_aduser;` отобразить название стобцов и их свойства
-ALTER TABLE table_aduser DROP COLUMN id;` удалить столбец id
-ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10);` добавить столбец info
-ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100);` изменить имя столбца info на new_info и его тип данных
-ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID));` добавить столбец id
-
+```
+SHOW COLUMNS FROM table_aduser; 															# отобразить название стобцов и их свойства
+ALTER TABLE table_aduser DROP COLUMN id; 													# удалить столбец id
+ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10); 										# добавить столбец info
+ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100);									# изменить имя столбца info на new_info и его тип данных
+ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID));		# добавить столбец id
+```
 ### INSERT
-
+```
 INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
 INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
 INSERT table_aduser (Name) VALUES ('Support');
 INSERT table_aduser (Name) VALUES ('Jack');
-
+```
 ### SELECT
-
-SELECT * FROM table_aduser;` содержимое всех стобцов в выбранной (FROM) таблице
-SELECT Name,email FROM table_aduser;` содержимое указанных стобцов
-SELECT DISTINCT Name,Email FROM table_aduser;` отобразить уникальные записи (без повторений)
-SELECT * FROM table_aduser ORDER BY Name;` отсортировать по Name
-SELECT * FROM table_aduser ORDER BY Name DESC;` обратная сортировка
-SELECT COUNT(*) FROM table_aduser;` количество строк в таблице
-SELECT COUNT(new_info) FROM table_aduser;` количество строк в столбце
-
+```
+SELECT * FROM table_aduser; 					# содержимое всех стобцов в выбранной (FROM) таблице
+SELECT Name,email FROM table_aduser; 			# содержимое указанных стобцов
+SELECT DISTINCT Name,Email FROM table_aduser; 	# отобразить уникальные записи (без повторений)
+SELECT * FROM table_aduser ORDER BY Name;	 	# отсортировать по Name
+SELECT * FROM table_aduser ORDER BY Name DESC; 	# обратная сортировка
+SELECT COUNT(*) FROM table_aduser; 				# количество строк в таблице
+SELECT COUNT(new_info) FROM table_aduser; 		# количество строк в столбце
+```
 ### WHERE
-
-NOT; AND; OR` по приоритетам условий
-SELECT * FROM table_aduser WHERE Name = 'Alex';` поиск по содержимому
-SELECT * FROM table_aduser WHERE NOT Name != 'Alex';` условие NOT где Name не равен значению
-SELECT * FROM table_aduser WHERE email != '';` вывести строки, где содержимое email не рано null
-SELECT * FROM table_aduser WHERE email != '' OR id > 1000;` или id выше 1000
-SELECT * FROM table_aduser WHERE Name RLIKE "support";` регистронезависемый (RLIKE) поиск
-SELECT * FROM table_aduser WHERE Name RLIKE "^support";` начинаются только с этого словосочетания
-
+```
+NOT; AND; OR 												# по приоритетам условий
+SELECT * FROM table_aduser WHERE Name = 'Alex';			    # поиск по содержимому
+SELECT * FROM table_aduser WHERE NOT Name != 'Alex';	    # условие NOT где Name не равен значению
+SELECT * FROM table_aduser WHERE email != ''; 			    # вывести строки, где содержимое email не рано null
+SELECT * FROM table_aduser WHERE email != '' OR id > 1000;	# или id выше 1000
+SELECT * FROM table_aduser WHERE Name RLIKE "support"; 		# регистронезависемый (RLIKE) поиск
+SELECT * FROM table_aduser WHERE Name RLIKE "^support"; 	# начинаются только с этого словосочетания
+```
 ### DELETE
-
-SELECT * FROM table_aduser WHERE Name RLIKE "alex";` найти и проверить значения перед удалением
-DELETE FROM table_aduser WHERE Name RLIKE "alex";` Query OK, 2 rows affected` удалено две строки
-DELETE FROM table_aduser;` удалить ВСЕ значения
-
+```
+SELECT * FROM table_aduser WHERE Name RLIKE "alex";			# найти и проверить значения перед удалением
+DELETE FROM table_aduser WHERE Name RLIKE "alex";			# Query OK, 2 rows affected # удалено две строки
+DELETE FROM table_aduser; 									# удалить ВСЕ значения
+```
 ### UPDATE
-
-SELECT * FROM table_aduser WHERE Name = 'Jack';` найти и проверить значение перед изменением
-UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack';` изменить значение 'Jack' на 'Alex'
-UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1;` изменить значение в строке с ID 1
-
+```
+SELECT * FROM table_aduser WHERE Name = 'Jack';				# найти и проверить значение перед изменением
+UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack';  # изменить значение 'Jack' на 'Alex'
+UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1;	# изменить значение в строке с ID 1
+```
 ### CHECK
-
-CHECK TABLE db_aduser.table_aduser;` проверить
-ANALYZE TABLE db_aduser.table_aduser;` анализировать
-OPTIMIZE TABLE db_aduser.table_aduser;` оптимизировать
-REPAIR TABLE db_aduser.table_aduser;` восстановить
-TRUNCATE TABLE db_aduser.table_aduser;` очистить
+```
+CHECK TABLE db_aduser.table_aduser; 	# проверить
+ANALYZE TABLE db_aduser.table_aduser; 	# анализировать
+OPTIMIZE TABLE db_aduser.table_aduser;	# оптимизировать
+REPAIR TABLE db_aduser.table_aduser; 	# восстановить
+TRUNCATE TABLE db_aduser.table_aduser;	# очистить
 ```
 ### DUMP
 ```
