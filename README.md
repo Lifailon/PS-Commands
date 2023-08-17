@@ -687,13 +687,13 @@ finally {$out = "End"}` выполняется в конце в любом сл�
 `$file = [System.IO.File]::Create("$home\desktop\test.txt")` создать файл \
 `$file.Close()` закрыть файл \
 `[System.IO.File]::ReadAllLines("$home\desktop\test.txt")` прочитать файл \
-`$file = New-Object System.IO.StreamReader("$home\desktop\test.txt")` фафйл будет занят процессом PowerShell \
+`$file = New-Object System.IO.StreamReader("$home\desktop\test.txt")` файл будет занят процессом PowerShell \
 `$file | gm` \
 `$file.ReadLine()` построчный вывод \
 `$file.ReadToEnd()` прочитать файл целиком
 
 ### Read/Write Bytes
-`$file = [io.file]::ReadAllBytes("$home\desktop\tloztotk.jpg")` метод открывает двоичный файл, считывает его в массив байт и закрывает файл \
+`$file = [io.file]::ReadAllBytes("$home\desktop\powershell.jpg")` метод открывает двоичный файл, считывает его в массив байт и закрывает файл \
 `[io.file]::WriteAllBytes("$home\desktop\tloztotk-2.jpg",$file)` сохранить байты в файл (можно использовать для выгрузки двоичных файлов из БД)
 
 `Get-Content $home/desktop\test.txt -Wait` аналог tail \
@@ -720,20 +720,17 @@ finally {$out = "End"}` выполняется в конце в любом сл�
 `Copy-Item -Path "C:\*" -Destination "C:\test\" -Exclude '*.jpeg'` копировать объекты, за исключением файлов с расширением (Exclude) \
 `$log = Copy-Item "C:\*.txt" "C:\test\" -PassThru` вывести результат копирования (логирование) в переменную, можно забирать строки с помощью индексов $log[0].FullName
 
-`$date = (Get-Date).AddDays(-30)` \
-`$files = (Get-ChildItem $path).FullName` \
-`$creations = Get-ItemProperty $files | select FullName,LastWriteTime` \
-`foreach ($creat in $creations) {` \
-`if ($creat.LastWriteTime -le $date) {` \
-`Remove-Item $creat.FullName -Recurse` \
-`}` \
-`}`
-
-`ls (pwd).Path | %{` \
-`$size = "{0:N1} Mb" -f ((ls $_.FullName -Recurse -Force | Measure-Object -Property Length -Sum).Sum / 1Mb)` посчитать размер всех дочерних директория в Mb (округлить до одного символа после запятой)` \
-`$hashtable += @{"$_.Name" = $size}` заполнить hashtable` \
-`}`
-
+### Clear-env-Temp-14-days
+```
+$ls = Get-Item $env:TEMP\*.tmp # считать все файлы с указанным расширением
+$date = (Get-Date).AddDays(-14)
+foreach ($l in $ls) {
+    if ($l.LastWriteTime -le $date) {
+        $l.FullName
+        Remove-Item $l.FullName -Recurse
+    }
+}
+```
 ### Filehash
 `Get-Filehash -Algorithm SHA256 "$env:USERPROFILE\Documents\RSA.conf.txt"`
 
@@ -867,27 +864,37 @@ $EventData | ft
 
 # Firewall
 ```
+$days = 5
 $obj = @()
 $fw = Get-WinEvent "Microsoft-Windows-Windows Firewall With Advanced Security/Firewall"
 foreach ($temp_fw in $fw) {
-if ($temp_fw.id -eq 2004) {$type = "Added Rule"} elseif ($id -eq 2006) {$type = "Deleted Rule"}
+if ($temp_fw.id -eq 2097) { # 2004
+    $type = "Added Rule"
+}
+elseif ($temp_fw.id -eq 2006) {
+    $type = "Deleted Rule"
+}
 $port = $temp_fw.Properties[7] | select -ExpandProperty value
 $name = $temp_fw.Properties[1] | select -ExpandProperty value
-$obj += [PSCustomObject]@{Time = $temp_fw.TimeCreated; Type = $type; Port = $port; Name = $name}
+$obj += [PSCustomObject]@{
+    Time = $temp_fw.TimeCreated;
+    Type = $type;
+    Port = $port;
+    Name = $name}
 }
-$obj
+$obj | Where-Object time -gt (Get-Date).AddDays(-$days)
 ```
 `New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135` открыть in-порт \
-`Get-NetFirewallRule | Where-Object {$_.DisplayName -match "135"}` найти правило по имени \
+`Get-NetFirewallRule | where DisplayName -match kms | select *` найти правило по имени \
 `Get-NetFirewallPortFilter | where LocalPort -like 80` найти действующие правило по номеру порта
-
-`Get-NetFirewallRule -Enabled True -Direction Inbound | select -Property DisplayName,`
-`@{Name='Protocol';Expression={($_ | Get-NetFirewallPortFilter).Protocol}},`
-`@{Name='LocalPort';Expression={($_ | Get-NetFirewallPortFilter).LocalPort}},`
-`@{Name='RemotePort';Expression={($_ | Get-NetFirewallPortFilter).RemotePort}},`
-`@{Name='RemoteAddress';Expression={($_ | Get-NetFirewallAddressFilter).RemoteAddress}},`
-`Enabled,Profile`
-
+```
+Get-NetFirewallRule -Enabled True -Direction Inbound | select -Property DisplayName,
+@{Name='Protocol';Expression={($_ | Get-NetFirewallPortFilter).Protocol}},
+@{Name='LocalPort';Expression={($_ | Get-NetFirewallPortFilter).LocalPort}},
+@{Name='RemotePort';Expression={($_ | Get-NetFirewallPortFilter).RemotePort}},
+@{Name='RemoteAddress';Expression={($_ | Get-NetFirewallAddressFilter).RemoteAddress}},
+Enabled,Profile
+```
 ### Firewall-Manager
 
 `Install-Module Firewall-Manager` \
@@ -912,6 +919,7 @@ $obj
 `Set-MpPreference -DisableRealtimeMonitoring $true` отключить защиту Defender в реальном времени (использовать только ручное сканирование) \
 `Set-MpPreference -DisableRemovableDriveScanning $false` включить сканирование USB накопителей \
 `Get-MpPreference | select excl*` отобразить список всех исключений \
+`(Get-MpPreference).ExclusionPath` \
 `Add-MpPreference -ExclusionPath C:\install` добавить директорию в исключение \
 `Remove-MpPreference -ExclusionPath C:\install` удалить из исключения \
 `New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" -Name DisableAntiSpyware -Value 1 -PropertyType DWORD -Force` полностью отключить Windows Defender
@@ -2981,7 +2989,7 @@ $httpListener.Close()
 
 ### Certificate
 ```
-function Get-Certificate ($srv) {
+function Get-WebCertificate ($srv) {
 $iwr = iwr $srv
 $status_code = $iwr.StatusCode
 $status = $iwr.BaseResponse.StatusCode
@@ -3003,7 +3011,7 @@ End = $date_end
 $Collections
 }
 ```
-`Get-Certificate https://google.com`
+`Get-WebCertificate https://google.com`
 
 # Excel
 ```
@@ -3059,6 +3067,7 @@ $Excel.Quit()
 ```
 ### Excel.Application.Open
 ```
+$path = "$home\Desktop\Services-to-Excel.xlsx"
 $Excel = New-Object -ComObject Excel.Application
 $Excel.Visible = $false
 $ExcelWorkBook = $excel.Workbooks.Open($path)` открыть xlsx-файл
@@ -3087,7 +3096,7 @@ West,Texas,927,923.71
 $null,Tennessee,466,770.67
 "@
 ```
-`systeminfo /FO csv | ConvertFrom-Csv` вывод работы программы в CSV и конвертация в объект \
+`$systeminfo = systeminfo /FO csv | ConvertFrom-Csv` вывод работы программы в CSV и конвертация в объект \
 `$systeminfo."Полный объем физической памяти"` \
 `$systeminfo."Доступная физическая память"`
 
@@ -3105,7 +3114,7 @@ log =
 "
 key1 = value1
 key2 = value2
-" | ConvertFrom-StringData
+" | ConvertFrom-StringData # создает Hashtable
 ```
 # XML
 ```
@@ -3122,18 +3131,32 @@ $xml.Save($file)` сохранить содержимое объекта в фа
 `Get-Service | Export-Clixml -path $home\desktop\test.xml` экспортировать объект PowerShell в XML \
 `Import-Clixml -Path $home\desktop\test.xml` импортировать объект XML в PowerShell \
 `ConvertTo-Xml (Get-Service)`
+
+### Get-CredToXML
 ```
-if (Test-Path $CredFile) {
-$Cred = Import-Clixml -path $CredFile
-} elseif (!(Test-Path $CredFile)) {
-$Cred = Get-Credential -Message "Enter credential"
-if ($Cred -ne $null) {
-$Cred | Export-CliXml -Path $CredFile
-} else {
-return
-}
+function Get-CredToXML {
+    param (
+        $CredFile = "$home\Documents\cred.xml"
+    )
+    if (Test-Path $CredFile) {
+        Import-Clixml -path $CredFile
+    }
+    elseif (!(Test-Path $CredFile)) {
+        $Cred = Get-Credential -Message "Enter credential"
+        if ($Cred -ne $null) {
+        $Cred | Export-CliXml -Path $CredFile
+        $Cred
+    }
+    else {
+        return
+    }
+    }
 }
 ```
+`$Cred = Get-CredToXML` \
+`$Login = $Cred.UserName` \
+`$PasswordText = $Cred.GetNetworkCredential().password` получить пароль в текстовом виде
+
 ### XmlWriter (Extensible Markup Language)
 ```
 $XmlWriterSettings = New-Object System.Xml.XmlWriterSettings
@@ -3238,18 +3261,16 @@ ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Proce
 } > ~\Desktop\Get-Process-HtmlReport.html
 ```
 # SQLite
-
-`Install-Module MySQLite -Repository PSGallery` \
-`$path = "$home\desktop\Get-Service.db"` \
-`Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force` \
-`(Get-MySQLiteDB $path).Tables` список таблиц в базе \
-`New-MySQLiteDB -Path $path` создать базу \
-`Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список всех таблиц в базе \
-`Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);"` создать таблицу \
-`Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('Test', 'Full-Test', 'Active');"` добавить данные в таблицу \
-`Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM Service"` содержимое таблицы \
-`Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
 ```
+$path = "$home\Documents\Get-Service.db"
+$Module = Get-Module MySQLite
+if ($Module -eq $null) {
+Install-Module MySQLite -Repository PSGallery -Scope CurrentUser
+}
+Import-Module MySQLite
+New-MySQLiteDB -Path $path # создать БД
+Invoke-MySQLiteQuery -Path $path -Query "CREATE TABLE Service (Name TEXT NOT NULL, DisplayName TEXT NOT NULL, Status TEXT NOT NULL);" # создать таблицу
+
 $Service = Get-Service | select Name,DisplayName,Status
 foreach ($S in $Service) {
 $Name = $S.Name
@@ -3258,6 +3279,15 @@ $Status = $S.Status
 Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName, Status) VALUES ('$Name', '$DName', '$Status');"
 }
 ```
+`(Get-MySQLiteDB $path).Tables` список таблиц в базе \
+`Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список таблиц в базе \
+`Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
+```
+$TableName = "Service"
+Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM $TableName" # прочитать содержимое таблицы (в формате объекта)
+```
+`Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force` конвертировать объект в таблицу
+
 ### Database password
 ```
 $Connection = New-SQLiteConnection -DataSource $path
@@ -3272,11 +3302,23 @@ Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=pa
 `systemctl status mysql` \
 `mysqladmin -u root password` задать пароль root
 
-`nano /etc/mysql/mysql.conf.d/mysqld.cnf` \
-`# port 3306` \
-`bind-address = 192.168.1.253` адрес прослушивания \
+`nano /etc/mysql/mysql.conf.d/mysqld.cnf`
+```
+[mysqld]
+user            = mysql
+# pid-file      = /var/run/mysqld/mysqld.pid
+# socket        = /var/run/mysqld/mysqld.sock
+# port          = 3306
+# datadir       = /var/lib/mysql
+# tmpdir                = /tmp
+bind-address            = 0.0.0.0
+mysqlx-bind-address     = 0.0.0.0
+log_error = /var/log/mysql/error.log
+```
 `systemctl restart mysql` \
+`ss -tulnp | grep 3306` \
 `ufw allow 3306/tcp` \
+`nc -zv 192.168.1.253 3306` \
 `tnc 192.168.1.253 -p 3306`
 
 `mysql -u root -p` \
@@ -3299,6 +3341,7 @@ Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=pa
 `DELETE` удалить данные в (FROM) таблице
 
 ### DATA TYPE
+
 `VARCHAR(N)` строка переменной длины, в формате ASCII, где один символ занимает 1 байт, числом N указывается максимальная возможная длина строки \
 `NVARCHAR(N)` строка переменной длины, в формате Unicode, где один символ занимает 2 байта \
 `CHAR(N)/nchar(N)` строка фиксированной длины, которая всегда дополняется справа пробелами до длины N и в базе данных она занимает ровно N символов \
@@ -3310,6 +3353,7 @@ Invoke-SqliteQuery -Query "SELECT * FROM Service" -DataSource "$path;Password=pa
 `DATETIME` 25.05.2023 23:30:55.1234567
 ```
 ### DATABASE
+
 SHOW databases;` вывести список БД
 CREATE DATABASE db_aduser;` создать БД
 CREATE DATABASE db_rep DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;` создать БД с кодировкой UTF-8
@@ -3318,27 +3362,31 @@ USE db_aduser;` выбрать/переключиться на выбранну�
 SELECT database();` отобразить выбранную БД
 
 ### USER
-SELECT USER,HOST FROM mysql.user;` вывести список УЗ
-CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ';` создать УЗ, которая будет подключаться с локального сервера
-CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ';` создать УЗ, которая будет подключаться с указанного сервера
-CREATE USER posh@'192.168.1.247' IDENTIFIED BY '1qaz!QAZ';` УЗ для доступа с любого сервера
-DROP USER posh@localhost;` удалить пользователя
-SHOW GRANTS FOR posh@'%';` отобразить права доступа пользователя
-GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'192.168.1.247';` полный доступ для posh к БД db_aduser
-GRANT ALL PRIVILEGES ON *.* TO posh@'%';` доступ к всем БД c любого клиентского хоста
-GRANT SELECT,DELETE ON mysql.* TO posh@'%';` права SELECT и DELETE на встроенную БД mysql
-REVOKE DELETE ON mysql.* FROM posh@'%';` удалить доступ DELETE
-UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%';` изменить привелегии для пользователя
-SELECT USER,HOST,super_priv FROM mysql.user;` список УЗ и таблица с правами SUPER privilege
-FLUSH PRIVILEGES;` обновить права доступа
+
+SELECT USER,HOST FROM mysql.user; 			 							# вывести список УЗ
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с локального сервера
+CREATE USER posh@localhost IDENTIFIED BY '1qaz!QAZ'; 					# создать УЗ, которая будет подключаться с указанного сервера
+CREATE USER posh@'192.168.3.99' IDENTIFIED BY '1qaz!QAZ'; 				# УЗ для доступа с конкретного сервера
+CREATE USER 'admin'@'%' IDENTIFIED BY 'Admin12#';						# УЗ для доступа с любого сервера (% - wildcard)
+DROP USER posh@localhost; 												# удалить пользователя
+SHOW GRANTS FOR posh@'%'; 												# отобразить права доступа пользователя
+GRANT ALL PRIVILEGES ON db_aduser.* TO posh@'192.168.3.99';				# полный доступ для posh к БД db_aduser
+GRANT ALL PRIVILEGES ON *.* TO posh@'%'; 								# доступ к всем БД c любого клиентского хоста
+GRANT SELECT,DELETE ON mysql.* TO posh@'%'; 							# права SELECT и DELETE на встроенную БД mysql
+REVOKE DELETE ON mysql.* FROM posh@'%'; 								# удалить доступ DELETE
+UPDATE mysql.user SET super_priv='Y' WHERE USER='posh' AND host='%'; 	# изменить привелегии для пользователя
+SELECT USER,HOST,super_priv FROM mysql.user; 							# список УЗ и таблица с правами SUPER privilege
+FLUSH PRIVILEGES; 														# обновить права доступа
 
 ### TABLE
+
 SHOW TABLES;` отобразить список всех таблиц
 SHOW TABLES LIKE '%user';` поиск таблицы по wildcard-имени
 CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID));` оздать таблицу
 DROP TABLE table_aduser;` удалить таблицу
 
 ### COLUMN
+
 SHOW COLUMNS FROM table_aduser;` отобразить название стобцов и их свойства
 ALTER TABLE table_aduser DROP COLUMN id;` удалить столбец id
 ALTER TABLE table_aduser ADD COLUMN info VARCHAR(10);` добавить столбец info
@@ -3346,12 +3394,14 @@ ALTER TABLE table_aduser CHANGE info new_info VARCHAR(100);` изменить и
 ALTER TABLE table_aduser ADD COLUMN (id INT NOT NULL AUTO_INCREMENT, PRIMARY KEY (ID));` добавить столбец id
 
 ### INSERT
+
 INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
 INSERT table_aduser (Name,email) VALUES ('Alex','no-email');
 INSERT table_aduser (Name) VALUES ('Support');
 INSERT table_aduser (Name) VALUES ('Jack');
 
 ### SELECT
+
 SELECT * FROM table_aduser;` содержимое всех стобцов в выбранной (FROM) таблице
 SELECT Name,email FROM table_aduser;` содержимое указанных стобцов
 SELECT DISTINCT Name,Email FROM table_aduser;` отобразить уникальные записи (без повторений)
@@ -3361,6 +3411,7 @@ SELECT COUNT(*) FROM table_aduser;` количество строк в табл�
 SELECT COUNT(new_info) FROM table_aduser;` количество строк в столбце
 
 ### WHERE
+
 NOT; AND; OR` по приоритетам условий
 SELECT * FROM table_aduser WHERE Name = 'Alex';` поиск по содержимому
 SELECT * FROM table_aduser WHERE NOT Name != 'Alex';` условие NOT где Name не равен значению
@@ -3370,16 +3421,19 @@ SELECT * FROM table_aduser WHERE Name RLIKE "support";` регистронеза
 SELECT * FROM table_aduser WHERE Name RLIKE "^support";` начинаются только с этого словосочетания
 
 ### DELETE
+
 SELECT * FROM table_aduser WHERE Name RLIKE "alex";` найти и проверить значения перед удалением
 DELETE FROM table_aduser WHERE Name RLIKE "alex";` Query OK, 2 rows affected` удалено две строки
 DELETE FROM table_aduser;` удалить ВСЕ значения
 
 ### UPDATE
+
 SELECT * FROM table_aduser WHERE Name = 'Jack';` найти и проверить значение перед изменением
 UPDATE table_aduser SET Name = 'Alex' WHERE Name = 'Jack';` изменить значение 'Jack' на 'Alex'
 UPDATE db_aduser.table_aduser SET Name='BCA' WHERE id=1;` изменить значение в строке с ID 1
 
 ### CHECK
+
 CHECK TABLE db_aduser.table_aduser;` проверить
 ANALYZE TABLE db_aduser.table_aduser;` анализировать
 OPTIMIZE TABLE db_aduser.table_aduser;` оптимизировать
@@ -3395,6 +3449,22 @@ crontab -e
 00 22 * * * /usr/bin/mysqldump -uroot -p1qaz!QAZ db_zabbix | /bin/bzip2 > `date +/dump/zabbix/zabbix-\%d-\%m-\%Y-\%H:\%M.bz2`
 00 23 * * * /usr/bin/mysqldump -uroot -p1qaz!QAZ db_zabbix > `date +/dump/smb/zabbix-\%d-\%m-\%Y-\%H:\%M.sql`
 0 0 * * * find /dump/zabbix -mtime +7 -exec rm {} \;
+
+mysqldump -u root --single-transaction db_zabbix > /dump/zabbix/db_zabbix.sql
+mysql -u user_zabbix -p -e 'CREATE DATABASE db_zabbix;'
+mysql -u user_zabbix -p db_zabbix < /root/db_zabbix.sql
+```
+### innodb_force_recovery
+```
+sed -i '/innodb_force_recovery/d' /etc/mysql/my.cnf # удалить
+mode=6; sed -i "/^\[mysqld\]/{N;s/$/\ninnodb_force_recovery=$mode/}" /etc/mysql/my.cnf # добавить mode 6
+systemctl restart mysql
+
+[mysqld]
+innodb_force_recovery=1 # сервер пытается начать работу независимо от того, есть ли поврежденные данные InnoDB или нет
+innodb_force_recovery=2 # удается восстановить работу за счет остановки потока команд, которые были частично выполнены или не выполнены (не запускает фоновые операции)
+innodb_force_recovery=3 # отменяет откат после восстановления поврежденных файлов (не пытается откатить транзакции)
+innodb_force_recovery=6 # запуск СУБД в режиме read only
 ```
 ### MySQL Connector NET
 
