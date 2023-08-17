@@ -3380,10 +3380,10 @@ FLUSH PRIVILEGES;                                                     # обно
 ```
 ### TABLE
 ```
-SHOW TABLES;                                                                                                          # отобразить список всех таблиц
-SHOW TABLES LIKE '%user';                                                                                             # поиск таблицы по wildcard-имени
-CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID)); 	# создать таблицу
-DROP TABLE table_aduser;                                                                                              # удалить таблицу
+SHOW TABLES;               # отобразить список всех таблиц
+SHOW TABLES LIKE '%user';  # поиск таблицы по wildcard-имени
+CREATE TABLE table_aduser (id INT NOT NULL AUTO_INCREMENT, Name VARCHAR(100), email VARCHAR(100), PRIMARY KEY (ID));  # создать таблицу
+DROP TABLE table_aduser;   # удалить таблицу
 ```
 ### COLUMN
 ```
