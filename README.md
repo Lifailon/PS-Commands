@@ -3241,8 +3241,69 @@ bool: !!bool` boolean
 ```
 # HTML
 
-`Get-Process | select Name, CPU | ConvertTo-HTML -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
+### ConvertFrom-Html
+```
+function ConvertFrom-Html {
+    param (
+        [Parameter(ValueFromPipeline)]$url
+    )
+    $irm = Invoke-RestMethod $url
+    $HTMLFile = New-Object -ComObject HTMLFile
+    $Bytes = [System.Text.Encoding]::Unicode.GetBytes($irm)
+    $HTMLFile.write($Bytes)
+    ($HTMLFile.all | where {$_.tagname -eq "body"}).innerText
+}
 
+$apache_status = "http://192.168.3.102/server-status"
+$apache_status | ConvertFrom-Html
+```
+### ConvertTo-Html
+
+`Get-Process | select Name, CPU | ConvertTo-Html -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
+```
+$servers = "ya.ru","ya.com","google.com"
+$path = "$home\Desktop\Ping.html" 
+$header = @"
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>Отчет о статусе серверов</title>
+<style type="text/css">
+<!--
+body {
+background-color: #E0E0E0;
+font-family: sans-serif
+}
+table, th, td {
+background-color: white;
+border-collapse:collapse;
+border: 1px solid black;
+padding: 5px
+}
+-->
+</style>
+"@
+$body = @"
+<h1>Ping status</h1>
+<p>$(get-date -Format "dd.MM.yyyy hh:mm").</p>
+"@
+$results = foreach ($server in $servers) { 
+    if (Test-Connection $server -Count 1 -ea 0 -Quiet) { 
+        $status = "Up" 
+    }
+    else { 
+        $status = "Down"
+    }
+    [PSCustomObject]@{
+        Name = $server
+        Status = $status
+    }
+}
+$results | ConvertTo-Html -head $header -body $body | foreach {
+    $_ -replace "<td>Down</td>","<td style='background-color:#FF8080'>Down</td>" -replace "<td>Up</td>","<td style='background-color:#5BCCF3'>Up</td>"
+} | Out-File $path
+Invoke-Item $path
+```
 ### PSWriteHTML
 ```
 Import-Module PSWriteHTML
@@ -4626,7 +4687,7 @@ $data = @{
 }
 $token = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
 ```
-`$token = "914ee100f4e8c4b68a70eab2a0a1fb153cfcd4905421d0ffacb82c20a57aa50e"` создать токен в UI (http://192.168.3.102/zabbix/zabbix.php?action=token.list)
+`$token = "2eefd25fdf1590ebcdb7978b5bcea1fff755c65b255da8cbd723181b639bb789"` сгенерировать токен в UI (http://192.168.3.102/zabbix/zabbix.php?action=token.list)
 
 ### user.get
 ```
