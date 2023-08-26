@@ -9,6 +9,7 @@ PowerShell Commands
 # WinEvent
 # Firewall
 # Defender
+# WindowsUpdate
 # DISM
 # Scheduled
 # Network
@@ -944,6 +945,38 @@ cd "C:\Program Files\Windows Defender\"
 .\MpCmdRun.exe -restore -name $ThreatName # восстановить файл из карантина
 .\MpCmdRun.exe -restore -filepath $path_file
 
+# WindowsUpdate
+
+Get-Hotfix | Sort-Object -Descending  InstalledOn # список установленных обновлений (информация из cimv2)
+Get-Hotfix -Description "Security update"
+Get-CimInstance Win32_QuickFixEngineering
+Get-Command -Module WindowsUpdate
+Get-WindowsUpdateLog
+Get-Service uhssvc # служба Microsoft Health Update Tools, которая отвечает за предоставление обновлений
+
+Install-Module -Name PSWindowsUpdate -Scope CurrentUser
+Import-Module PSWindowsUpdate
+Get-Command -Module PSWindowsUpdate
+Get-WindowsUpdate # список обновлений для скачать и установить с сервера WSUS или Microsoft Update
+Get-WindowsUpdate -Download # загрузить все обновления
+Get-WindowsUpdate –Install # установить все обновления
+Install-WindowsUpdate -MicrosoftUpdate -AcceptAll -IgnoreReboot # установить все обновления без перезагрузки
+Get-WindowsUpdate -KBArticleID KB2267602, KB4533002 -Install
+Get-WindowsUpdate -KBArticleID KB2538243 -Hide # скрыть обновления, что бы они никогда не устанавливались
+Get-WindowsUpdate –IsHidden # отобразить скрытые обновления (Hide-WindowsUpdate)
+Remove-WindowsUpdate -KBArticleID KB4011634 -NoRestart # удалить обновление
+Uninstall-WindowsUpdate # удалить обновление
+Add-WUServiceManager # регистрация сервера обновления (Windows Update Service Manager)
+Enable-WURemoting # включить правила Windows Defender, разрешающие удаленное использование командлета PSWindowsUpdate
+Get-WUApiVersion # версия Windows Update Agent
+Get-WUHistory # список всех установленных обновлений (история обновлений)
+Get-WUHistory | Where-Object {$_.Title -match "KB4517389"} # поиск обновления
+Get-WULastResults # даты последнего поиска и установки обновлений
+Get-WURebootStatus # проверить, нужна ли перезагрузка для применения конкретного обновления
+Get-WUServiceManager # выводит источники обновлений
+Get-WUInstallerStatus # статус службы Windows Installer
+Remove-WUServiceManager # отключить Windows Update Service Manager
+
 # DISM
 
 Get-Command -Module Dism -Name *Driver*
@@ -1095,10 +1128,6 @@ $mac_coll
 
 Get-ARP -search 192.168.3.100
 Get-ARP -search 192.168.3.100 -proxy dc-01
-
-### Windows-Update
-Get-Hotfix -Description "Security update"
-Get-WindowsUpdateLog
 
 ### shutdown
 shutdown /r /o # перезагрузка в безопасный режим
