@@ -11,3 +11,4 @@ function ConvertFrom-Html {
 
 # $apache_status = "http://192.168.3.102/server-status"
 # $apache_status | ConvertFrom-Html
+# irm http://192.168.3.102/server-status?auto

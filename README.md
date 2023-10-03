@@ -21,7 +21,10 @@
 - [DHCP](#dhcpserver)
 - [DFS](#dfs)
 - [Package](#package)
+- [PS2EXE](#ps2exe)
+- [NSSM](#nssm)
 - [Jobs](#jobs)
+- [SMTP](#smtp)
 - [Hyper-V](#hyper-v)
 - [VMWare/PowerCLI](#vmwarepowercli)
 - [Exchange/EMShell](#exchangeemshell)
@@ -82,7 +85,9 @@
 `Invoke-Expression` iex принимает текст в виде команды для выполнения в консоли \
 `$PSVersionTable` версия PowerShell \
 `Set-ExecutionPolicy Unrestricted` \
-`Get-ExecutionPolicy`
+`Get-ExecutionPolicy` \
+`$Metadata = New-Object System.Management.Automation.CommandMetaData (Get-Command Get-Service)` получить информацию о командлете \
+`[System.Management.Automation.ProxyCommand]::Create($Metadata)` исходный код функции
 
 # Object
 
@@ -1019,9 +1024,25 @@ Enabled,Profile
 `Test-Connection $srv -ErrorAction SilentlyContinue` не выводить ошибок, если хост не отвечает \
 `Test-Connection -Source $srv1 -ComputerName $srv2` пинг с удаленного компьютера
 ```
-$ping = New-Object System.Net.Networkinformation.Ping
-1..254 | % {$ping.send("192.168.3.$_") | select address, status}
+function Test-PingNetwork {
+param (
+    [Parameter(Mandatory,ValueFromPipeline)][string[]]$Network,
+    [ValidateRange(100,10000)][int]$Timeout = 100
+)
+$ping = New-Object System.Net.NetworkInformation.Ping
+$Network  = $Network -replace "0$"
+$net = @()
+foreach ($r in @(1..254)) {
+    $net += "$network$r"
+}
+foreach ($n in $net) {
+    $ping.Send($n, $timeout) | select @{Name="Address"; Expression={$n -replace ".+\."}}, Status
+}
+}
 ```
+`Test-PingNetwork -Network 192.168.3.0` \
+`Test-PingNetwork -Network 192.168.3.0 -Timeout 1000`
+
 ### port
 `tnc $srv -p 5985` \
 `tnc $srv -CommonTCPPort WINRM` HTTP,RDP,SMB \
@@ -1083,6 +1104,7 @@ $ping = New-Object System.Net.Networkinformation.Ping
 `[System.Net.Dns]::GetHostName()`
 
 ### arp
+`ipconfig /all | Select-String "физ"` grep \
 `Get-NetNeighbor -AddressFamily IPv4`
 ```
 function Get-ARP {
@@ -1684,7 +1706,8 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `Import-Module -Name VeeamLogParser` загрузить модуль \
 `Get-Module VeeamLogParser | select -ExpandProperty ExportedCommands` отобразить список функций
 
-### PS2EXE
+# PS2EXE
+
 `Install-Module ps2exe -Repository PSGallery` \
 `Get-Module -ListAvailable` список всех модулей \
 `-noConsole` использовать GUI, без окна консоли powershell \
@@ -1694,7 +1717,8 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `-credentialGUI` вывод диалогового окна для ввода учетных данных \
 `Invoke-ps2exe -inputFile "$home\Desktop\WinEvent-Viewer-1.1.ps1" -outputFile "$home\Desktop\WEV-1.1.exe" -iconFile "$home\Desktop\log_48px.ico" -title "WinEvent-Viewer" -noConsole -noOutput -noError`
 
-### NSSM
+# NSSM
+
 `$powershell_Path = (Get-Command powershell).Source` \
 `$NSSM_Path = (Get-Command "C:\WinPerf-Agent\NSSM-2.24.exe").Source` \
 `$Script_Path = "C:\WinPerf-Agent\WinPerf-Agent-1.1.ps1"` \
@@ -1709,6 +1733,7 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `& $NSSM_Path remove $Service_Name` удалить
 
 # Jobs
+
 `Get-Job` получение списка задач \
 `Start-Job` запуск процесса \
 `Stop-Job` остановка процесса \
@@ -1718,7 +1743,7 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `Receive-Job` получение результатов выполненного процесса \
 `Remove-Job` удалить задачу
 ```
-function Start-MTPing ($Network){
+function Start-PingJob ($Network) {
 $RNetwork = $Network -replace "\.\d{1,3}$","."
 foreach ($4 in 1..254) {
 $ip = $RNetwork+$4
@@ -1726,19 +1751,20 @@ $ip = $RNetwork+$4
 (Start-Job {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
 }
 while ($True){
-$status_job = (Get-Job).State[-1]` забираем статус последнего задания
-if ($status_job -like "Completed"){` проверяем на выполнение (задания выполняются по очереди сверху вниз)
-$ping_out = Get-Job | Receive-Job` если выполнен, забираем вывод всех заданий
-Get-Job | Remove-Job -Force` удаляем задания
+$status_job = (Get-Job).State[-1] # забираем статус последнего задания
+if ($status_job -like "Completed"){ # проверяем на выполнение (задания выполняются по очереди сверху вниз)
+$ping_out = Get-Job | Receive-Job # если выполнен, забираем вывод всех заданий
+Get-Job | Remove-Job -Force # удаляем задания
 $ping_out
-break` завершаем цикл
+break # завершаем цикл
 }}
 }
-
-Start-MTPing -Network 192.168.3.0
-(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds` 60 Seconds
 ```
+`Start-PingJob -Network 192.168.3.0` \
+`(Measure-Command {Start-PingJob -Network 192.168.3.0}).TotalSeconds` 60 Seconds
+
 ### ThreadJob
+
 `Install-Module -Name ThreadJob` \
 `Get-Module ThreadJob -list` \
 `Start-ThreadJob {ping ya.ru} | Out-Null` создать фоновую задачу \
@@ -1746,7 +1772,7 @@ Start-MTPing -Network 192.168.3.0
 `(Get-Job).HasMoreData` если False, то вывод команы удален \
 `(Get-Job)[-1].Output` отобразить вывод последней задачи
 ```
-function Start-MTPing ($Network){
+function Start-PingThread ($Network) {
 $RNetwork = $Network -replace "\.\d{1,3}$","."
 foreach ($4 in 1..254) {
 $ip = $RNetwork+$4
@@ -1754,21 +1780,21 @@ $ip = $RNetwork+$4
 (Start-ThreadJob {"$using:ip : "+(ping -n 1 -w 50 $using:ip)[2]}) | Out-Null
 }
 while ($True){
-$status_job = (Get-Job).State[-1]` забираем статус последнего задания
-if ($status_job -like "Completed"){` проверяем на выполнение (задания выполняются по очереди сверху вниз)
-$ping_out = Get-Job | Receive-Job` если выполнен, забираем вывод всех заданий
-Get-Job | Remove-Job -Force` удаляем задания
+$status_job = (Get-Job).State[-1] # забираем статус последнего задания
+if ($status_job -like "Completed"){ # проверяем на выполнение (задания выполняются по очереди сверху вниз)
+$ping_out = Get-Job | Receive-Job # если выполнен, забираем вывод всех заданий
+Get-Job | Remove-Job -Force # удаляем задания
 $ping_out
-break` завершаем цикл
+break # завершаем цикл
 }}
 }
-
-Start-MTPing -Network 192.168.3.0
-(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds` 24 Seconds
 ```
+`Start-PingThread -Network 192.168.3.0` \
+`(Measure-Command {Start-PingThread -Network 192.168.3.0}).TotalSeconds` 24 Seconds
+
 ### PoshRSJob
 ```
-function Start-MTPing ($Network){
+function Start-PingRSJob ($Network) {
 $RNetwork = $Network -replace "\.\d{1,3}$","."
 foreach ($4 in 1..254) {
 $ip = $RNetwork+$4
@@ -1778,10 +1804,37 @@ $ping_out = Get-RSJob | Receive-RSJob
 $ping_out
 Get-RSJob | Remove-RSJob
 }
-
-Start-MTPing -Network 192.168.3.0
-(Measure-Command {Start-MTPing -Network 192.168.3.0}).TotalSeconds` 10 Seconds
 ```
+`Start-PingRSJob -Network 192.168.3.0` \
+`(Measure-Command {Start-PingRSJob -Network 192.168.3.0}).TotalSeconds` 10 Seconds
+
+# SMTP
+```
+function Send-SMTP {
+param (
+[Parameter(Mandatory = $True)]$mess
+)
+$srv_smtp = "smtp.yandex.ru" 
+$port = "587"
+$from = "login1@yandex.ru" 
+$to = "login2@yandex.ru" 
+$user = "login1"
+$pass = "password"
+$subject = "Service status on Host: $hostname"
+$Message = New-Object System.Net.Mail.MailMessage
+$Message.From = $from
+$Message.To.Add($to) 
+$Message.Subject = $subject 
+$Message.IsBodyHTML = $true 
+$Message.Body = "<h1> $mess </h1>"
+$smtp = New-Object Net.Mail.SmtpClient($srv_smtp, $port)
+$smtp.EnableSSL = $true 
+$smtp.Credentials = New-Object System.Net.NetworkCredential($user, $pass);
+$smtp.Send($Message) 
+}
+```
+`Send-SMTP $(Get-Service)`
+
 # Hyper-V
 
 `Install-WindowsFeature -Name Hyper-V -IncludeManagementTools -Restart` установить роль на Windows Server \
@@ -2358,6 +2411,25 @@ $vjob = $vjob.Content | ConvertFrom-Json
 $vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
 $vjob.data.virtualMachines.includes.inventoryObject
 ```
+### Telegram
+```powershell
+function Send-Telegram  {
+param (
+[Parameter(Mandatory = $True)]$Text
+)$token_bot = "5517149522:AAFop4_darMpTT7VgLpY2hjkDkkV1dzmGNM"
+$id_chat = "-609779646"
+$payload = @{
+"chat_id" = $id_chat
+"text" = $Text
+"parse_mode" = "html"
+}
+Invoke-RestMethod -Uri ("https://api.telegram.org/bot{0}/sendMessage" -f $token_bot) -Method Post -ContentType "application/json;charset=utf-8" -Body (
+ConvertTo-Json -Compress -InputObject $payload
+)
+}
+```
+`Send-Telegram -Text Test`
+
 # Selenium
 
 `.\nuget.exe install Selenium.WebDriver` \
@@ -2439,35 +2511,43 @@ $ie.Quit()
 `(New-Object -ComObject Wscript.shell).SendKeys([char]173)` включить/выключить звук \
 `$wshell.Exec("notepad.exe")` запустить приложение \
 `$wshell.AppActivate("Блокнот")` развернуть запущенное приложение
+
+`$wshell.SendKeys("Login")` текст \
+`$wshell.SendKeys("{A 5}")` напечатать букву 5 раз подряд \
+`$wshell.SendKeys("%{TAB}")` ALT+TAB \
+`$wshell.SendKeys("^")` CTRL \
+`$wshell.SendKeys("%")` ALT \
+`$wshell.SendKeys("+")` SHIFT \
+`$wshell.SendKeys("{DOWN}")` вниз \
+`$wshell.SendKeys("{UP}")` вверх \
+`$wshell.SendKeys("{LEFT}")` влево \
+`$wshell.SendKeys("{RIGHT}")` вправо \
+`$wshell.SendKeys("{PGUP}")` PAGE UP \
+`$wshell.SendKeys("{PGDN}")` PAGE DOWN \
+`$wshell.SendKeys("{BACKSPACE}")` BACKSPACE/BKSP/BS \
+`$wshell.SendKeys("{DEL}")` DEL/DELETE \
+`$wshell.SendKeys("{INS}")` INS/INSERT \
+`$wshell.SendKeys("{PRTSC}")` PRINT SCREEN \
+`$wshell.SendKeys("{ENTER}")` \
+`$wshell.SendKeys("{ESC}")` \
+`$wshell.SendKeys("{TAB}")` \
+`$wshell.SendKeys("{END}")` \
+`$wshell.SendKeys("{HOME}")` \
+`$wshell.SendKeys("{BREAK}")` \
+`$wshell.SendKeys("{SCROLLLOCK}")` \
+`$wshell.SendKeys("{CAPSLOCK}")` \
+`$wshell.SendKeys("{NUMLOCK}")` \
+`$wshell.SendKeys("{F1}")` \
+`$wshell.SendKeys("{F12}")` \
+`$wshell.SendKeys("{+}{^}{%}{~}{(}{)}{[}{]}{{}{}}")`
 ```
-$wshell.SendKeys("Login")` текст
-$wshell.SendKeys("{A 5}")` напечатать букву 5 раз подряд
-$wshell.SendKeys("%{TAB}")` ALT+TAB
-$wshell.SendKeys("^")` CTRL
-$wshell.SendKeys("%")` ALT
-$wshell.SendKeys("+")` SHIFT
-$wshell.SendKeys("{DOWN}")` вниз
-$wshell.SendKeys("{UP}")` вверх
-$wshell.SendKeys("{LEFT}")` влево
-$wshell.SendKeys("{RIGHT}")` вправо
-$wshell.SendKeys("{PGUP}")` PAGE UP
-$wshell.SendKeys("{PGDN}")` PAGE DOWN
-$wshell.SendKeys("{BACKSPACE}")` BACKSPACE/BKSP/BS
-$wshell.SendKeys("{DEL}")` DEL/DELETE
-$wshell.SendKeys("{INS}")` INS/INSERT
-$wshell.SendKeys("{PRTSC}")` PRINT SCREEN
-$wshell.SendKeys("{ENTER}")
-$wshell.SendKeys("{ESC}")
-$wshell.SendKeys("{TAB}")
-$wshell.SendKeys("{END}")
-$wshell.SendKeys("{HOME}")
-$wshell.SendKeys("{BREAK}")
-$wshell.SendKeys("{SCROLLLOCK}")
-$wshell.SendKeys("{CAPSLOCK}")
-$wshell.SendKeys("{NUMLOCK}")
-$wshell.SendKeys("{F1}")
-$wshell.SendKeys("{F12}")
-$wshell.SendKeys("{+}{^}{%}{~}{(}{)}{[}{]}{{}{}}")
+function Get-AltTab {
+$wshell = New-Object -ComObject wscript.shell
+$wshell.SendKeys("%{Tab}") # ALT+TAB
+sleep 120
+Get-AltTab
+}
+Get-AltTab
 ```
 ### Wscript.Shell.Popup
 `$wshell = New-Object -ComObject Wscript.Shell` \
