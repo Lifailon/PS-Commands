@@ -1,4 +1,4 @@
-![Image alt](https://github.com/Lifailon/PowerShell-Commands/blob/rsa/Logo/PowerShell-Commands.png)
+![Image alt](https://github.com/Lifailon/PS-Commands/blob/rsa/Logo/PowerShell-Commands.png)
 
 - [Object](#object)
 - [Regex](#regex)
@@ -31,8 +31,9 @@
 - [TrueNAS](#truenas)
 - [Veeam](#veeam)
 - [REST API](#rest-api)
-- [IE](#ie)
+- [Pode](#pode)
 - [Selenium](#selenium)
+- [IE](#ie)
 - [COM](#com)
 - [dotNET](#dotnet)
 - [Console API](#console-api)
@@ -391,6 +392,7 @@ foreach ($p in $gp) {
 
 ### Специальные символы
 `\d` число от 0 до 9 (20-07-2022 эквивалент: "\d\d-\d\d-\d\d\d\d") \
+`\D` обозначает любой символ, кроме цифры. Удаления всех символов, кроме цифр: [int]$("123 test" -replace "\D","") \
 `\w` буква от "a" до "z" и от "A" до "Z" или число от 0 до 9 \
 `\s` пробел, эквивалент: " " \
 `\n` новая строка \
@@ -2429,6 +2431,61 @@ ConvertTo-Json -Compress -InputObject $payload
 }
 ```
 `Send-Telegram -Text Test`
+
+# Pode
+```
+Start-PodeServer {
+    Add-PodeEndpoint -Address localhost -Port "8080" -Protocol "HTTP"
+    ### Get info endpoints
+    Add-PodeRoute -Path "/" -Method "GET" -ScriptBlock {
+        Write-PodeJsonResponse -Value @{
+        "service"="/api/service";
+        "process"="/api/process"
+        }
+    }
+    ### GET
+    Add-PodeRoute -Path "/api/service" -Method "GET" -ScriptBlock {
+        Write-PodeJsonResponse -Value $(
+            Get-Service | Select-Object Name,@{
+                Name="Status"; Expression={[string]$_.Status}
+            },@{
+                Name="StartType"; Expression={[string]$_.StartType}
+            } | ConvertTo-Json
+        )
+    }
+    Add-PodeRoute -Path "/api/process" -Method "GET" -ScriptBlock {
+        Write-PodeJsonResponse -Value $(
+            Get-Process | Sort-Object -Descending CPU | Select-Object -First 15 ProcessName,
+            @{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}},
+            @{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}},
+            @{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}}
+        )
+    }
+    Add-PodeRoute -Path "/api/process-html" -Method "GET" -ScriptBlock {
+        Write-PodeHtmlResponse -Value (
+            Get-Process | Sort-Object -Descending CPU | Select-Object -First 15 ProcessName,
+            @{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}},
+            @{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}},
+            @{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}} # Auto ConvertTo-Html
+        )
+    }
+    ### POST
+    Add-PodeRoute -Path "/api/service" -Method "POST" -ScriptBlock {
+        # https://pode.readthedocs.io/en/latest/Tutorials/WebEvent/
+        # $WebEvent | Out-Default
+        $Value = $WebEvent.Data["ServiceName"]
+        $Status = (Get-Service -Name $Value).Status
+        Write-PodeJsonResponse -Value @{
+            "Name"="$Value";
+            "Status"="$Status";
+        }
+    }
+}
+```
+`irm http://localhost:8080/api/service -Method Get` \
+`irm http://localhost:8080/api/process -Method Get` \
+`http://localhost:8080/api/process-html` использовать браузер \
+`irm http://localhost:8080/api/service -Method Post -Body @{"ServiceName" = "AnyDesk"}`
 
 # Selenium
 
