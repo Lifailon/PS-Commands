@@ -255,6 +255,15 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName,` сортиро
 `Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
 `Get-Process | Sort-Object -Descending CPU | select -Last 10` вывести последних 10 объектов
 
+### oh-my-posh
+
+`winget install JanDeDobbeleer.OhMyPosh -s winget` \
+`Get-PoshThemes` \
+`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/blue-owl.omp.json" | Invoke-Expression` montys,jblab_2021,easy-term,di4am0nd,cinnamon,jtracey93,cert \
+`New-Item -Path $PROFILE -Type File -Force` \
+`notepad $PROFILE` \
+`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/blue-owl.omp.json" | Invoke-Expression`
+
 # NPP
 
 `pwsh -NoExit -ExecutionPolicy Unrestricted -WindowStyle Maximized -File "$(FULL_CURRENT_PATH)"`
@@ -392,7 +401,7 @@ foreach ($p in $gp) {
 
 ### Специальные символы
 `\d` число от 0 до 9 (20-07-2022 эквивалент: "\d\d-\d\d-\d\d\d\d") \
-`\D` обозначает любой символ, кроме цифры. Удаления всех символов, кроме цифр: [int]$("123 test" -replace "\D","") \
+`\D` обозначает любой символ, кроме цифры. Удаления всех символов, кроме цифр: [int]$("123 test" -replace "\D") \
 `\w` буква от "a" до "z" и от "A" до "Z" или число от 0 до 9 \
 `\s` пробел, эквивалент: " " \
 `\n` новая строка \
@@ -2489,49 +2498,44 @@ Start-PodeServer {
 
 # Selenium
 
-`.\nuget.exe install Selenium.WebDriver` \
-`Copy-Item -Path .\WebDriver.dll -Destination $home\Documents\Selenium\` версия 4.9.0 для .NET 4.8 \
-`Copy-Item -Path .\ChromeDriver.exe -Destination $home\Documents\Selenium\` скачать драйвер (113.0.5672.63) https://sites.google.com/chromium.org/driver/
+`Invoke-Expression(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/Lifailon/Deploy-Selenium/rsa/Deploy-Selenium-Drivers.ps1")` установка всех драйверов и Chromium подходящей версии для драйвера
+```
+$path = "$home\Documents\Selenium\"
+$ChromeDriver = "$path\ChromeDriver.exe"
+$WebDriver = "$path\WebDriver.dll"
+$SupportDriver = "$path\WebDriver.Support.dll"
+$Chromium = (Get-ChildItem $path -Recurse | Where-Object Name -like chrome.exe).FullName
+Add-Type -Path $WebDriver
+Add-Type -Path $SupportDriver
+try {
+    $ChromeOptions = New-Object OpenQA.Selenium.Chrome.ChromeOptions
+    $ChromeOptions.BinaryLocation = $Chromium
+    $ChromeOptions.AddArgument("start-maximized")
+    $ChromeOptions.AcceptInsecureCertificates = $True
+    $Selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver($ChromeDriver, $ChromeOptions)
+    $Selenium.Navigate().GoToUrl("https://translate.google.la/")
 
-`Choco Upgrade GoogleChrome` обновить Google Chrome \
-`Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome" | select DisplayName,DisplayVersion,InstallDate,InstallLocation` узнать версию и дату обновления
-```
-$path = "$env:temp\ChromeSetup.exe"
-Invoke-WebRequest 'https://dl.google.com/chrome/install/latest/chrome_installer.exe'  -OutFile $path
-Start-Process -FilePath $path -Args "/silent /install" -NoNewWindow -Wait
-```
-`$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button')) | select TagName,Text` отобразить все Button по TagName используя CSS selector \
-`$selenium.FindElements([OpenQA.Selenium.By]::TagName('button'))` поиск по TagName \
-`$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button')) | ? Text -match "Войти"` поиск Button по содержимому Text \
-`$button = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('*')) | ? Text -like "Войти через Яндекс ID"` поиск во всех элементах по содержимому Text для получения нужного элемента (SPAN) для дальнейшего быстрого поиска
-
-F12 (Dev Tools) - Ctrl+Shift+C - Copy selector/full XPath \
-`$inputbox = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('#passp-field-login'))` \
-`$inputbox = $selenium.FindElements([OpenQA.Selenium.By]::XPath("/html/body/div/div/div[2]/div[2]/div/div/div[2]/div[3]/div/div/div/div/form/div/div[2]/div[2]/div/div[2]/span/input"))` \
-`$inputbox | gm -MemberType method`
-```
-$path = "$home\Documents\Selenium"
-if (($env:Path -split ';') -notcontains $path) {
-$env:Path += ";$path"
+    $buttons = $selenium.FindElements([OpenQA.Selenium.By]::TagName('button')) # найти все элементы по TagName
+    $buttons = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button')) # найти все Button используя CSS selector
+    $Image = $buttons | Where-Object Text -Match "Изображения" # отфильтровать элементы по Label или Text
+    $Image.Click() # нажать на Button
+    $Text = $buttons | Where-Object Text -Match "Текст"
+	$Text.Click()
+    $textarea = $Selenium.FindElements([OpenQA.Selenium.By]::TagName("textarea")) # найти все элементы с тэгом textarea
+    $textarea.Count # количество найденных элементов
+    $text1 = $textarea | Where-Object ComputedAccessibleLabel -like "Исходный текст" # отфильтровать по Lable
+    $text1 = $textarea | Where-Object ComputedAccessibleRole -like combobox # отфильтровать по роли 
+    $text1 = $selenium.FindElements([OpenQA.Selenium.By]::ClassName("er8xn")) # найти элемент по имени класса (class="")
+    $text1.SendKeys("Hello") # ввести текст в поле
+    Start-Sleep 1
+    $text2 = $selenium.FindElements([OpenQA.Selenium.By]::ClassName("ryNqvb"))
+    $out = $text2.Text # получить результат перевода из второго textarea
+    Write-Host $out -ForegroundColor Green
 }
-Import-Module "$path\WebDriver.dll"` Add-Type -Path "$path\WebDriver.dll"
-$selenium_options = New-Object OpenQA.Selenium.Chrome.ChromeOptions
-$selenium_options.AddArgument('start-maximized')
-$selenium_options.AcceptInsecureCertificates = $True
-$selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver($selenium_options)
-# $selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver
-$selenium.Navigate().GoToURL('https://yandex.ru')
-$selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button'))[2].Click()` нажать на кнопку "Войти"
-$button = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('SPAN')) | ? Text -like "Войти через Яндекс ID"
-$button.Click()
-($selenium.FindElements([OpenQA.Selenium.By]::CssSelector('Button')))[1].Click()
-$inputbox = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('input')) | ? ComputedAccessibleRole -like "textbox"
-$inputbox.Click()
-$inputbox.Clear()
-$inputbox.SendKeys("+79997772211")
-$inputbox.Submit()
-$selenium.Close()
-$selenium.Quit()
+finally {
+    $Selenium.Close()
+    $Selenium.Quit()
+}
 ```
 # IE
 
