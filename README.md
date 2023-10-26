@@ -1706,19 +1706,19 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 
 # StorageReplica
 
-Install-WindowsFeature Storage-Replica –IncludeManagementTools -Restart` \
-Get-Command -Module StorageReplica` \
-Test-SRTopology` проверить соответствует ли сервер и канал связи технологии Storage Replica \
-New-SRPartnership -SourceComputerName srv-01 -SourceRGName srv-01-rep-group-01 -SourceVolumeName D: -SourceLogVolumeName L: -DestinationComputerName srv-02 -DestinationRGName srv-02-rep-group-01 -DestinationVolumeName D: -DestinationLogVolumeName L: -LogSizeInBytes 1GB` \
-Get-Counter -Counter "\Storage Replica Statistics(*)"` \
-Get-WinEvent -ProviderName Microsoft-Windows-StorageReplica -max 10` \
-Set-SRPartnership -ReplicationMode Asynchronous` переключить режим репликации на асинхронный \
-Set-SRPartnership -NewSourceComputerName srv-02 -SourceRGName srv-02-rep-group-01 -DestinationComputerName srv-01 -DestinationRGName srv-01-rep-group-01` изменить вручную направление репликации данных, переведя вторичную копию в онлайн режим (при выходе из строя основного сервера) \
-Get-SRGroup` информация о состояние группы реплизации \
-Get-SRPartnerShip` информация о направлении репликации \
-(Get-SRGroup).Replicas | Select-Object numofbytesremaining` проверить длину очереди копирования \
-Get-SRPartnership | Remove-SRPartnership` удалить реплизацию на основном сервере \
-Get-SRGroup | Remove-SRGroup` удалить реплизацию на обоих серверах
+`Install-WindowsFeature Storage-Replica –IncludeManagementTools -Restart` \
+`Get-Command -Module StorageReplica` \
+`Test-SRTopology` проверить соответствует ли сервер и канал связи технологии Storage Replica \
+`New-SRPartnership -SourceComputerName srv-01 -SourceRGName srv-01-rep-group-01 -SourceVolumeName D: -SourceLogVolumeName L: -DestinationComputerName srv-02 -DestinationRGName srv-02-rep-group-01 -DestinationVolumeName D: -DestinationLogVolumeName L: -LogSizeInBytes 1GB` \
+`Get-Counter -Counter "\Storage Replica Statistics(*)"` \
+`Get-WinEvent -ProviderName Microsoft-Windows-StorageReplica -max 10` \
+`Set-SRPartnership -ReplicationMode Asynchronous` переключить режим репликации на асинхронный \
+`Set-SRPartnership -NewSourceComputerName srv-02 -SourceRGName srv-02-rep-group-01 -DestinationComputerName srv-01 -DestinationRGName srv-01-rep-group-01` изменить вручную направление репликации данных, переведя вторичную копию в онлайн режим (при выходе из строя основного сервера) \
+`Get-SRGroup` информация о состояние группы реплизации \
+`Get-SRPartnerShip` информация о направлении репликации \
+`(Get-SRGroup).Replicas | Select-Object numofbytesremaining` проверить длину очереди копирования \
+`Get-SRPartnership | Remove-SRPartnership` удалить реплизацию на основном сервере \
+`Get-SRGroup | Remove-SRGroup` удалить реплизацию на обоих серверах
 
 # Package
 
