@@ -1,5 +1,6 @@
 ![Image alt](https://github.com/Lifailon/PS-Commands/blob/rsa/Logo/PowerShell-Commands.png)
 
+- [Help](#help)
 - [Object](#object)
 - [Regex](#regex)
 - [DataType](#datatype)
@@ -20,6 +21,7 @@
 - [DNS](#dnsserver)
 - [DHCP](#dhcpserver)
 - [DFS](#dfs)
+- [StorageReplica](#storagereplica)
 - [Package](#package)
 - [PS2EXE](#ps2exe)
 - [NSSM](#nssm)
@@ -71,19 +73,24 @@
 - [Git](#git)
 - [Ansible](#ansible)
 
-### Help
+# Help
+
 `Get-Verb` действия/глаголы, утвержденные для использования в командлетах \
-`Get-Command *Service*` поиск команды по имени \
+`Get-Command *Language*` поиск команды по имени \
+`(Get-Command Get-Language).Module` узнать к какому модулю принадлежит команда \
 `Get-Command Get-Content | fl Module,DLL` узнать принадлежность команды к модулю и dll \
-`Get-Service | Get-Member` отобразить Method (действия: Start, Stop), Property (объекты вывода: Status, DisplayName), Event (события объектов: Click) \
-`Get-Alias gsv` \
+`Get-Command -Module LanguagePackManagement` отобразить список команд указанного модуля \
+`(Get-Module LanguagePackManagement).ExportedCommands.Values` отобразить список команд указанного модуля \
+`Get-Language | Get-Member` отобразить список методов команды (действия), объекты вывода и Event (события объектов: Click) \
+`(Get-Help Get-Service).Aliases` узнать псевдонимом команды \
+`Get-Alias gsv` узнать имя команды по псевдониму \
 `Get-Help Get-Service` синтаксис \
 `Get-Help Get-Service -Parameter *` описание всех параметров \
-`Get-Help Get-Service -ShowWindow` \
 `Get-Help Get-Service -Online` \
-`Show-Command` вывести список команд \
-`Show-Command Get-Service` список параметров \
-`Invoke-Expression` iex принимает текст в виде команды для выполнения в консоли \
+`Get-Help Get-Service -ShowWindow` описание параметров в GUI с фильтрацией \
+`Show-Command` вывести список команд в GUI \
+`Show-Command Get-Service` список параметров команды в GUI \
+`Invoke-Expression` iex принимает текст для выполнения в консоли как команды \
 `$PSVersionTable` версия PowerShell \
 `Set-ExecutionPolicy Unrestricted` \
 `Get-ExecutionPolicy` \
@@ -259,10 +266,10 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName,` сортиро
 
 `winget install JanDeDobbeleer.OhMyPosh -s winget` \
 `Get-PoshThemes` \
-`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/blue-owl.omp.json" | Invoke-Expression` montys,jblab_2021,easy-term,di4am0nd,cinnamon,jtracey93,cert \
+`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression` blue-owl,montys,jblab_2021,easy-term,cinnamon,jtracey93,cert \
 `New-Item -Path $PROFILE -Type File -Force` \
 `notepad $PROFILE` \
-`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/blue-owl.omp.json" | Invoke-Expression`
+`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression`
 
 # NPP
 
@@ -1696,6 +1703,22 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `Write-DfsrHealthReport` создает отчет о работоспособности репликации DFS \
 `Write-DfsrPropagationReport` создает отчеты для тестовых файлов распространения в группе репликации \
 `Start-DfsrPropagationTest` создает тестовый файл распространения в реплицированной папке
+
+# StorageReplica
+
+Install-WindowsFeature Storage-Replica –IncludeManagementTools -Restart` \
+Get-Command -Module StorageReplica` \
+Test-SRTopology` проверить соответствует ли сервер и канал связи технологии Storage Replica \
+New-SRPartnership -SourceComputerName srv-01 -SourceRGName srv-01-rep-group-01 -SourceVolumeName D: -SourceLogVolumeName L: -DestinationComputerName srv-02 -DestinationRGName srv-02-rep-group-01 -DestinationVolumeName D: -DestinationLogVolumeName L: -LogSizeInBytes 1GB` \
+Get-Counter -Counter "\Storage Replica Statistics(*)"` \
+Get-WinEvent -ProviderName Microsoft-Windows-StorageReplica -max 10` \
+Set-SRPartnership -ReplicationMode Asynchronous` переключить режим репликации на асинхронный \
+Set-SRPartnership -NewSourceComputerName srv-02 -SourceRGName srv-02-rep-group-01 -DestinationComputerName srv-01 -DestinationRGName srv-01-rep-group-01` изменить вручную направление репликации данных, переведя вторичную копию в онлайн режим (при выходе из строя основного сервера) \
+Get-SRGroup` информация о состояние группы реплизации \
+Get-SRPartnerShip` информация о направлении репликации \
+(Get-SRGroup).Replicas | Select-Object numofbytesremaining` проверить длину очереди копирования \
+Get-SRPartnership | Remove-SRPartnership` удалить реплизацию на основном сервере \
+Get-SRGroup | Remove-SRGroup` удалить реплизацию на обоих серверах
 
 # Package
 
