@@ -1,7 +1,6 @@
 function Get-AltTab {
-$wshell = New-Object -ComObject wscript.shell
-$wshell.SendKeys("%{Tab}")
-sleep 120
+(New-Object -ComObject wscript.shell).SendKeys("%{Tab}")
+Start-Sleep $(Get-Random -Minimum 30 -Maximum 180)
 Get-AltTab
 }
 Get-AltTab
