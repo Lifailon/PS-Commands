@@ -14,9 +14,11 @@ PowerShell Commands
 # DISM
 # Scheduled
 # Network
+# Shutdown
 # LocalAccounts
 # SMB
 # ActiveDirectory
+# GPO
 # ServerManager
 # DNS
 # DHCP
@@ -33,6 +35,7 @@ PowerShell Commands
 # TrueNAS
 # Veeam
 # REST API
+# Telegram
 # Pode
 # Selenium
 # IE
@@ -1169,15 +1172,54 @@ $mac_coll
 Get-ARP -search 192.168.3.100
 Get-ARP -search 192.168.3.100 -proxy dc-01
 
-### shutdown
+# Shutdown
+
 shutdown /r /o # перезагрузка в безопасный режим
-shutdown /s /t 600 /c "Power off after 10 minutes"
+shutdown /s /t 600 /c "Power off after 10 minutes" # выключение
+shutdown /s /f # принудительное закрытие приложений
 shutdown /a # отмена
 shutdown /r /t 0 /m \\192.168.3.100
 Restart-Computer -ComputerName 192.168.3.100 -Protocol WSMan # через WinRM
 Restart-Computer –ComputerName 192.168.3.100 –Force # через WMI
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Start\HideShutDown" -Name "value" -Value 1 # скрыть кнопку выключения
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Start\HideRestart" -Name "value" -Value 1 # скрыть кнопку перезагрузки
+
+function Start-Shutdown {
+    <#
+    .SYNOPSIS
+    Module for shutdown and restart the computer at a specified time
+    .DESCRIPTION
+    Example:
+    # Start-Shutdown -Time "18:00"
+    # Start-Shutdown -Restart -Time "18:00"
+    # Start-Shutdown -Cancel
+    .LINK
+    https://github.com/Lifailon/PS-Commands
+    #>
+    param(
+        [string]$Time,
+        [switch]$Restart,
+        [switch]$Cancel
+    )
+    if ($Time) {
+        $currentDateTime = Get-Date
+        $shutdownTime = Get-Date $Time
+        if ($shutdownTime -lt $currentDateTime) {
+            $shutdownTime = $shutdownTime.AddDays(1)
+        }
+        $timeUntilShutdown = $shutdownTime - $currentDateTime
+        $secondsUntilShutdown = [math]::Round($timeUntilShutdown.TotalSeconds)
+    }
+    if ($Cancel) {
+        Start-Process -FilePath "shutdown.exe" -ArgumentList "/a"
+    } elseif ($Restart) {
+        Write-Host "The computer will restart after $($timeUntilShutdown.Hours) hours and $($timeUntilShutdown.Minutes) minutes."
+        Start-Process -FilePath "shutdown.exe" -ArgumentList "/r", "/f", "/t", "$secondsUntilShutdown"
+    } else {
+        Write-Host "The computer will shutdown after $($timeUntilShutdown.Hours) hours and $($timeUntilShutdown.Minutes) minutes."
+        Start-Process -FilePath "shutdown.exe" -ArgumentList "/s", "/f", "/t", "$secondsUntilShutdown"
+    }
+}
 
 # LocalAccounts
 
@@ -1543,7 +1585,8 @@ compact to C:\Windows\NTDS\TEMP
 copy C:\Windows\NTDS\TEMP\ntds.dit C:\Windows\NTDS\ntds.dit # заменить оригинальный файл ntds.dit
 Del C:\Windows\NTDS\*.log # удалить все лог файлы из каталога NTDS
 
-### GPO
+# GPO
+
 Get-Command -Module GroupPolicy
 Get-GPO -Domain domain.local -All | ft
 Get-GPO -Name LAPS
@@ -2390,31 +2433,56 @@ Get-VBRViProxy
 
 # REST API
 
-$pars = Invoke-WebRequest -Uri $url
-$pars | Get-Member
-$pars.Content
-$pars.StatusCode -eq 200
-$pars.Headers
-$pars.ParsedHtml | Select lastModified
-$pars.Links | fl title,innerText,href
-$pars.Images.src # links on images
-iwr $url -OutFile $path # download
+$iwr = Invoke-WebRequest -Uri $url
+$iwr | Get-Member
+$iwr.Content
+$iwr.StatusCode -eq 200
+$iwr.Headers
+$iwr.ParsedHtml | Select lastModified
+$iwr.Links | fl title,innerText,href
+$iwr.Images.src
 
-$pars = wget -Uri $url
-$pars.Images.src | %{
-$name = $_ -replace ".+(?<=/)"
-wget $_ -OutFile "$home\Pictures\$name"
-}
-$count_all = $pars.Images.src.Count
-$count_down = (Get-Item $path\*).count
-"Downloaded $count_down of $count_all files to $path"
+### Methods
 
-Methods:
 GET - Read
 POST - Create
 PATCH - Partial update/modify
 PUT - Update/replace
 DELETE - Remove
+
+### Download Image
+
+function Download-Image {
+param (
+    [Parameter(Mandatory = $True)]$url
+)
+    $folder = $url -replace "http.+://" -replace "/","-" -replace "-$"
+    $path = "$home\Pictures\$folder"
+    if (Test-Path $path) {
+        Remove-Item $path -Recurse -Force
+        New-Item -ItemType Directory $path > $null
+    } else {
+        New-Item -ItemType Directory $path > $null
+    }
+    $irm = Invoke-WebRequest -Uri $url
+    foreach ($img in $irm.Images.src) {
+        $name = $img -replace ".+/"
+        Start-Job {
+            Invoke-WebRequest $using:img -OutFile "$using:path\$using:name"
+        } > $null
+    }
+    while ($True){
+        $status_job = (Get-Job).State[-1]
+        if ($status_job -like "Completed"){
+        Get-Job | Remove-Job -Force
+        break
+    }}
+    $count_all = $irm.Images.src.Count
+    $count_down = (Get-Item $path\*).count
+    "Downloaded $count_down of $count_all files to $path"
+}
+
+Download-Image -url https://losst.pro/
 
 ### Token
 
@@ -2445,24 +2513,87 @@ $vjob = $vjob.Content | ConvertFrom-Json
 $vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
 $vjob.data.virtualMachines.includes.inventoryObject
 
-### Telegram
+# Telegram
 
-function Send-Telegram  {
+@BotFather (https://t.me/BotFather) /newbot
+https://api.telegram.org/bot<token>/<endpoint>
+
+function Get-FromTelegram {
 param (
-[Parameter(Mandatory = $True)]$Text
-)$token_bot = "5517149522:AAFop4_darMpTT7VgLpY2hjkDkkV1dzmGNM"
-$id_chat = "-609779646"
-$payload = @{
-"chat_id" = $id_chat
-"text" = $Text
-"parse_mode" = "html"
-}
-Invoke-RestMethod -Uri ("https://api.telegram.org/bot{0}/sendMessage" -f $token_bot) -Method Post -ContentType "application/json;charset=utf-8" -Body (
-ConvertTo-Json -Compress -InputObject $payload
+    $token = "687...:AAF...",
+    [switch]$last,
+    [switch]$date
 )
+$endpoint = "getUpdates"
+$url      = "https://api.telegram.org/bot$token/$endpoint"
+$result   = Invoke-RestMethod -Uri $url
+if ($date) {
+$Collections = New-Object System.Collections.Generic.List[System.Object]
+foreach ($r in $($result.result)) {
+    $EpochTime = [DateTime]"1/1/1970"
+    $TimeZone = Get-TimeZone
+    $UTCTime = $EpochTime.AddSeconds($r.message.date)
+    $d = $UTCTime.AddMinutes($TimeZone.BaseUtcOffset.TotalMinutes)
+	#$d
+    $Collections.Add([PSCustomObject]@{
+        Message = $r.message.text;
+        Date    = $d
+    })
+}
+$Collections
+} else {
+if ($last) {
+    $result.result.message.text[-1] # прочитать последнее сообщение
+} else {
+    $result.result.message.text
+}
+#$result.result.message.chat.id[-1] # получить индивидуальный chat_id с ботом
+}
 }
 
-Send-Telegram -Text Test
+Get-FromTelegram
+Get-FromTelegram -last
+Get-FromTelegram -date
+
+https://core.telegram.org/bots/api#sendmessage
+
+function Send-ToTelegram {
+param (
+[Parameter(Mandatory = $True)]$Text,
+$token    = "687...:AAF...",
+$chat     = "125468108"
+)
+$endpoint = "sendMessage"
+$url      = "https://api.telegram.org/bot$token/$endpoint"
+$Body = @{
+chat_id = $Chat
+text    = $Text
+}
+Invoke-RestMethod -Uri $url -Body $Body
+}
+
+Send-ToTelegram -Text "Send test from powershell"
+
+$LastDate = (Get-FromTelegram -date)[-1].Date
+while ($true) {
+    $LastMessage  = (Get-FromTelegram -date)[-1]
+    Start-Sleep 1
+    $LastDateTest = $LastMessage.Date
+    if (($LastMessage.Message -match "/Service") -and ($LastDate -ne $LastDateTest)) {
+        $ServiceName = $($LastMessage.Message -split " ")[-1]
+        $Result = $(Get-Service $ServiceName -ErrorAction Ignore).Status
+        if ($Result) {
+            Send-ToTelegram -Text $Result
+        } else {
+            Send-ToTelegram -Text "Service not found"
+        }
+        $LastDate = $LastDateTest
+    }
+}
+
+/Service vpnagent
+/Service WinRM
+/Service test
 
 # Pode
 
@@ -2626,9 +2757,8 @@ $wshell.SendKeys("{F12}")
 $wshell.SendKeys("{+}{^}{%}{~}{(}{)}{[}{]}{{}{}}")
 
 function Get-AltTab {
-$wshell = New-Object -ComObject wscript.shell
-$wshell.SendKeys("%{Tab}") # ALT+TAB
-sleep 120
+(New-Object -ComObject wscript.shell).SendKeys("%{Tab}")
+Start-Sleep $(Get-Random -Minimum 30 -Maximum 180)
 Get-AltTab
 }
 Get-AltTab
