@@ -14,9 +14,11 @@
 - [DISM](#dism)
 - [Scheduled](#scheduled)
 - [Network](#network)
+- [Shutdown](#shutdown)
 - [LocalAccounts](#localaccounts)
 - [SMB](#smb)
 - [ActiveDirectory](#activedirectory)
+- [GPO](#gpo)
 - [ServerManager](#servermanager)
 - [DNS](#dnsserver)
 - [DHCP](#dhcpserver)
@@ -33,6 +35,7 @@
 - [TrueNAS](#truenas)
 - [Veeam](#veeam)
 - [REST API](#rest-api)
+- [Telegram](#telegram)
 - [Pode](#pode)
 - [Selenium](#selenium)
 - [IE](#ie)
@@ -153,47 +156,47 @@
 `$srv[0] = Name` замена элемента в массиве \
 `$srv[0].Length` узнать кол-во символов первого значения в массиве \
 `$srv[10..100]` срез
-```
+```PowerShell
 $array = "a","b","c","d"
 $num = 0
 foreach ($a in $array) {
 $num += 1
-$index = [array]::IndexOf($array, $a)` узнать номер индекса по зачению
-$array[$index] = $num` пересобрать исходный массив
+$index = [array]::IndexOf($array, $a) # узнать номер индекса по зачению
+$array[$index] = $num # пересобрать исходный массив
 }
 ```
 ### HashTable
-```
-$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"}` создать
-$hashtable += @{"User2" = "$env:username"; "Server2" = "$env:computername"}` добавить ключи
-$hashtable.Keys` список всех ключей
-$hashtable["User"]` получить значение (Values) по ключу
-$hashtable["User"] = "Test"` изменить
-$hashtable.Remove("User")` удалить ключ
+```PowerShell
+$hashtable = @{"User" = "$env:username"; "Server" = "$env:computername"} # создать
+$hashtable += @{"User2" = "$env:username"; "Server2" = "$env:computername"} # добавить ключи
+$hashtable.Keys # список всех ключей
+$hashtable["User"] # получить значение (Values) по ключу
+$hashtable["User"] = "Test" # изменить
+$hashtable.Remove("User") # удалить ключ
 ```
 `$Tag = @{$true = 'dev'; $false = 'prod'}[([System.Net.Dns]::GetHostEntry("localhost").HostName) -match '.*.TestDomain$']`
 
 ### Collections/List
-```
+```PowerShell
 $Collections = New-Object System.Collections.Generic.List[System.Object]
 $Collections.Add([PSCustomObject]@{User = $env:username; Server = $env:computername})
 ```
 ### PSCustomObject
-```
+```PowerShell
 $CustomObject = [PSCustomObject][ordered]@{User = $env:username; Server = $env:computername}
-$CustomObject | Add-Member –MemberType NoteProperty –Name Arr –Value @(1,2,3)` добавить Property (свойство/стобец)
-$CustomObject.Arr = @(1,3,5)` изменить содержимое
-$CustomObject.PsObject.Properties.Remove('User')` удалить Property
+$CustomObject | Add-Member –MemberType NoteProperty –Name Arr –Value @(1,2,3) # добавить Property (свойство/стобец)
+$CustomObject.Arr = @(1,3,5) # изменить содержимое
+$CustomObject.PsObject.Properties.Remove('User') # удалить Property
 ```
 ### Add-Member
-```
+```PowerShell
 $ScriptBlock = {Get-Service}
-$CustomObject | Add-Member -Name "TestMethod" -MemberType ScriptMethod -Value $ScriptBlock` Добавить Method
+$CustomObject | Add-Member -Name "TestMethod" -MemberType ScriptMethod -Value $ScriptBlock # Добавить Method
 $CustomObject | Get-Member
 $CustomObject.TestMethod()
 ```
 ### Class
-```
+```PowerShell
 Class CustomClass {
 [string]$User
 [string]$Server
@@ -218,11 +221,11 @@ $Class.Start(1)
 `(Get-Process | ? Name -match iperf).Modules` список используемых модулей процессом
 
 ### Expression
-```
-ps | Sort-Object -Descending CPU | select -first 10 ProcessName,` сортировка по CPU, вывести первых 10 значений (-first)
-@{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}},` затрачено процессорного времени в минутах
-@{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}},` делим байты на КБ
-@{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}}` вычесть из текущего времени - время запуска, и удалить milisec
+```PowerShell
+ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортировка по CPU, вывести первых 10 значений (-first)
+@{Name="ProcessorTime"; Expression={$_.TotalProcessorTime -replace "\.\d+$"}}, # затрачено процессорного времени в минутах
+@{Name="Memory"; Expression={[string]([int]($_.WS / 1024kb))+"MB"}}, # делим байты на КБ
+@{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}} # вычесть из текущего времени - время запуска, и удалить milisec
 ```
 ### Select-String
 `ipconfig /all | Select-String dns` поиск текста
@@ -363,10 +366,10 @@ $		# Конец строки
 `"{0:P0}" -f (220/1000)` посчитать в процентах (P) \
 `"{0:P}" -f (512MB/1GB)` сколько % составляет 512Мб от 1Гб \
 `"{0:0.0%}" -f 0.123` умножить на 100%
-```
+```PowerShell
 $gp = Get-Process | sort cpu -Descending | select -First 10
 foreach ($p in $gp) {
-"{0} - {1:N2}" -f $p.processname, $p.cpu` округлить
+"{0} - {1:N2}" -f $p.processname, $p.cpu # округлить
 }
 ```
 ### Условный оператор
@@ -477,7 +480,7 @@ foreach ($p in $gp) {
 `$char = $srv.ToCharArray()` разбить строку [string] на массив [System.Array] из букв \
 
 ### Switch
-```
+```PowerShell
 $MMM = Get-Date -UFormat "%m"
 switch($MMM) {
 "01" {$Month = 'Jan'}
@@ -495,7 +498,7 @@ switch($MMM) {
 }
 ```
 ### function switch
-```
+```PowerShell
 Function fun-switch (
 [switch]$param
 ) {
@@ -564,7 +567,7 @@ fun-switch -param
 Результат деления записывается снизу вверх
 ```
 ### Bit Convertor
-```
+```PowerShell
 function ConvertTo-Bit {
     param (
         [Int]$int
@@ -589,7 +592,7 @@ function ConvertTo-Bit {
 }
 ```
 `ConvertTo-Bit 347`
-```
+```PowerShell
 function ConvertFrom-Bit {
     param (
         $bit
@@ -634,7 +637,7 @@ function ConvertFrom-Bit {
 
 ### DateTime
 `Get-TimeZone` часовой пояс \
-`[DateTime]::UtcNow` время в формате UTC 0` \
+`[DateTime]::UtcNow` время в формате UTC 0 \
 `(Get-Date).AddHours(-3)` \
 `$Date = (Get-Date -Format "dd/MM/yyyy hh:mm:ss")` \
 `$Date = Get-Date -f "dd/MM/yyyy"` получаем тип данных [string] \
@@ -694,10 +697,10 @@ function ConvertFrom-Bit {
 `}`
 
 ### Try-Catch-Finally
-```
+```PowerShell
 Try {$out = pping 192.168.3.1}
-Catch {Write-Warning "$($error[0])"}` выводит в случае ошибки (вместо ошибки)
-finally {$out = "End"}` выполняется в конце в любом случае
+Catch {Write-Warning "$($error[0])"} # выводит в случае ошибки (вместо ошибки)
+finally {$out = "End"} # выполняется в конце в любом случае
 ```
 ### Error
 `$Error` выводит все ошибки текущего сеанса \
@@ -722,7 +725,7 @@ finally {$out = "End"}` выполняется в конце в любом сл�
 
 `Get-Content $home/desktop\test.txt -Wait` аналог tail \
 `Test-Path $path` проверить доступность пути \
-`Get-ChildItem $path -Filter *.txt -Recurse`` отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) и отфильтровать вывод \
+`Get-ChildItem $path -Filter *.txt -Recurse` отобразить содержимое каталога (Alias: ls/gci/dir) и дочерних каталогов (-Recurse) и отфильтровать вывод \
 `Get-Location` отобразить текущие месторасположение (Alias: pwd/gl) \
 `Set-Location $path` перемещение по каталогам (Alias: cd/sl) \
 `Invoke-Item $path` открыть файл (Alias: ii/start) \
@@ -745,7 +748,7 @@ finally {$out = "End"}` выполняется в конце в любом сл�
 `$log = Copy-Item "C:\*.txt" "C:\test\" -PassThru` вывести результат копирования (логирование) в переменную, можно забирать строки с помощью индексов $log[0].FullName
 
 ### Clear-env-Temp-14-days
-```
+```PowerShell
 $ls = Get-Item $env:TEMP\*.tmp # считать все файлы с указанным расширением
 $date = (Get-Date).AddDays(-14)
 foreach ($l in $ls) {
@@ -865,7 +868,7 @@ Get-WinEvent -LogName System -FilterXPath $query
 6013` Время работы системы (system uptime) в секундах.
 ```
 ### Logon
-```
+```PowerShell
 $srv = "localhost"
 $FilterXPath = '<QueryList><Query Id="0"><Select>*[System[EventID=21]]</Select></Query></QueryList>'
 $RDPAuths = Get-WinEvent -ComputerName $srv -LogName "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational" -FilterXPath $FilterXPath
@@ -887,7 +890,7 @@ $EventData | ft
 `Get-EventLog -LogName Security -InstanceId 4624` найти логи по ID в журнале Security
 
 # Firewall
-```
+```PowerShell
 $days = 5
 $obj = @()
 $fw = Get-WinEvent "Microsoft-Windows-Windows Firewall With Advanced Security/Firewall"
@@ -911,7 +914,7 @@ $obj | Where-Object time -gt (Get-Date).AddDays(-$days)
 `New-NetFirewallRule -Profile Any -DisplayName "Open Port 135 RPC" -Direction Inbound -Protocol TCP -LocalPort 135` открыть in-порт \
 `Get-NetFirewallRule | where DisplayName -match kms | select *` найти правило по имени \
 `Get-NetFirewallPortFilter | where LocalPort -like 80` найти действующие правило по номеру порта
-```
+```PowerShell
 Get-NetFirewallRule -Enabled True -Direction Inbound | select -Property DisplayName,
 @{Name='Protocol';Expression={($_ | Get-NetFirewallPortFilter).Protocol}},
 @{Name='LocalPort';Expression={($_ | Get-NetFirewallPortFilter).LocalPort}},
@@ -1041,7 +1044,7 @@ Enabled,Profile
 `Test-Connection -Count 1 $srv1, $srv2` отправить icmp-пакет двум хостам \
 `Test-Connection $srv -ErrorAction SilentlyContinue` не выводить ошибок, если хост не отвечает \
 `Test-Connection -Source $srv1 -ComputerName $srv2` пинг с удаленного компьютера
-```
+```PowerShell
 function Test-PingNetwork {
 param (
     [Parameter(Mandatory,ValueFromPipeline)][string[]]$Network,
@@ -1124,7 +1127,7 @@ foreach ($n in $net) {
 ### arp
 `ipconfig /all | Select-String "физ"` grep \
 `Get-NetNeighbor -AddressFamily IPv4`
-```
+```PowerShell
 function Get-ARP {
 Param (
 $proxy,
@@ -1169,26 +1172,65 @@ $mac_coll
 `Get-ARP -search 192.168.3.100` \
 `Get-ARP -search 192.168.3.100 -proxy dc-01`
 
-### shutdown
+# shutdown
+
 `shutdown /r /o` перезагрузка в безопасный режим \
-`shutdown /s /t 600 /c "Power off after 10 minutes"` \
+`shutdown /s /t 600 /c "Power off after 10 minutes"` выключение \
+`shutdown /s /f` принудительное закрытие приложений \
 `shutdown /a` отмена \
 `shutdown /r /t 0 /m \\192.168.3.100` \
 `Restart-Computer -ComputerName 192.168.3.100 -Protocol WSMan` через WinRM \
 `Restart-Computer –ComputerName 192.168.3.100 –Force` через WMI \
 `Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Start\HideShutDown" -Name "value" -Value 1` скрыть кнопку выключения \
 `Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\PolicyManager\default\Start\HideRestart" -Name "value" -Value 1` скрыть кнопку перезагрузки
-
+```PowerShell
+function Start-Shutdown {
+    <#
+    .SYNOPSIS
+    Module for shutdown and restart the computer at a specified time
+    .DESCRIPTION
+    Example:
+    # Start-Shutdown -Time "18:00"
+    # Start-Shutdown -Restart -Time "18:00"
+    # Start-Shutdown -Cancel
+    .LINK
+    https://github.com/Lifailon/PS-Commands
+    #>
+    param(
+        [string]$Time,
+        [switch]$Restart,
+        [switch]$Cancel
+    )
+    if ($Time) {
+        $currentDateTime = Get-Date
+        $shutdownTime = Get-Date $Time
+        if ($shutdownTime -lt $currentDateTime) {
+            $shutdownTime = $shutdownTime.AddDays(1)
+        }
+        $timeUntilShutdown = $shutdownTime - $currentDateTime
+        $secondsUntilShutdown = [math]::Round($timeUntilShutdown.TotalSeconds)
+    }
+    if ($Cancel) {
+        Start-Process -FilePath "shutdown.exe" -ArgumentList "/a"
+    } elseif ($Restart) {
+        Write-Host "The computer will restart after $($timeUntilShutdown.Hours) hours and $($timeUntilShutdown.Minutes) minutes."
+        Start-Process -FilePath "shutdown.exe" -ArgumentList "/r", "/f", "/t", "$secondsUntilShutdown"
+    } else {
+        Write-Host "The computer will shutdown after $($timeUntilShutdown.Hours) hours and $($timeUntilShutdown.Minutes) minutes."
+        Start-Process -FilePath "shutdown.exe" -ArgumentList "/s", "/f", "/t", "$secondsUntilShutdown"
+    }
+}
+```
 # LocalAccounts
 
-`Get-Command -Module Microsoft.PowerShell.LocalAccounts`
+`Get-Command -Module Microsoft.PowerShell.LocalAccounts` \
 `Get-LocalUser` список пользователей \
 `Get-LocalGroup` список групп \
 `New-LocalUser "1C" -Password $Password -FullName "1C Domain"` создать пользователя \
 `Set-LocalUser -Password $Password 1C` изменить пароль \
 `Add-LocalGroupMember -Group "Administrators" -Member "1C"` добавить в группу Администраторов \
 `Get-LocalGroupMember "Administrators"` члены группы
-```
+```PowerShell
 @("vproxy-01","vproxy-02","vproxy-03") | %{
 icm $_ {Add-LocalGroupMember -Group "Administrators" -Member "support4"}
 icm $_ {Get-LocalGroupMember "Administrators"}
@@ -1543,7 +1585,8 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 `copy C:\Windows\NTDS\TEMP\ntds.dit C:\Windows\NTDS\ntds.dit` заменить оригинальный файл ntds.dit \
 `Del C:\Windows\NTDS\*.log` удалить все лог файлы из каталога NTDS
 
-### GPO
+# GPO
+
 `Get-Command -Module GroupPolicy` \
 `Get-GPO -Domain domain.local -All | ft` \
 `Get-GPO -Name LAPS` \
@@ -1575,12 +1618,12 @@ Error: 1722 - сервер rpc недоступен (ошибка отката �
 При создании backup DC через WSB, создается копия состояния системы (System State), куда попадает база AD (NTDS.DIT), объекты групповых политик, содержимое каталога SYSVOL, реестр, метаданные IIS, база AD CS, и другие системные файлы и ресурсы. Резервная копия создается через службу теневого копирования VSS. \
 `Get-WindowsFeature Windows-Server-Backup` проверить установлена ли роль \
 `Add-Windowsfeature Windows-Server-Backup –Includeallsubfeature` установить роль
-```
+```PowerShell
 $path="\\$srv\bak-dc\dc-03\"
 [string]$TargetUNC=$path+(get-date -f 'yyyy-MM-dd')
-if ((Test-Path -Path $path) -eq $true) {New-Item -Path $TargetUNC -ItemType directory}` если путь доступен, создать новую директорию по дате
+if ((Test-Path -Path $path) -eq $true) {New-Item -Path $TargetUNC -ItemType directory} # если путь доступен, создать новую директорию по дате
 $WBadmin_cmd = "wbadmin.exe START BACKUP -backupTarget:$TargetUNC -systemState -noverify -vssCopy -quiet"
-# $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet"` Backup DB NTDS
+# $WBadmin_cmd = "wbadmin start backup -backuptarget:$path -include:C:\Windows\NTDS\ntds.dit -quiet" # Backup DB NTDS
 Invoke-Expression $WBadmin_cmd
 ```
 ### RDS
@@ -1602,7 +1645,7 @@ Invoke-Expression $WBadmin_cmd
 `Clear-DnsServerCache` \
 `Get-DnsServerCache` \
 `Get-DnsServerDiagnostics`
-```
+```PowerShell
 $zone = icm $srv {Get-DnsServerZone} | select ZoneName,ZoneType,DynamicUpdate,ReplicationScope,SecureSecondaries,
 DirectoryPartitionName | Out-GridView -Title "DNS Server: $srv" –PassThru
 $zone_name = $zone.ZoneName
@@ -1617,7 +1660,7 @@ Label="IPAddress"; Expression={$_.RecordData.IPv4Address.IPAddressToString}},Tim
 `Get-DnsServerResourceRecord -ZoneName domain.local -RRType A` вывести все А-записи в указанной зоне \
 `Add-DnsServerResourceRecordA -Name new-host-name -IPv4Address 192.168.1.100 -ZoneName domain.local -TimeToLive 01:00:00 -CreatePtr` создать А-запись и PTR для нее \
 `Remove-DnsServerResourceRecord -ZoneName domain.local -RRType A -Name new-host-name –Force` удалить А-запись
-```
+```PowerShell
 $DNSServer = "DC-01"
 $DNSFZone = "domain.com"
 $DataFile = "C:\Scripts\DNS-Create-A-Records-from-File.csv"
@@ -1637,7 +1680,7 @@ $TextA = "$FQDN IN A $IP"
 # DHCPServer
 
 `Get-Command -Module DhcpServer`
-```
+```PowerShell
 $mac = icm $srv -ScriptBlock {Get-DhcpServerv4Scope | Get-DhcpServerv4Lease} | select AddressState,
 HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridView -Title "HDCP Server: $srv" –PassThru
 (New-Object -ComObject Wscript.Shell).Popup($mac.ClientId,0,$mac.HostName,64)
@@ -1776,7 +1819,7 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `Wait-Job` ожидание вывода команды \
 `Receive-Job` получение результатов выполненного процесса \
 `Remove-Job` удалить задачу
-```
+```PowerShell
 function Start-PingJob ($Network) {
 $RNetwork = $Network -replace "\.\d{1,3}$","."
 foreach ($4 in 1..254) {
@@ -1805,7 +1848,7 @@ break # завершаем цикл
 `Get-Job | Receive-Job -Keep` отобразить и не удалять вывод \
 `(Get-Job).HasMoreData` если False, то вывод команы удален \
 `(Get-Job)[-1].Output` отобразить вывод последней задачи
-```
+```PowerShell
 function Start-PingThread ($Network) {
 $RNetwork = $Network -replace "\.\d{1,3}$","."
 foreach ($4 in 1..254) {
@@ -1827,7 +1870,7 @@ break # завершаем цикл
 `(Measure-Command {Start-PingThread -Network 192.168.3.0}).TotalSeconds` 24 Seconds
 
 ### PoshRSJob
-```
+```PowerShell
 function Start-PingRSJob ($Network) {
 $RNetwork = $Network -replace "\.\d{1,3}$","."
 foreach ($4 in 1..254) {
@@ -1843,7 +1886,7 @@ Get-RSJob | Remove-RSJob
 `(Measure-Command {Start-PingRSJob -Network 192.168.3.0}).TotalSeconds` 10 Seconds
 
 # SMTP
-```
+```PowerShell
 function Send-SMTP {
 param (
 [Parameter(Mandatory = $True)]$mess
@@ -1875,12 +1918,12 @@ $smtp.Send($Message)
 `Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V –All` установить роль на  Windows Desktop \
 `Get-Command -Module hyper-v` \
 `Get-VMHost`
-```
-New-VMSwitch -name NAT -SwitchType Internal` создать виртуальный коммутатор и адаптер для него
-Get-NetAdapter | where InterfaceDescription -match Hyper-V` список сетевых адаптеров
-New-NetNat -Name LocalNat -InternalIPInterfaceAddressPrefix "192.168.3.0/24"` задать сеть
-Get-NetAdapter "vEthernet (NAT)" | New-NetIPAddress -IPAddress 192.168.3.200 -AddressFamily IPv4 -PrefixLength 24` присвоить адрес, необходимо на ВМ указать шлюз 192.168.3.200, что бы находиться за NAT, или в настройка ВМ указать соответствующий адаптер
-Add-NetNatStaticMapping -NatName LocalNat -Protocol TCP -ExternalIPAddress 0.0.0.0 -ExternalPort 2222 -InternalIPAddress 192.168.3.103 -InternalPort 2121` проброс, вест трафик который приходит на хост Hyper-V TCP/2222, будет перенаправляться на соответствующий порт виртуальной машины за NAT.
+```PowerShell
+New-VMSwitch -name NAT -SwitchType Internal # создать виртуальный коммутатор и адаптер для него
+Get-NetAdapter | where InterfaceDescription -match Hyper-V # список сетевых адаптеров
+New-NetNat -Name LocalNat -InternalIPInterfaceAddressPrefix "192.168.3.0/24" # задать сеть
+Get-NetAdapter "vEthernet (NAT)" | New-NetIPAddress -IPAddress 192.168.3.200 -AddressFamily IPv4 -PrefixLength 24 # присвоить адрес, необходимо на ВМ указать шлюз 192.168.3.200, что бы находиться за NAT, или в настройка ВМ указать соответствующий адаптер
+Add-NetNatStaticMapping -NatName LocalNat -Protocol TCP -ExternalIPAddress 0.0.0.0 -ExternalPort 2222 -InternalIPAddress 192.168.3.103 -InternalPort 2121 # проброс, вест трафик который приходит на хост Hyper-V TCP/2222, будет перенаправляться на соответствующий порт виртуальной машины за NAT.
 (Get-NetAdapter | where Name -match NAT).Status
 ```
 `Get-NetNatStaticMapping` отобразить пробросы (NAT) \
@@ -1890,7 +1933,7 @@ Add-NetNatStaticMapping -NatName LocalNat -Protocol TCP -ExternalIPAddress 0.0.0
 
 `New-VMSwitch -Name Local -AllowManagementOS $True -NetAdapterName "Ethernet 4" -SwitchType External` создать вшений (External) виртуальный коммутатор \
 `$VMName = "hv-dc-01"`
-```
+```PowerShell
 $VM = @{
 Name = $VMName
 MemoryStartupBytes = 4Gb
@@ -1916,7 +1959,7 @@ New-VM @VM
 
 # VMWare/PowerCLI
 
-`Install-Module -Name VMware.PowerCLI` -AllowClobber` установить модуль (PackageProvider: nuget) \
+`Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
 `Get-Module -ListAvailable VMware* | Select Name,Version` \
 `Import-Module VMware.VimAutomation.Core` импортировать в сессию \
 `Get-PSProvider | format-list Name,PSSnapIn,ModuleName` список оснасток Windows PowerShell
@@ -1991,7 +2034,7 @@ New-VM @VM
 # Exchange/EMShell
 
 `$srv_cas = "exchange-cas"` \
-`$session_exchange = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$srv_cas/PowerShell/` -Credential $Cred -Authentication Kerberos` \
+`$session_exchange = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri http://$srv_cas/PowerShell/` -Credential $Cred -Authentication Kerberos \
 `Get-PSSession` \
 `Import-PSSession $session_exchange -DisableNameChecking` импортировать в текущую сессию
 
@@ -2227,7 +2270,7 @@ PickupDirectoryMaxMessagesPerMinute — скорость внутренней о
 `Get-ClientAccessServer | Update-FileDistributionService`
 
 ### PST
-`New-MailboxExportRequest -Mailbox $name -filepath "\\$srv\pst\$name.PST"` -ContentFilter {(Received -lt "01/01/2021")} -Priority Highest/Lower` -IsArchive` выполнить экспорт из архива пользователя \
+`New-MailboxExportRequest -Mailbox $name -filepath "\\$srv\pst\$name.PST" # -ContentFilter {(Received -lt "01/01/2021")} -Priority Highest/Lower # -IsArchive` выполнить экспорт из архива пользователя \
 `New-MailboxExportRequest -Mailbox $name -IncludeFolders "#Inbox#" -FilePath "\\$srv\pst\$name.PST"` только папку входящие \
 `New-MailboxImportRequest -Mailbox $name "\\$srv\pst\$name.PST"` импорт из PST \
 `Get-MailboxExportRequest` статус запросов \
@@ -2238,7 +2281,7 @@ PickupDirectoryMaxMessagesPerMinute — скорость внутренней о
 `Get-DistributionGroup` список групп рассылки \
 `Get-DistributionGroupMember "!_Офис"` список пользователей в группе \
 `Add-DistributionGroupMember -Identity "!_Офис" -Member "$name@$domain"` добавить в группу рассылки \
-`Remove-DistributionGroupMember -Identity "!_Офис" -Member "$name@$domain" \
+`Remove-DistributionGroupMember -Identity "!_Офис" -Member "$name@$domain"` \
 `New-DistributionGroup -Name "!_Тест" -Members "$name@$domain"` создать группу \
 `Set-DistributionGroup -Identity "support4" -HiddenFromAddressListsEnabled $true (или Set-Mailbox)` скрыть из списка адресов Exchange
 
@@ -2390,34 +2433,59 @@ CopyQueue Length - длина репликационной очереди коп
 
 # REST API
 
-`$pars = Invoke-WebRequest -Uri $url` \
-`$pars | Get-Member` \
-`$pars.Content` \
-`$pars.StatusCode -eq 200` \
-`$pars.Headers` \
-`$pars.ParsedHtml | Select lastModified` \
-`$pars.Links | fl title,innerText,href` \
-`$pars.Images.src` links on images \
-`iwr $url -OutFile $path` download
-```
-$pars = wget -Uri $url
-$pars.Images.src | %{
-$name = $_ -replace ".+(?<=/)"
-wget $_ -OutFile "$home\Pictures\$name"
+`$iwr = Invoke-WebRequest -Uri $url` \
+`$iwr | Get-Member` \
+`$iwr.Content` \
+`$iwr.StatusCode -eq 200` \
+`$iwr.Headers` \
+`$iwr.ParsedHtml | Select lastModified` \
+`$iwr.Links | fl title,innerText,href` \
+`$iwr.Images.src`
+
+### Methods
+
+**GET** - Read \
+**POST** - Create \
+**PATCH** - Partial update/modify \
+**PUT** - Update/replace \
+**DELETE** - Remove
+
+### Download Image
+```PowerShell
+function Download-Image {
+param (
+    [Parameter(Mandatory = $True)]$url
+)
+    $folder = $url -replace "http.+://" -replace "/","-" -replace "-$"
+    $path = "$home\Pictures\$folder"
+    if (Test-Path $path) {
+        Remove-Item $path -Recurse -Force
+        New-Item -ItemType Directory $path > $null
+    } else {
+        New-Item -ItemType Directory $path > $null
+    }
+    $irm = Invoke-WebRequest -Uri $url
+    foreach ($img in $irm.Images.src) {
+        $name = $img -replace ".+/"
+        Start-Job {
+            Invoke-WebRequest $using:img -OutFile "$using:path\$using:name"
+        } > $null
+    }
+    while ($True){
+        $status_job = (Get-Job).State[-1]
+        if ($status_job -like "Completed"){
+        Get-Job | Remove-Job -Force
+        break
+    }}
+    $count_all = $irm.Images.src.Count
+    $count_down = (Get-Item $path\*).count
+    "Downloaded $count_down of $count_all files to $path"
 }
-$count_all = $pars.Images.src.Count
-$count_down = (Get-Item $path\*).count
-"Downloaded $count_down of $count_all files to $path"
 ```
-Methods: \
-GET - Read \
-POST - Create \
-PATCH - Partial update/modify \
-PUT - Update/replace \
-DELETE - Remove
+`Download-Image -url https://losst.pro/`
 
 ### Token
-```
+```PowerShell
 https://veeam-11:9419/swagger/ui/index.html
 $Header = @{
 "x-api-version" = "1.0-rev2"
@@ -2431,7 +2499,7 @@ $vpost = iwr "https://veeam-11:9419/api/oauth2/token" -Method POST -Headers $Hea
 $vtoken = (($vpost.Content) -split '"')[3]
 ```
 ### GET
-```
+```PowerShell
 $token = $vtoken | ConvertTo-SecureString -AsPlainText –Force
 $vjob = iwr "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -Authentication Bearer -Token $token -SkipCertificateCheck
 
@@ -2445,27 +2513,90 @@ $vjob = $vjob.Content | ConvertFrom-Json
 $vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
 $vjob.data.virtualMachines.includes.inventoryObject
 ```
-### Telegram
-```powershell
-function Send-Telegram  {
+# Telegram
+
+`@BotFather (https://t.me/BotFather) /newbot` \
+`https://api.telegram.org/bot<token>/<endpoint>`
+```PowerShell
+function Get-FromTelegram {
 param (
-[Parameter(Mandatory = $True)]$Text
-)$token_bot = "5517149522:AAFop4_darMpTT7VgLpY2hjkDkkV1dzmGNM"
-$id_chat = "-609779646"
-$payload = @{
-"chat_id" = $id_chat
-"text" = $Text
-"parse_mode" = "html"
-}
-Invoke-RestMethod -Uri ("https://api.telegram.org/bot{0}/sendMessage" -f $token_bot) -Method Post -ContentType "application/json;charset=utf-8" -Body (
-ConvertTo-Json -Compress -InputObject $payload
+    $token = "687...:AAF...",
+    [switch]$last,
+    [switch]$date
 )
+$endpoint = "getUpdates"
+$url      = "https://api.telegram.org/bot$token/$endpoint"
+$result   = Invoke-RestMethod -Uri $url
+if ($date) {
+$Collections = New-Object System.Collections.Generic.List[System.Object]
+foreach ($r in $($result.result)) {
+    $EpochTime = [DateTime]"1/1/1970"
+    $TimeZone = Get-TimeZone
+    $UTCTime = $EpochTime.AddSeconds($r.message.date)
+    $d = $UTCTime.AddMinutes($TimeZone.BaseUtcOffset.TotalMinutes)
+	#$d
+    $Collections.Add([PSCustomObject]@{
+        Message = $r.message.text;
+        Date    = $d
+    })
+}
+$Collections
+} else {
+if ($last) {
+    $result.result.message.text[-1] # прочитать последнее сообщение
+} else {
+    $result.result.message.text
+}
+#$result.result.message.chat.id[-1] # получить индивидуальный chat_id с ботом
+}
 }
 ```
-`Send-Telegram -Text Test`
+`Get-FromTelegram` \
+`Get-FromTelegram -last` \
+`Get-FromTelegram -date`
+
+https://core.telegram.org/bots/api#sendmessage
+```PowerShell
+function Send-ToTelegram {
+param (
+[Parameter(Mandatory = $True)]$Text,
+$token    = "687...:AAF...",
+$chat     = "125468108"
+)
+$endpoint = "sendMessage"
+$url      = "https://api.telegram.org/bot$token/$endpoint"
+$Body = @{
+chat_id = $Chat
+text    = $Text
+}
+Invoke-RestMethod -Uri $url -Body $Body
+}
+```
+`Send-ToTelegram -Text "Send test from powershell"`
+```PowerShell
+$LastDate = (Get-FromTelegram -date)[-1].Date
+while ($true) {
+    $LastMessage  = (Get-FromTelegram -date)[-1]
+    Start-Sleep 1
+    $LastDateTest = $LastMessage.Date
+    if (($LastMessage.Message -match "/Service") -and ($LastDate -ne $LastDateTest)) {
+        $ServiceName = $($LastMessage.Message -split " ")[-1]
+        $Result = $(Get-Service $ServiceName -ErrorAction Ignore).Status
+        if ($Result) {
+            Send-ToTelegram -Text $Result
+        } else {
+            Send-ToTelegram -Text "Service not found"
+        }
+        $LastDate = $LastDateTest
+    }
+}
+```
+`/Service vpnagent` \
+`/Service WinRM` \
+`/Service test`
 
 # Pode
-```
+```PowerShell
 Start-PodeServer {
     Add-PodeEndpoint -Address localhost -Port "8080" -Protocol "HTTP"
     ### Get info endpoints
@@ -2522,7 +2653,7 @@ Start-PodeServer {
 # Selenium
 
 `Invoke-Expression(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/Lifailon/Deploy-Selenium/rsa/Deploy-Selenium-Drivers.ps1")` установка всех драйверов и Chromium подходящей версии для драйвера
-```
+```PowerShell
 $path = "$home\Documents\Selenium\"
 $ChromeDriver = "$path\ChromeDriver.exe"
 $WebDriver = "$path\WebDriver.dll"
@@ -2569,7 +2700,7 @@ finally {
 `$Go_Button = $All_Elements | ? innerText -like "go"` поиск элемента по имени \
 `$Go_Button | select ie9_tagName` получить TagName (SPAN) для быстрого дальнейшего поиска \
 `$SPAN_Elements = $ie.document.IHTMLDocument3_getElementsByTagName("SPAN")`
-```
+```PowerShell
 $ie = New-Object -ComObject InternetExplorer.Application
 $ie.navigate("https://yandex.ru")
 $ie.visible = $true
@@ -2624,11 +2755,10 @@ $ie.Quit()
 `$wshell.SendKeys("{F1}")` \
 `$wshell.SendKeys("{F12}")` \
 `$wshell.SendKeys("{+}{^}{%}{~}{(}{)}{[}{]}{{}{}}")`
-```
+```PowerShell
 function Get-AltTab {
-$wshell = New-Object -ComObject wscript.shell
-$wshell.SendKeys("%{Tab}") # ALT+TAB
-sleep 120
+(New-Object -ComObject wscript.shell).SendKeys("%{Tab}")
+Start-Sleep $(Get-Random -Minimum 30 -Maximum 180)
 Get-AltTab
 }
 Get-AltTab
@@ -2639,26 +2769,26 @@ Get-AltTab
 `if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}`
 ```
 Type:
-0` ОК
-1` ОК и Отмена
-2` Стоп, Повтор, Пропустить
-3` Да, Нет, Отмена
-4` Да и Нет
-5` Повтор и Отмена
-16` Stop
-32` Question
-48` Exclamation
-64` Information
+0 ОК
+1 ОК и Отмена
+2 Стоп, Повтор, Пропустить
+3 Да, Нет, Отмена
+4 Да и Нет
+5 Повтор и Отмена
+16 Stop
+32 Question
+48 Exclamation
+64 Information
 
 Output:
--1` Timeout
-1` ОК
-2` Отмена
-3` Стоп
-4` Повтор
-5` Пропустить
-6` Да
-7` Нет
+-1 Timeout
+1 ОК
+2 Отмена
+3 Стоп
+4 Повтор
+5 Пропустить
+6 Да
+7 Нет
 ```
 ### WScript.Network
 `$wshell = New-Object -ComObject WScript.Network` \
@@ -2681,7 +2811,7 @@ Output:
 `$Outlook = New-Object -ComObject Outlook.Application` \
 `$Outlook | Get-Member` \
 `$Outlook.Version`
-```
+```PowerShell
 $Outlook = New-Object -ComObject Outlook.Application
 $Namespace = $Outlook.GetNamespace("MAPI")
 $Folder = $namespace.GetDefaultFolder(4)` исходящие
@@ -2721,7 +2851,7 @@ $Outlook.Quit()
 `[System.Web.Security.Membership]::GeneratePassword(10,2)`
 
 ### SoundPlayer
-```
+```PowerShell
 $CriticalSound = New-Object System.Media.SoundPlayer
 $CriticalSound.SoundLocation = "C:\WINDOWS\Media\Windows Critical Stop.wav"
 $CriticalSound.Play()
@@ -2741,7 +2871,7 @@ $GoodSound.Play()
 `[System.Diagnostics.Process]::Start('notepad.exe')`
 
 ### [Clicker]
-```
+```PowerShell
 $cSource = @'
 using System;
 using System.Drawing;
@@ -2806,7 +2936,7 @@ public static void LeftClickAtPoint(int x, int y)
 `[Clicker]::LeftClickAtPoint(1900,1070)`
 
 ### [Audio]
-```
+```PowerShell
 Add-Type -Language CsharpVersion3 -TypeDefinition @"
 using System.Runtime.InteropServices;
 [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -2857,7 +2987,7 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 ### NetSessionEnum
 Function: https://learn.microsoft.com/ru-ru/windows/win32/api/lmshare/nf-lmshare-netsessionenum?redirectedfrom=MSDN \
 Source: https://fuzzysecurity.com/tutorials/24.html
-```
+```PowerShell
 function Invoke-NetSessionEnum {
 param (
 [Parameter(Mandatory = $True)][string]$HostName
@@ -2931,7 +3061,7 @@ echo "`nCalling NetApiBufferFree, no memleaks here!"
 ### CopyFile
 Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winbase/nf-winbase-copyfile \
 Source: https://devblogs.microsoft.com/scripting/use-powershell-to-interact-with-the-windows-api-part-1/
-```
+```PowerShell
 $MethodDefinition = @"
 [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
 public static extern bool CopyFile(string lpExistingFileName, string lpNewFileName, bool bFailIfExists);
@@ -2941,7 +3071,7 @@ $Kernel32::CopyFile("$($Env:SystemRoot)\System32\calc.exe", "$($Env:USERPROFILE)
 ```
 ### ShowWindowAsync
 Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync
-```
+```PowerShell
 $Signature = @"
 [DllImport("user32.dll")]public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 "@
@@ -2958,7 +3088,7 @@ Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser
 `[int][System.Windows.Forms.Keys]::F1`
 
 `65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}`
-```
+```PowerShell
 function Get-ControlKey {
 $key = 112
 $Signature = @'
@@ -2988,7 +3118,7 @@ Source: https://powershell.one/tricks/input-devices/detect-key-press
 `[Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding("windows-1251")` для ps2exe \
 `Get-Service | Out-File $home\Desktop\Service.txt -Encoding oem` > \
 `Get-Service | Out-File $home\Desktop\Service.txt -Append` >>
-```
+```PowerShell
 do {
 if ([Console]::KeyAvailable) {
 $keyInfo = [Console]::ReadKey($true)
@@ -3024,7 +3154,7 @@ sleep 1
 } while ($true)
 ```
 ### Register-ObjectEvent
-```
+```PowerShell
 $Timer = New-Object System.Timers.Timer
 $Timer.Interval = 1000
 Register-ObjectEvent -InputObject $Timer -EventName Elapsed -SourceIdentifier Timer.Output -Action {
@@ -3049,7 +3179,7 @@ $date = Get-Date -f hh:mm:ss
 
 ### UDP Socket
 Source: https://cloudbrothers.info/en/test-udp-connection-powershell/
-```
+```PowerShell
 function Start-UDPServer {
 param(
 $Port = 5201
@@ -3073,7 +3203,7 @@ Message       = $ReturnString
 `Start-UDPServer -Port 5201`
 
 ### Test-NetUDPConnection
-```
+```PowerShell
 function Test-NetUDPConnection {
 param(
 [string]$ComputerName = "127.0.0.1",
@@ -3100,7 +3230,7 @@ $UdpObject.Close()
 `Test-NetUDPConnection -ComputerName 127.0.0.1 -PortServer 514 -Message "<30>May 31 00:00:00 HostName multipathd[784]: Test message"`
 
 ### TCP Socket
-```
+```PowerShell
 function Start-TCPServer {
 param(
 $Port = 5201
@@ -3119,7 +3249,7 @@ $ReceiveBytes.Client.RemoteEndPoint | select Address,Port
 
 ### WakeOnLan
 Broadcast package consisting of 6 byte filled "0xFF" and then 96 byte where the mac address is repeated 16 times
-```
+```PowerShell
 function Send-WOL {
 param (
 [Parameter(Mandatory = $True)]$Mac,
@@ -3158,7 +3288,7 @@ $UdpClient.Close()
 `$Image.Save("$home\Desktop\1200x800.jpg")`
 
 ### HTTP Listener
-```
+```PowerShell
 $httpListener = New-Object System.Net.HttpListener
 $httpListener.Prefixes.Add("http://+:8888/")
 $httpListener.Start()
@@ -3181,7 +3311,7 @@ $httpListener.Close()
 `(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/Lifailon/PowerShell-Commands/rsa/README.md")`
 
 ### Certificate
-```
+```PowerShell
 function Get-WebCertificate ($srv) {
 $iwr = iwr $srv
 $status_code = $iwr.StatusCode
@@ -3207,7 +3337,7 @@ $Collections
 `Get-WebCertificate https://google.com`
 
 # Excel
-```
+```PowerShell
 $path = "$home\Desktop\Services-to-Excel.xlsx"
 $Excel = New-Object -ComObject Excel.Application
 $Excel.Visible = $false` отключить открытие GUI
@@ -3259,7 +3389,7 @@ $ExcelWorkBook.close($true)
 $Excel.Quit()
 ```
 ### Excel.Application.Open
-```
+```PowerShell
 $path = "$home\Desktop\Services-to-Excel.xlsx"
 $Excel = New-Object -ComObject Excel.Application
 $Excel.Visible = $false
@@ -3282,7 +3412,7 @@ $Excel.Quit()
 
 `Get-Service | Select Name,DisplayName,Status,StartType | Export-Csv -path "$home\Desktop\Get-Service.csv" -Append -Encoding Default` экспортировать в csv (-Encoding UTF8) \
 `Import-Csv "$home\Desktop\Get-Service.csv" -Delimiter ","` импортировать массив
-```
+```PowerShell
 $data = ConvertFrom-Csv @"
 Region,State,Units,Price
 West,Texas,927,923.71
@@ -3294,7 +3424,7 @@ $null,Tennessee,466,770.67
 `$systeminfo."Доступная физическая память"`
 
 ### ConvertFrom-String
-```
+```PowerShell
 '
 log = 
 {
@@ -3303,14 +3433,14 @@ log =
 ' | ConvertFrom-String` создает PSCustomObject (разбивает по пробелам, удаляет все пробелы и пустые строки)
 ```
 ### ConvertFrom-StringData
-```
+```PowerShell
 "
 key1 = value1
 key2 = value2
 " | ConvertFrom-StringData # создает Hashtable
 ```
 # XML
-```
+```PowerShell
 $xml = [xml](Get-Content $home\desktop\test.rdg)` прочитать содержимое XML-файла
 $xml.load("$home\desktop\test.rdg")` открыть файл
 $xml.RDCMan.file.group.properties.name` имена групп
@@ -3326,7 +3456,7 @@ $xml.Save($file)` сохранить содержимое объекта в фа
 `ConvertTo-Xml (Get-Service)`
 
 ### Get-CredToXML
-```
+```PowerShell
 function Get-CredToXML {
     param (
         $CredFile = "$home\Documents\cred.xml"
@@ -3351,7 +3481,7 @@ function Get-CredToXML {
 `$PasswordText = $Cred.GetNetworkCredential().password` получить пароль в текстовом виде
 
 ### XmlWriter (Extensible Markup Language)
-```
+```PowerShell
 $XmlWriterSettings = New-Object System.Xml.XmlWriterSettings
 $XmlWriterSettings.Indent = $true` включить отступы
 $XmlWriterSettings.IndentChars = "    "` задать отступ
@@ -3376,7 +3506,7 @@ $XmlObjectWriter.Flush()
 $XmlObjectWriter.Close()
 ```
 ### CreateElement
-```
+```PowerShell
 $xml = [xml](gc $home\desktop\test.xml)
 $xml.Root.Configuration.Fonts
 $NewElement = $xml.CreateElement("Fonts")` выбрать элемент куда добавить
@@ -3385,7 +3515,7 @@ $xml.Root.Configuration.AppendChild($NewElement)` добавить элемен�
 $xml.Save("$home\desktop\test.xml")
 ```
 # JSON
-```
+```PowerShell
 $log = '
 {
   "log": {
@@ -3408,7 +3538,7 @@ $OOKLA  = '
 $ookla.result
 ```
 # YAML
-```
+```PowerShell
 Import-Module PSYaml` используется в Docker/Ansible
 $netplan = "
 network:` словарь по типу - ключ : значение с вложенными словарями
@@ -3435,7 +3565,7 @@ bool: !!bool` boolean
 # HTML
 
 ### ConvertFrom-Html
-```
+```PowerShell
 function ConvertFrom-Html {
     param (
         [Parameter(ValueFromPipeline)]$url
@@ -3453,7 +3583,7 @@ $apache_status | ConvertFrom-Html
 ### ConvertTo-Html
 
 `Get-Process | select Name, CPU | ConvertTo-Html -As Table > "$home\desktop\proc-table.html"` вывод в формате List (Format-List) или Table (Format-Table)
-```
+```PowerShell
 $servers = "ya.ru","ya.com","google.com"
 $path = "$home\Desktop\Ping.html" 
 $header = @"
@@ -3498,13 +3628,13 @@ $results | ConvertTo-Html -head $header -body $body | foreach {
 Invoke-Item $path
 ```
 ### PSWriteHTML
-```
+```PowerShell
 Import-Module PSWriteHTML
 (Get-Module PSWriteHTML).ExportedCommands
 Get-Service | Out-GridHtml -FilePath ~\Desktop\Get-Service-Out-GridHtml.html
 ```
 ### HtmlReport
-```
+```PowerShell
 Import-Module HtmlReport
 $topVM = ps | Sort PrivateMemorySize -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.PrivateMemorySize)}
 $topCPU = ps | Sort CPU -Descending | Select -First 10 | %{,@(($_.ProcessName + " " + $_.Id), $_.CPU)}
@@ -3515,7 +3645,7 @@ ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Proce
 } > ~\Desktop\Get-Process-HtmlReport.html
 ```
 # SQLite
-```
+```PowerShell
 $path = "$home\Documents\Get-Service.db"
 $Module = Get-Module MySQLite
 if ($Module -eq $null) {
@@ -3536,14 +3666,14 @@ Invoke-MySQLiteQuery -Path $path -Query "INSERT INTO Service (Name, DisplayName,
 `(Get-MySQLiteDB $path).Tables` список таблиц в базе \
 `Invoke-MySQLiteQuery -Path $path -Query "SELECT name FROM sqlite_master WHERE type='table';"` список таблиц в базе \
 `Invoke-MySQLiteQuery -Path $path -Query "DROP TABLE Service;"` удалить таблицу
-```
+```PowerShell
 $TableName = "Service"
 Invoke-MySQLiteQuery -Path $path -Query "SELECT * FROM $TableName" # прочитать содержимое таблицы (в формате объекта)
 ```
 `Get-Service | select  Name,DisplayName,Status | ConvertTo-MySQLiteDB -Path $path -TableName Service -force` конвертировать объект в таблицу
 
 ### Database password
-```
+```PowerShell
 $Connection = New-SQLiteConnection -DataSource $path
 $Connection.ChangePassword("password")
 $Connection.Close()
@@ -3723,7 +3853,7 @@ innodb_force_recovery=6 # запуск СУБД в режиме read only
 ### MySQL Connector NET
 
 ### Add-ADUser
-```
+```PowerShell
 $ip = "192.168.1.253"
 $user = "posh"
 $pass = "1qaz!QAZ"
@@ -3745,7 +3875,7 @@ $Command.ExecuteNonQuery()
 $Connection.Close()
 ```
 ### Get-ADUser
-```
+```PowerShell
 $ip = "192.168.1.253"
 $user = "posh"
 $pass = "1qaz!QAZ"
@@ -3796,7 +3926,7 @@ SELECT name FROM master.dbo.sysdatabases
 go
 ```
 ### System.Data.SqlClient
-```
+```PowerShell
 $user = "itinvent"
 $pass = "itinvent"
 $db   = "itinvent"
@@ -3818,7 +3948,7 @@ $Data = $DataSet.Tables
 $Data[0] | ft
 ```
 ### SqlClient INSERT
-```
+```PowerShell
 $user = "itinvent"
 $pass = "itinvent"
 $db   = "db_test"
@@ -4283,7 +4413,7 @@ Invoke-RestMethod -Method POST -Uri $url -Body "$table,host=$(hostname) download
 `$dbs = irm "http://192.168.3.104:8086/query?q=SHOW DATABASES"` \
 `$dbs = irm "http://192.168.3.104:8086/query?epoch=ms&u=admin&p=password&q=SHOW DATABASES"` \
 `$dbs.results.series.values`
-```
+```PowerShell
 $ip    = "192.168.3.104"
 $port  = "8086"
 $db    = "powershell"
@@ -4298,14 +4428,14 @@ $data.results.series.values ` данные построчно
 ```
 ### Endpoints
 https://docs.influxdata.com/influxdb/v1.7/tools/api/
-```
+```PowerShell
 $stats = irm http://192.168.3.104:8086/debug/vars` статистика сервера
 $stats."database:powershell".values` кол-во таблиц к БД
 $stats.queryExecutor.values` количество query-запросов (обращений к endpoint /query)
 $stats.write.values` количество write-запросов
 $stats.system.uptime
 ```
-`http://192.168.3.104:8086/debug/requests` кол-во клиентских HTTP-запросов к конечным точкам /writeи /query` \
+`http://192.168.3.104:8086/debug/requests` кол-во клиентских HTTP-запросов к конечным точкам /writeи /query \
 `http://192.168.3.104:8086/debug/pprof` \
 `http://192.168.3.104:8086/ping` \
 `http://192.168.3.104:8086/query` \
@@ -4316,7 +4446,7 @@ $stats.system.uptime
 `http://192.168.3.99:8086/api/v2/write`
 
 ### PingTo-InfluxDB
-```
+```PowerShell
 while ($true) {
 	$tz = (Get-TimeZone).BaseUtcOffset.TotalMinutes
 	$unixtime  = (New-TimeSpan -Start (Get-Date "01/01/1970") -End ((Get-Date).AddMinutes(-$tz))).TotalSeconds` -3h UTC
@@ -4331,7 +4461,7 @@ while ($true) {
 `SELECT * FROM ping WHERE status = false`
 
 ### PerformanceTo-InfluxDB
-```
+```PowerShell
 function ConvertTo-Encoding ([string]$From, [string]$To) {
     Begin {
         $encFrom = [System.Text.Encoding]::GetEncoding($from)
@@ -4361,7 +4491,7 @@ while ($true) {
 }
 ```
 ### Service
-```
+```PowerShell
 $powershell_Path = (Get-Command powershell).Source
 $NSSM_Path = "C:\NSSM\NSSM-2.24.exe"
 $Script_Path = "C:\NSSM\PerformanceTo-InfluxDB.ps1"
@@ -4422,7 +4552,7 @@ https://www.cdata.com/kb/tech/elasticsearch-ado-powershell.rst
 `Install-Module ElasticsearchCmdlets` https://www.powershellgallery.com/packages/ElasticsearchCmdlets/23.0.8565.1 \
 `Import-Module ElasticsearchCmdlets` \
 `Get-Command -Module ElasticsearchCmdlets`
-```
+```PowerShell
 $elasticsearch = Connect-Elasticsearch  -Server "$Server" -Port "$Port" -User "$User" -Password "$Password"
 $shipcity = "New York"
 $orders = Select-Elasticsearch -Connection $elasticsearch -Table "Orders" -Where "ShipCity = `'$ShipCity`'"` поиск и получение данных
@@ -4432,7 +4562,7 @@ $orders = Invoke-Elasticsearch -Connection $elasticsearch -Query 'SELECT * FROM 
 
 `Install-Package CData.Elasticsearch` https://www.nuget.org/packages/CData.Elasticsearch \
 `[Reflection.Assembly]::LoadFile("C:\Program Files\PackageManagement\NuGet\Packages\CData.Elasticsearch.23.0.8565\lib\net40\System.Data.CData.Elasticsearch.dll")`
-```
+```PowerShell
 $connect = New-Object System.Data.CData.Elasticsearch.ElasticsearchConnection("Server=127.0.0.1;Port=9200;User=admin;Password=123456;")
 $connect.Open()
 $sql = "SELECT OrderName, Freight from Orders"
@@ -4444,7 +4574,7 @@ Write-Host $_.ordername $_.freight
 }
 ```
 ### UPDATE
-```
+```PowerShell
 Update-Elasticsearch -Connection $Elasticsearch -Columns @('OrderName','Freight') -Values @('MyOrderName', 'MyFreight') -Table Orders -Id "MyId"
 
 $cmd =  New-Object System.Data.CData.Elasticsearch.ElasticsearchCommand("UPDATE Orders SET ShipCity='New York' WHERE Id = @myId", $conn)
@@ -4452,7 +4582,7 @@ $cmd.Parameters.Add(new System.Data.CData.Elasticsearch.ElasticsearchParameter("
 $cmd.ExecuteNonQuery()
 ```
 ### INSERT
-```
+```PowerShell
 Add-Elasticsearch -Connection $Elasticsearch -Table Orders -Columns @("OrderName", "Freight") -Values @("MyOrderName", "MyFreight")
 
 $cmd =  New-Object System.Data.CData.Elasticsearch.ElasticsearchCommand("INSERT INTO Orders (ShipCity) VALUES (@myShipCity)", $conn)
@@ -4460,7 +4590,7 @@ $cmd.Parameters.Add(new System.Data.CData.Elasticsearch.ElasticsearchParameter("
 $cmd.ExecuteNonQuery()
 ```
 ### DELETE
-```
+```PowerShell
 Remove-Elasticsearch -Connection $Elasticsearch -Table "Orders" -Id "MyId"
 
 $cmd =  New-Object System.Data.CData.Elasticsearch.ElasticsearchCommand("DELETE FROM Orders WHERE Id=@myId", $conn)
@@ -4473,7 +4603,7 @@ $cmd.ExecuteNonQuery()
 `Get-OdbcDriver | ft` список установленных драйверов
 
 https://www.elastic.co/guide/en/elasticsearch/reference/current/sql-client-apps-ps1.html
-```
+```PowerShell
 $connectstring = "DSN=Local Elasticsearch;"
 $sql = "SELECT * FROM library"
 $conn = New-Object System.Data.Odbc.OdbcConnection($connectstring)
@@ -4488,7 +4618,7 @@ $dt
 # PostgreSQL
 
 Скачать и установить драйвер: https://www.postgresql.org/ftp/odbc/versions/msi/
-```
+```PowerShell
 $dbServer = "192.168.3.101"
 $port = "5432"
 $dbName = "test"
@@ -4540,7 +4670,7 @@ foreach ($row in $dsDB[0].Tables[0].Rows) {
 `gwmi Win32_OperatingSystem | Get-Member -MemberType Method` методы reboot и shutdown \
 `(gwmi Win32_OperatingSystem -EnableAllPrivileges).Reboot()` используется с ключем повышения привелегий \
 `(gwmi Win32_OperatingSystem -EnableAllPrivileges).Win32Shutdown(0)` завершение сеанса пользователя
-```
+```PowerShell
 $system = Get-WmiObject -Class Win32_OperatingSystem
 $InstallDate = [Management.ManagementDateTimeconverter]::ToDateTime($system.installdate)` Получаем дату установки ОС
 $AfterInstallDays = ((Get-Date) — $Installdate).Days` Вычисляем время, прошедшее с момента установки
@@ -4611,7 +4741,7 @@ Windows Registry Editor Version 5.00
 
 `(Get-Counter -ListSet *интерфейс*).Counter` найти все счетчики \
 `Get-Counter "\Сетевой интерфейс(*)\Всего байт/с"` отобразить все адаптеры (выбрать действующий по трафику)
-```
+```PowerShell
 $WARNING = 25
 $CRITICAL = 50
 $TransferRate = ((Get-Counter "\\huawei-mb-x-pro\сетевой интерфейс(intel[r] wi-fi 6e ax211 160mhz)\всего байт/с"
@@ -4680,7 +4810,7 @@ Security: \
 
 https://api.nuget.org/v3-flatcontainer/lextm.sharpsnmplib/12.5.2/lextm.sharpsnmplib.12.5.2.nupkg \
 `Add-Type -LiteralPath "$home\Desktop\lextm.sharpsnmplib-12.5.2\net471\SharpSnmpLib.dll"`
-```
+```PowerShell
 $port = 161
 $OID = "1.3.6.1.2.1.1.4.0"
 $variableList = New-Object Collections.Generic.List[Lextm.SharpSnmpLib.Variable]
@@ -4701,9 +4831,9 @@ $TimeOut
 $message.Data.ToString()
 ```
 ### Walk
-```
-[Lextm.SharpSnmpLib.ObjectIdentifier]$OID = "1.3.6.1.2.1.1"` дерево или конечный OID
-$WalkMode = [Lextm.SharpSnmpLib.Messaging.WalkMode]::WithinSubtree` режим обхода по дереву
+```PowerShell
+[Lextm.SharpSnmpLib.ObjectIdentifier]$OID = "1.3.6.1.2.1.1" # дерево или конечный OID
+$WalkMode = [Lextm.SharpSnmpLib.Messaging.WalkMode]::WithinSubtree # режим обхода по дереву
 $results = New-Object Collections.Generic.List[Lextm.SharpSnmpLib.Variable]
 $message = [Lextm.SharpSnmpLib.Messaging.Messenger]::Walk(
   $Version,
@@ -4718,14 +4848,14 @@ $results
 
 $results2 = @()
 foreach ($d in $results) {
-$results2 +=[PSCustomObject]@{'ID'=$d.id.ToString();'Data'=$d.Data.ToString()}` перекодировать вывод построчно в строку
+$results2 +=[PSCustomObject]@{'ID'=$d.id.ToString();'Data'=$d.Data.ToString()} # перекодировать вывод построчно в строку
 }
 $results2
 ```
 # Zabbix
 
 ### Zabbix Agent Deploy
-```
+```PowerShell
 $url = "https://cdn.zabbix.com/zabbix/binaries/stable/6.4/6.4.5/zabbix_agent2-6.4.5-windows-amd64-static.zip"
 $path = "$home\Downloads\zabbix-agent2-6.4.5.zip"
 $WebClient = New-Object System.Net.WebClient
@@ -4754,7 +4884,7 @@ Name: Service Count \
 Type: Zabbix trapper \
 Key: service.count \
 Type of Information: Numeric
-```
+```PowerShell
 $path = "C:\zabbix-agent2-6.4.5\bin"
 $scount = (Get-Service).Count
 .$path\zabbix_sender.exe -z 192.168.3.102 -s "powershell-host" -k service.count -o $scount
@@ -4794,7 +4924,7 @@ key: `process.vm[zabbix_agent2]`
 `'UserParameter=Get-Query-Param[*],powershell.exe -noprofile -executionpolicy bypass -File C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\scripts\User-Sessions\Get-Query-Param.ps1 $1' > C:\zabbix-agent2-6.4.5\conf\zabbix_agent2.d\plugins.d\User-Sessions.conf`
 
 - Поместить скрипт Get-Query-Param.ps1 в каталог, путь к которому указан в User-Sessions.conf. Скрипт содержим пользовательские параметры, которые он принимает от Zabbix сервера для передачи их в функции скрипта.
-```
+```PowerShell
 Param([string]$select)
 if ($select -eq "ACTIVEUSER") {
 (Get-Query | where status -match "Active").User
@@ -4868,7 +4998,7 @@ https://www.zabbix.com/documentation/current/en/manual/api/reference
 
 `$ip = "192.168.3.102"` \
 `$url = "http://$ip/zabbix/api_jsonrpc.php"`
-```
+```PowerShell
 $data = @{
     "jsonrpc"="2.0";
     "method"="user.login";
@@ -4883,7 +5013,7 @@ $token = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json
 `$token = "2eefd25fdf1590ebcdb7978b5bcea1fff755c65b255da8cbd723181b639bb789"` сгенерировать токен в UI (http://192.168.3.102/zabbix/zabbix.php?action=token.list)
 
 ### user.get
-```
+```PowerShell
 $data = @{
     "jsonrpc"="2.0";
     "method"="user.get";
@@ -4895,7 +5025,7 @@ $data = @{
 $users = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | ConvertTo-Json) -ContentType "application/json").Result
 ```
 ### problem.get
-```
+```PowerShell
 $data = @{
     "jsonrpc"="2.0";
     "method"="problem.get";
@@ -4919,7 +5049,7 @@ host.massadd - adding related objects to hosts \
 host.massremove - removing related objects from hosts \
 host.massupdate - replacing or removing related objects from hosts \
 host.update - updating hosts
-```
+```PowerShell
 $data = @{
     "jsonrpc"="2.0";
     "method"="host.get";
@@ -4938,7 +5068,7 @@ $host_id = $hosts[3].hostid` забрать id хоста по индексу
 ### item.get
 
 Получить id элементов данных по наименованию ключа для конкретного хоста
-```
+```PowerShell
 $data = @{
     "jsonrpc"="2.0";
     "method"="item.get";
@@ -4954,7 +5084,7 @@ $items_id = ($items | where key_ -match system.uptime).itemid` забрать id
 ### history.get
 
 Получить всю историю элемента данных по его id
-```
+```PowerShell
 $data = @{
     "jsonrpc"="2.0";
     "method"="history.get";
@@ -4970,7 +5100,7 @@ $items_data_uptime = (Invoke-RestMethod -Method POST -Uri $url -Body ($data | Co
 ### Convert Secconds To TimeSpan and DateTime
 
 `$sec = $items_data_uptime.value`
-```
+```PowerShell
 function ConvertSecondsTo-TimeSpan {
     param (
         $insec
@@ -4984,7 +5114,7 @@ function ConvertSecondsTo-TimeSpan {
 ### Convert From Unix Time
 
 `$time = $items_data_uptime.clock`
-```
+```PowerShell
 function ConvertFrom-UnixTime {
     param (
         $intime
@@ -5027,7 +5157,7 @@ function ConvertFrom-UnixTime {
 `Import-PfxCertificate -Exportable -Password $pass -CertStoreLocation Cert:\CurrentUser\My -FilePath $home\Desktop\certificate.pfx`
 
 # OpenSSL
-```
+```PowerShell
 Invoke-WebRequest -Uri https://slproweb.com/download/Win64OpenSSL_Light-3_1_1.msi -OutFile $home\Downloads\OpenSSL-Light-3.1.1.msi
 Start-Process $home\Downloads\OpenSSL-Light-3.1.1.msi -ArgumentList '/quiet' -Wait` установить msi пакет в тихом режиме (запуск от имени Администратора)
 rm $home\Downloads\OpenSSL-Light-3.1.1.msi
@@ -5396,11 +5526,11 @@ New-WSManInstance -ResourceURI "winrm/config/Listener" -SelectorSet $selector_se
 `Get-DscLocalConfigurationManager`
 
 `Get-DscResource` \
-`Get-DscResource -Name File -Syntax`` https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
+`Get-DscResource -Name File -Syntax` https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
 
 `Ensure = Present` настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить) \
 `Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
-```
+```PowerShell
 Configuration TestConfiguraion
 {
     Ctrl+Space
@@ -5448,8 +5578,8 @@ Configuration DSConfigurationProxy
 `Start-DscConfiguration -Path $Path` \
 `Get-Job` \
 `$srv = "vproxy-01"` \
-`Get-Service -ComputerName $srv | ? name -match w32time` Start-Service` \
-`icm $srv {Get-Process | ? ProcessName -match calc} | ft` Stop-Process -Force` \
+`Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
+`icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
 `icm $srv {ls C:\ | ? name -match Temp} | ft` rm`
 
 # Git
@@ -5496,8 +5626,8 @@ Configuration DSConfigurationProxy
 # Ansible
 
 `apt -y update && apt -y upgrade` \
-`apt -y install ansible` v2.10.8` \
-`apt -y install ansible-core` v2.12.0` \
+`apt -y install ansible` v2.10.8 \
+`apt -y install ansible-core` v2.12.0 \
 `apt -y install sshpass`
 
 `ansible-galaxy collection install ansible.windows` установить коллекцию модулей \
