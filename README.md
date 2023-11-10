@@ -24,7 +24,7 @@
 - [DHCP](#dhcpserver)
 - [DFS](#dfs)
 - [StorageReplica](#storagereplica)
-- [Package](#package)
+- [Package-Manager](#package-manager)
 - [PS2EXE](#ps2exe)
 - [NSSM](#nssm)
 - [Jobs](#jobs)
@@ -42,6 +42,8 @@
 - [COM](#com)
 - [dotNET](#dotnet)
 - [Console API](#console-api)
+- [Drawing](#drawing)
+- [ObjectEvent](#objectevent)
 - [Sockets](#sockets)
 - [Excel](#excel)
 - [CSV](#csv)
@@ -1763,7 +1765,7 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `Get-SRPartnership | Remove-SRPartnership` удалить реплизацию на основном сервере \
 `Get-SRGroup | Remove-SRGroup` удалить реплизацию на обоих серверах
 
-# Package
+# Package-Manager
 
 `Import-Module PackageManagement` импортировать модуль \
 `Get-Module PackageManagement` информация о модуле \
@@ -1773,8 +1775,8 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
 `Find-PackageProvider` поиск провайдеров \
 `Install-PackageProvider PSGallery -force` установить источник \
-`Install-PackageProvider Chocolatey -force` \
 `Install-PackageProvider NuGet -force` \
+`Install-PackageProvider Chocolatey -force` \
 `Get-PackageSource` источники установки пакетов \
 `Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
 `Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
@@ -1782,6 +1784,57 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `Get-Command *Veeam*` \
 `Import-Module -Name VeeamLogParser` загрузить модуль \
 `Get-Module VeeamLogParser | select -ExpandProperty ExportedCommands` отобразить список функций
+
+### winget
+
+Source: https://github.com/microsoft/winget-cli
+
+`winget list` список установленных пакетов \
+`winget search VLC` найти пакет \
+`winget show VideoLAN.VLC` информация о пакете \
+`winget show VideoLAN.VLC --versions` список доступных версий в репозитории \
+`winget install VideoLAN.VLC` установить пакет \
+`winget uninstall VideoLAN.VLC` удалить пакет \
+`winget download jqlang.jq` загрузкить пакет (https://github.com/jqlang/jq/releases/download/jq-1.7/jq-windows-amd64.exe) \
+`winget install jqlang.jq` добавляет в переменную среду и псевдоним командной строки jq \
+`winget uninstall jqlang.jq`
+
+### jqlang-install
+```PowerShell
+[uri]$url = $($(irm https://api.github.com/repos/jqlang/jq/releases/latest).assets.browser_download_url -match "windows-amd64").ToString() # получить версию latest на GitHub
+irm $url -OutFile "C:\Windows\System32\jq.exe" # загрузить jq.exe
+```
+### NuGet
+```PowerShell
+Invoke-RestMethod https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile "$env:TEMP\nuget.exe"
+Invoke-Expression "$env:TEMP/nuget.exe search Selenium.WebDriver"
+Set-Location $env:TEMP
+Invoke-Expression "$env:TEMP/nuget.exe install Selenium.WebDriver"
+Get-Item *Selenium*
+```
+### Chocolatey
+```PowerShell
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+```
+`choco -v` \
+`choco -help` \
+`choco list` \
+`choco install adobereader`
+
+### Scoop
+
+`Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` \
+`irm get.scoop.sh | iex` установка \
+`scoop help` \
+`scoop search jq` \
+`scoop info jq` \
+`(scoop info jq).version` \
+`scoop cat jq` \
+`scoop download jq` C:\Users\lifailon\scoop\cache \
+`scoop install jq` C:\Users\lifailon\scoop\apps\jq\1.7 \
+`scoop list` \
+`(scoop list).version` \
+`scoop uninstall jq`
 
 # PS2EXE
 
@@ -2723,6 +2776,7 @@ $ie.Quit()
 `Set-WinUserLanguageList -LanguageList en-us,ru -Force` изменить языковую раскладку клавиатуры
 
 ### Wscript.Shell.SendKeys
+
 `(New-Object -ComObject Wscript.shell).SendKeys([char]173)` включить/выключить звук \
 `$wshell.Exec("notepad.exe")` запустить приложение \
 `$wshell.AppActivate("Блокнот")` развернуть запущенное приложение
@@ -2764,6 +2818,7 @@ Get-AltTab
 Get-AltTab
 ```
 ### Wscript.Shell.Popup
+
 `$wshell = New-Object -ComObject Wscript.Shell` \
 `$output = $wshell.Popup("Выберите действие?",0,"Заголовок",4)` \
 `if ($output -eq 6) {"yes"} elseif ($output -eq 7) {"no"} else {"no good"}`
@@ -2791,6 +2846,7 @@ Output:
 7 Нет
 ```
 ### WScript.Network
+
 `$wshell = New-Object -ComObject WScript.Network` \
 `$wshell | Get-Member` \
 `$wshell.UserName` \
@@ -2798,6 +2854,7 @@ Output:
 `$wshell.UserDomain`
 
 ### Shell.Application
+
 `$wshell = New-Object -ComObject Shell.Application` \
 `$wshell | Get-Member` \
 `$wshell.Explore("C:\")` \
@@ -2808,6 +2865,7 @@ Output:
 `$RecycleBin.Items()`
 
 ### Outlook
+
 `$Outlook = New-Object -ComObject Outlook.Application` \
 `$Outlook | Get-Member` \
 `$Outlook.Version`
@@ -2840,6 +2898,7 @@ $Outlook.Quit()
 `[System.IO.Path]::Combine("C:", "Install", "Test")`
 
 ### Match
+
 `[System.Math] | Get-Member -Static -MemberType Methods` \
 `[System.Math]::Max(2,7)` \
 `[System.Math]::Min(2,7)` \
@@ -2847,6 +2906,7 @@ $Outlook.Quit()
 `[System.Math]::Truncate(3.9)`
 
 ### GeneratePassword
+
 `Add-Type -AssemblyName System.Web` \
 `[System.Web.Security.Membership]::GeneratePassword(10,2)`
 
@@ -2861,6 +2921,7 @@ $GoodSound.SoundLocation = "C:\WINDOWS\Media\tada.wav"
 $GoodSound.Play()
 ```
 ### Static Class
+
 `[System.Environment] | Get-Member -Static` \
 `[System.Environment]::OSVersion` \
 `[System.Environment]::Version` \
@@ -2985,6 +3046,7 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 `[Audio]::Mute = $true`
 
 ### NetSessionEnum
+
 Function: https://learn.microsoft.com/ru-ru/windows/win32/api/lmshare/nf-lmshare-netsessionenum?redirectedfrom=MSDN \
 Source: https://fuzzysecurity.com/tutorials/24.html
 ```PowerShell
@@ -3059,6 +3121,7 @@ echo "`nCalling NetApiBufferFree, no memleaks here!"
 `Invoke-NetSessionEnum localhost`
 
 ### CopyFile
+
 Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winbase/nf-winbase-copyfile \
 Source: https://devblogs.microsoft.com/scripting/use-powershell-to-interact-with-the-windows-api-part-1/
 ```PowerShell
@@ -3070,6 +3133,7 @@ $Kernel32 = Add-Type -MemberDefinition $MethodDefinition -Name "Kernel32" -Names
 $Kernel32::CopyFile("$($Env:SystemRoot)\System32\calc.exe", "$($Env:USERPROFILE)\Desktop\calc.exe", $False) 
 ```
 ### ShowWindowAsync
+
 Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync
 ```PowerShell
 $Signature = @"
@@ -3082,12 +3146,12 @@ $ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 3)
 $ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 4)
 ```
 ### GetAsyncKeyState
+
 Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-getasynckeystate
 
 `Add-Type -AssemblyName System.Windows.Forms` \
-`[int][System.Windows.Forms.Keys]::F1`
-
-`65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}`
+`[int][System.Windows.Forms.Keys]::F1` определить номер [Int] клавиши по ее названию \
+`65..90 | % {"{0} = {1}" -f $_, [System.Windows.Forms.Keys]$_}` порядковый номер букв (A..Z)
 ```PowerShell
 function Get-ControlKey {
 $key = 112
@@ -3100,14 +3164,16 @@ Add-Type -MemberDefinition $Signature -Name Keyboard -Namespace PsOneApi
 }
 
 Write-Warning 'Press F1 to exit'
-do {
+while ($true) {
 Write-Host '.' -NoNewline
-$pressed = Get-ControlKey
-if ($pressed) { break }
-Start-Sleep -Seconds 1
-} while ($true)
+if (Get-ControlKey) {
+break
+}
+Start-Sleep -Seconds 0.5
+}
 ```
 # Console API
+
 Source: https://powershell.one/tricks/input-devices/detect-key-press
 
 `[Console] | Get-Member -Static` \
@@ -3153,7 +3219,40 @@ if ($pressed) {break}
 sleep 1
 } while ($true)
 ```
-### Register-ObjectEvent
+# Drawing
+
+API: https://learn.microsoft.com/en-us/dotnet/api/system.drawing?view=net-7.0&redirectedfrom=MSDN
+```PowerShell
+Add-Type -AssemblyName System.Drawing
+$Width = 800
+$Height = 400
+$image = New-Object System.Drawing.Bitmap($Width,$Height)
+$graphic = [System.Drawing.Graphics]::FromImage($image)
+$background_color = [System.Drawing.Brushes]::Blue # задать цвет фона (синий)
+$graphic.FillRectangle($background_color, 0, 0, $image.Width, $image.Height)
+$text_color = [System.Drawing.Brushes]::White # задать цвет текста (белый)
+$font = New-Object System.Drawing.Font("Arial", 20, [System.Drawing.FontStyle]::Bold) # задать шрифт
+$text = "PowerShell" # указать текст
+$text_position = New-Object System.Drawing.RectangleF(320, 180, 300, 100)  # задать положение текста (x, y, width, height)
+$graphic.DrawString($text, $font, $text_color, $text_position) # нанести текст на изображение
+$image.Save("$home\desktop\powershell_image.bmp", [System.Drawing.Imaging.ImageFormat]::Bmp) # сохранить изображение
+$image.Dispose() # освобождение ресурсов
+```
+`$path = "$home\desktop\powershell_image.bmp"` \
+`Invoke-Item $path`
+```PowerShell
+$src_image = [System.Drawing.Image]::FromFile($path)
+$Width = 400
+$Height = 200
+$dst_image = New-Object System.Drawing.Bitmap -ArgumentList $src_image, $Width, $Height # изменить размер изображения
+$dst_image.Save("$home\desktop\powershell_image_resize.bmp", [System.Drawing.Imaging.ImageFormat]::Bmp)
+
+$rotated_image = $src_image.Clone() # создать копию исходного изображения
+$rotated_image.RotateFlip([System.Drawing.RotateFlipType]::Rotate180FlipNone) # перевернуть изображение на 180 градусов
+$rotated_image.Save("$home\desktop\powershell_image_rotated.bmp", [System.Drawing.Imaging.ImageFormat]::Bmp)
+$src_image.Dispose() # закрыть (отпустить) исходный файл
+```
+# ObjectEvent
 ```PowerShell
 $Timer = New-Object System.Timers.Timer
 $Timer.Interval = 1000
@@ -6083,3 +6182,17 @@ ansible_shell_type=powershell
       var: wu_output
 ```
 `ansible-playbook /etc/ansible/win-update.yml`
+
+### win_chocolatey
+
+https://chocolatey.org/install \
+https://community.chocolatey.org/api/v2/package/chocolatey \
+https://docs.chocolatey.org/en-us/guides/organizations/organizational-deployment-guide
+```
+- name: Ensure Chocolatey installed from internal repo
+  win_chocolatey:
+    name: chocolatey
+    state: present
+	# source: URL-адрес внутреннего репозитория
+    source: https://community.chocolatey.org/api/v2/ChocolateyInstall.ps1
+```
