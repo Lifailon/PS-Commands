@@ -25,7 +25,8 @@ function Get-Hardware {
         $ws = ((($GetProcess).WorkingSet | Measure-Object -Sum).Sum/1gb).ToString("0.00 GB")
         $pm = ((($GetProcess).PM | Measure-Object -Sum).Sum/1gb).ToString("0.00 GB")
         $Memory = Get-CimInstance Win32_OperatingSystem
-        $MemUse = $Memory.TotalVisibleMemorySize - $Memory.FreePhysicalMemory 
+        $MemUse = $Memory.TotalVisibleMemorySize - $Memory.FreePhysicalMemory
+        $MemUserProc = ($MemUse / $Memory.TotalVisibleMemorySize) * 100
         $MEM = Get-CimInstance Win32_PhysicalMemory | Select-Object Manufacturer,PartNumber,
         ConfiguredClockSpeed,@{Label="Memory"; Expression={[string]($_.Capacity/1Mb)}}
         $MEMs = $MEM.Memory | Measure-Object -Sum
@@ -65,6 +66,7 @@ function Get-Hardware {
             HandlesCount              = $Handles_Count
             MemoryAll                 = [string]$($MEMs.Sum/1Kb)+" GB"
             MemoryUse                 = ($MemUse/1mb).ToString("0.00 GB")
+            MemoryUseProc             = [string]([int]$MemUserProc)+" %"
             WorkingSet                = $ws
             PageMemory                = $pm
             MemorySlots               = $MEMs.Count
