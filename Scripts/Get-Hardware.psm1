@@ -10,6 +10,7 @@ function Get-Hardware {
         $SYS = Get-CimInstance Win32_ComputerSystem
         $BootTime = Get-CimInstance -ComputerName $srv Win32_OperatingSystem | Select-Object LocalDateTime,LastBootUpTime
         $Uptime = ([string]($BootTime.LocalDateTime - $BootTime.LastBootUpTime) -split ":")[0,1] -join ":"
+        $BootDate = Get-Date -Date $BootTime.LastBootUpTime -Format "dd/MM/yyyy hh:mm:ss"
         $OS = Get-CimInstance Win32_OperatingSystem
         $BB = Get-CimInstance Win32_BaseBoard
         $BBv = $BB.Manufacturer+" "+$BB.Product+" "+$BB.Version
@@ -53,7 +54,7 @@ function Get-Hardware {
         $Collection.Add([PSCustomObject]@{
             Host                      = $SYS.Name
             Uptime                    = $uptime
-            BootTime                  = $BootTime.LastBootUpTime
+            BootDate                  = $BootDate
             Owner                     = $SYS.PrimaryOwnerName
             OS                        = $OS.Caption
             Motherboard               = $BBv
@@ -63,7 +64,7 @@ function Get-Hardware {
             CPU                       = $CPU_Use_Proc
             ProcessCount              = $Process_Count
             ThreadsCount              = $Threads_Count
-            HandlesCount              = $Handles_Count
+            HandlesCount              = [int]$Handles_Count
             MemoryAll                 = [string]$($MEMs.Sum/1Kb)+" GB"
             MemoryUse                 = ($MemUse/1mb).ToString("0.00 GB")
             MemoryUseProc             = [string]([int]$MemUserProc)+" %"
