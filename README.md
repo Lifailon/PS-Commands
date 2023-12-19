@@ -75,6 +75,7 @@
 - [NAT](#nat)
 - [WireGuard](#wireguard)
 - [VpnClient](#vpnclient)
+- [Proxy](#proxy)
 - [OpenSSH](#openssh)
 - [WinRM](#winrm)
 - [DSC](#dsc)
@@ -1070,6 +1071,18 @@ foreach ($n in $net) {
 `Test-PingNetwork -Network 192.168.3.0` \
 `Test-PingNetwork -Network 192.168.3.0 -Timeout 1000`
 
+`Get-CimInstance -Class Win32_PingStatus -Filter "Address='127.0.0.1'"` \
+`Get-CimInstance -Class Win32_PingStatus -Filter "Address='127.0.0.1'" | Format-Table -Property Address,ResponseTime,StatusCode -Autosize` 0 - успех \
+`'127.0.0.1','8.8.8.8' | ForEach-Object -Process {Get-CimInstance -Class Win32_PingStatus -Filter ("Address='$_'") | Select-Object -Property Address,ResponseTime,StatusCode}` \
+`$ips = 1..254 | ForEach-Object -Process {'192.168.1.' + $_}` сформировать массив из ip-адресов подсети
+
+### dhcp
+`Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter "DHCPEnabled=$true"` отобразить адаптеры с включенным DHCP \
+`$wql = 'SELECT * from Win32_NetworkAdapterConfiguration WHERE IPEnabled=True and DHCPEnabled=False'` \
+`Invoke-CimMethod -MethodName ReleaseDHCPLease -Query $wql` включение DHCP на всех адаптерах \
+`Invoke-CimMethod -ClassName Win32_NetworkAdapterConfiguration -MethodName ReleaseDHCPLeaseAll` отменить аренду адресов DHCP на всех адаптерах \
+`Invoke-CimMethod -ClassName Win32_NetworkAdapterConfiguration -MethodName RenewDHCPLeaseAll` обновить аренду адресов DHCP на всех адаптерах
+
 ### port
 `tnc $srv -p 5985` \
 `tnc $srv -CommonTCPPort WINRM` HTTP,RDP,SMB \
@@ -1177,6 +1190,16 @@ $mac_coll
 ```
 `Get-ARP -search 192.168.3.100` \
 `Get-ARP -search 192.168.3.100 -proxy dc-01`
+
+### rdp
+`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber"` \
+`Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber" -Value "3390"` изменить RDP-порт \
+`New-NetFirewallRule -Profile Any -DisplayName "RDP 3390" -Direction Inbound -Protocol TCP -LocalPort 3390` \
+`Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections"` \
+`Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections" -Value 0` включить rdp \
+`reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f` \
+`(gcim -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(0)` \
+`Get-Service TermService | Restart-Service -Force` перезапустить rdp-службу
 
 # shutdown
 
@@ -2033,6 +2056,29 @@ New-VM @VM
 `Get-VM | Select -ExpandProperty NetworkAdapters | Select VMName,IPAddresses,Status` получить IP адрес всех ВМ \
 `vmconnect.exe localhost $VMHost`
 
+`Get-NetTCPConnection -State Established,Listen | Where-Object LocalPort -Match 2179` найти порт слушателя 
+`Get-Process -Id (Get-NetTCPConnection -State Established,Listen | Where-Object LocalPort -Match 2179).OwningProcess` найти процесс по ID (vmms/VMConnect) \
+`New-NetFirewallRule -Name "Hyper-V" -DisplayName "Hyper-V" -Group "Hyper-V" -Direction Inbound -Protocol TCP -LocalPort 2179 -Action Allow -Profile Public` \
+`Get-LocalGroupMember -Group "Администраторы Hyper-V"` или "Hyper-V Administrators" \
+`Add-LocalGroupMember -Group "Администраторы Hyper-V" -Member "lifailon"` \
+`Get-VM * | select name,ID` добавить id в RDCMan для подключения \
+`Grant-VMConnectAccess -ComputerName plex-01 -VMName hv-devops-01 -UserName lifailon` дать доступ на подключение не администратору \
+`Grant-VMConnectAccess -ComputerName huawei-book -VMName hv-devops-01 -UserName lifailon` \
+`Get-VMConnectAccess` \
+`Revoke-VMConnectAccess -VMName hv-devops-01 -UserName lifailon`
+
+Error: `Unknown disconnection reason 3848` - добавить ключи реестра на стороне клиента
+```PowerShell
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowFreshCredentialsDomain -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowDefaultCredentials -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowFreshCredentialsWhenNTLMOnlyDomain -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowDefaultCredentialsDomain -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowFreshCredentials -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowFreshCredentialsWhenNTLMOnly -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowSavedCredentialsWhenNTLMOnly -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowSavedCredentials -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Lsa\Credssp\PolicyDefaults\AllowSavedCredentialsDomain -Name Hyper-V -PropertyType String -Value "Microsoft Virtual Console Service/*" -Force
+```
 # VMWare/PowerCLI
 
 `Install-Module -Name VMware.PowerCLI # -AllowClobber` установить модуль (PackageProvider: nuget) \
@@ -5535,6 +5581,23 @@ PersistentKeepalive = 25
 `Get-VpnConnection -AllUserConnection | select *` список VPN подключения, доступных для всех пользователей, найстройки и текущий статус подключения (ConnectionStatus) \
 `Add-VpnConnectionRoute -ConnectionName vpn-failon -DestinationPrefix 192.168.3.0/24 –PassThru` динамически добавить в таблицу маршрутизации маршрут, который будет активен при подключении к VPN \
 `Remove-VpnConnection -Name vpn-failon -AllUserConnection -Force` удалить
+
+`Set-VpnConnection -Name "vpn-failon" -SplitTunneling $True` включить раздельное тунеллирование \
+`Add-VpnConnectionRoute -ConnectionName "vpn-failon" -DestinationPrefix 172.22.22.0/24` настроить маршрутизацию к указанной подсети через VPN-соединение \
+`(Get-VpnConnection -ConnectionName "vpn-failon").routes` отобразить таблицу маршрутизации для указанного соединения \
+`Remove-VpnConnectionRoute -ConnectionName "vpn-failon" -DestinationPrefix "172.22.23.0/24"`
+
+# Proxy
+
+`$user = "lifailon"` \
+`$pass = "Proxy"` \
+`$SecureString = ConvertTo-SecureString $pass -AsPlainText -Force` \
+`$Credential = New-Object System.Management.Automation.PSCredential($user, $SecureString)` \
+`[System.Net.Http.HttpClient]::DefaultProxy = New-Object System.Net.WebProxy("http://192.168.3.100:9090")` \
+`[System.Net.Http.HttpClient]::DefaultProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials` \
+`[System.Net.Http.HttpClient]::DefaultProxy.Credentials = $Credential` \
+`Invoke-RestMethod http://ifconfig.me/ip` \
+`Invoke-RestMethod https://kinozal.tv/rss.xml`
 
 # OpenSSH
 
