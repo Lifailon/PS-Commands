@@ -1,5 +1,12 @@
 PowerShell Commands
 
+GitHub top language:https://img.shields.io/github/languages/top/lifailon/PS-Commands
+GitHub last commit: https://img.shields.io/github/last-commit/lifailon/PS-Commands
+GitHub code size: https://img.shields.io/github/languages/code-size/lifailon/PS-Commands
+GitHub Repo stars: https://img.shields.io/github/stars/Lifailon/PS-Commands
+
+Статья на Habr: https://habr.com/ru/articles/782592/
+
 # Help
 # Object
 # Regex
@@ -2557,7 +2564,9 @@ Get-VBRViProxy
 
 # REST API
 
-$iwr = Invoke-WebRequest -Uri $url
+$url = "https://habr.com/ru/rss/users/Lifailon/publications/articles/?fl=ru" # RSS лента публикаций на Habr
+Invoke-RestMethod $url
+$iwr = Invoke-WebRequest $url
 $iwr | Get-Member
 $iwr.Content
 $iwr.StatusCode -eq 200
