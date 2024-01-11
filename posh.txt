@@ -81,6 +81,8 @@ PowerShell Commands
 # DSC
 # Git
 # Ansible
+# GigaChat
+# YandexGPT
 
 # Help
 
@@ -2774,9 +2776,10 @@ irm http://localhost:8080/api/service -Method Post -Body @{"ServiceName" = "AnyD
 
 # Selenium
 
-Invoke-Expression(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/Lifailon/Deploy-Selenium/rsa/Deploy-Selenium-Drivers.ps1") # установка всех драйверов и Chromium подходящей версии для драйвера
+Invoke-Expression(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/Lifailon/Deploy-Selenium/rsa/Deploy-Selenium-Drivers.ps1") # установка всех драйверов и Chromium соответствующий версии для драйвера
 
 $path = "$home\Documents\Selenium\"
+$log = "$path\ChromeDriver.log"
 $ChromeDriver = "$path\ChromeDriver.exe"
 $WebDriver = "$path\WebDriver.dll"
 $SupportDriver = "$path\WebDriver.Support.dll"
@@ -2784,34 +2787,67 @@ $Chromium = (Get-ChildItem $path -Recurse | Where-Object Name -like chrome.exe).
 Add-Type -Path $WebDriver
 Add-Type -Path $SupportDriver
 try {
-    $ChromeOptions = New-Object OpenQA.Selenium.Chrome.ChromeOptions
-    $ChromeOptions.BinaryLocation = $Chromium
-    $ChromeOptions.AddArgument("start-maximized")
-    $ChromeOptions.AcceptInsecureCertificates = $True
-    $Selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver($ChromeDriver, $ChromeOptions)
-    $Selenium.Navigate().GoToUrl("https://translate.google.la/")
+    $ChromeOptions = New-Object OpenQA.Selenium.Chrome.ChromeOptions # создаем объект с настройками запуска браузера
+    $ChromeOptions.BinaryLocation = $Chromium # передаем путь до исполняемого файла, который отвечает за запуск браузера
+    $ChromeOptions.AddArgument("start-maximized") # добавляем аргумент, который позволяет запустить браузер на весь экран
+    $ChromeOptions.AcceptInsecureCertificates = $True # игнорировать предупреждение на сайтах с не валидным сертификатом
+    #$ChromeOptions.AddArgument("headless") # скрывать окно браузера при запуске
+    $ChromeDriverService = [OpenQA.Selenium.Chrome.ChromeDriverService]::CreateDefaultService($ChromeDriver) # создаем объект настроек службы драйвера
+    $ChromeDriverService.HideCommandPromptWindow = $True # отключаем весь вывод логирования драйвера в консоль (этот вывод нельзя перенаправить)
+    $ChromeDriverService.LogPath = $log # указать путь до файла с журналом
+    $ChromeDriverService.EnableAppendLog = $True # не перезаписывать журнал при каждом новом запуске
+    #$ChromeDriverService.EnableVerboseLogging = $True # кроме INFO и ошибок, записывать DEBUG сообщения
+    $Selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver($ChromeDriverService, $ChromeOptions) # инициализируем запуск с указанными настройками
 
-    $buttons = $selenium.FindElements([OpenQA.Selenium.By]::TagName('button')) # найти все элементы по TagName
-    $buttons = $selenium.FindElements([OpenQA.Selenium.By]::CssSelector('button')) # найти все Button используя CSS selector
-    $Image = $buttons | Where-Object Text -Match "Изображения" # отфильтровать элементы по Label или Text
-    $Image.Click() # нажать на Button
-    $Text = $buttons | Where-Object Text -Match "Текст"
-	$Text.Click()
-    $textarea = $Selenium.FindElements([OpenQA.Selenium.By]::TagName("textarea")) # найти все элементы с тэгом textarea
-    $textarea.Count # количество найденных элементов
-    $text1 = $textarea | Where-Object ComputedAccessibleLabel -like "Исходный текст" # отфильтровать по Lable
-    $text1 = $textarea | Where-Object ComputedAccessibleRole -like combobox # отфильтровать по роли 
-    $text1 = $selenium.FindElements([OpenQA.Selenium.By]::ClassName("er8xn")) # найти элемент по имени класса (class="")
-    $text1.SendKeys("Hello") # ввести текст в поле
+    $Selenium.Navigate().GoToUrl("https://google.com")
+    $Search = $Selenium.FindElements([OpenQA.Selenium.By]::Id('APjFqb'))
+    $Search = $Selenium.FindElements([OpenQA.Selenium.By]::XPath('//*[@id="APjFqb"]'))
+    $Search = $Selenium.FindElements([OpenQA.Selenium.By]::Name('q'))
+    $Search = $Selenium.FindElements([OpenQA.Selenium.By]::XPath('//*[@name="q"]'))
+    $Search = $Selenium.FindElements([OpenQA.Selenium.By]::ClassName('gLFyf'))
+    $Search = $Selenium.FindElements([OpenQA.Selenium.By]::CssSelector('[jsname="yZiJbe"]'))
+    $Search = $Selenium.FindElements([OpenQA.Selenium.By]::TagName('textarea')) | Where-Object ComputedAccessibleRole -eq combobox
+    $Search.SendKeys("calculator online")
+    $Search.SendKeys([OpenQA.Selenium.Keys]::Enter)
+
     Start-Sleep 1
-    $text2 = $selenium.FindElements([OpenQA.Selenium.By]::ClassName("ryNqvb"))
-    $out = $text2.Text # получить результат перевода из второго textarea
-    Write-Host $out -ForegroundColor Green
+    $div = $Selenium.FindElements([OpenQA.Selenium.By]::TagName("div"))
+    $2 = $div | Where-Object {($_.ComputedAccessibleRole -eq "button") -and ($_.ComputedAccessibleLabel -eq "2")}
+    $2.Click()
+    $2.Click()
+    $plus = $div | Where-Object {($_.ComputedAccessibleRole -eq "button") -and ($_.Text -eq "+")}
+    $plus.Click()
+    $3 = $Selenium.FindElement([OpenQA.Selenium.By]::CssSelector('[jsname="KN1kY"]'))
+    $3.Click()
+    $3.Click()
+    $sum = $Selenium.FindElement([OpenQA.Selenium.By]::CssSelector('[jsname="Pt8tGc"]'))
+    $sum.Click()
+    $result = $Selenium.FindElement([OpenQA.Selenium.By]::CssSelector('[jsname="VssY5c"]')).Text
+    Write-Host "Result: $result" -ForegroundColor Green
 }
 finally {
     $Selenium.Close()
     $Selenium.Quit()
 }
+
+### Selenium modules
+
+Invoke-RestMethod https://raw.githubusercontent.com/Lifailon/Selenium-Modules/rsa/Modules/Get-GPT/Get-GPT.psm1 | Out-File -FilePath "$(New-Item -Path "$($($Env:PSModulePath -split ";")[0])\Get-GPT" -ItemType Directory -Force)\Get-GPT.psm1" -Force
+
+Get-GPT "Исполняй роль калькулятора. Посчитай сумму чисел: 22+33"
+
+Invoke-RestMethod https://raw.githubusercontent.com/Lifailon/Selenium-Modules/rsa/Modules/Get-Translation/Get-Translation.psm1 | Out-File -FilePath "$(New-Item -Path "$($($Env:PSModulePath -split ";")[0])\Get-Translation" -ItemType Directory -Force)\Get-Translation.psm1" -Force
+
+Get-Translation -Provider DeepL -Text "I translating the text"
+Get-Translation -Provider DeepL -Text "Я перевожу текст"
+Get-Translation -Provider Google -Text "I translating the text"
+Get-Translation -Provider Google -Text "Я перевожу текст" -Language en
+
+Invoke-RestMethod https://raw.githubusercontent.com/Lifailon/Selenium-Modules/rsa/Modules/Get-SpeedTest/Get-SpeedTest.psm1 | Out-File -FilePath "$(New-Item -Path "$($($Env:PSModulePath -split ";")[0])\Get-SpeedTest" -ItemType Directory -Force)\Get-SpeedTest.psm1" -Force
+
+Get-SpeedTest -Provider Libre
+Get-SpeedTest -Provider Open
+Get-SpeedTest -Provider Ookla
 
 # IE
 
@@ -4898,6 +4934,7 @@ Windows Registry Editor Version 5.00
 
 # Performance
 
+lodctr /R # пересоздать счетчиков производительности из системного хранилища архивов (так же исправляет счетчики для CIM, например, для cpu Win32_PerfFormattedData_PerfOS_Processor и iops Win32_PerfFormattedData_PerfDisk_PhysicalDisk)
 (Get-Counter -ListSet *).CounterSetName # вывести список всех доступных счетчиков производительности в системе
 (Get-Counter -ListSet *memory*).Counter # поиск по wildcard-имени во всех счетчиках (включая дочернии)
 Get-Counter "\Memory\Available MBytes" # объем свободной оперативной памяти
@@ -6281,3 +6318,184 @@ https://docs.chocolatey.org/en-us/guides/organizations/organizational-deployment
     state: present
 	# source: URL-адрес внутреннего репозитория
     source: https://community.chocolatey.org/api/v2/ChocolateyInstall.ps1
+
+# GigaChat
+
+### 1. Установка сертификатов:
+
+Invoke-WebRequest "https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt" -OutFile "$home\Downloads\russian_trusted_root_ca.cer" # скачать сертификат минцифры
+Invoke-WebRequest "https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.crt" -OutFile "$home\Downloads\russian_trusted_sub_ca.cer"
+Import-Certificate -FilePath "$home\Downloads\russian_trusted_root_ca.cer" -CertStoreLocation "Cert:\CurrentUser\Root" # установить сертификат минцифры
+Import-Certificate -FilePath "$home\Downloads\russian_trusted_sub_ca.cer" -CertStoreLocation "Cert:\CurrentUser\CA"
+
+### 2. Авторизация по Sber ID и генерация новых авторизационных данных для получения токена: https://developers.sber.ru/studio (время жизни 30 минут)
+
+### 3. Формирование авторизационных данных в формате Base64 из Client ID и Client Secret:
+
+$Client_ID     = "7e6d2f9f-825e-49b7-98f4-62fbb7506427" # [System.Guid]::Parse("7e6d2f9f-825e-49b7-98f4-62fbb7506427")
+$Client_Secret = "c35113ee-6757-47ba-9853-ea1d0d9db1ef" # [System.Guid]::Parse("c35113ee-6757-47ba-9853-ea1d0d9db1ef")
+$Client_Join   = $Client_ID+":"+$Client_Secret # объединяем два UUID в одну строку, разделяя их символом ':'
+$Bytes         = [System.Text.Encoding]::UTF8.GetBytes($Client_Join) # преобразуем строку в массив байт
+$Cred_Base64   = [Convert]::ToBase64String($Bytes) # кодируем байты в строку Base64
+
+### 4. Получение токена:
+
+$Cred_Base64   = "N2U2ZDJmOWYtODI1ZS00OWI3LTk4ZjQtNjJmYmI3NTA2NDI3OmIyYzgwZmZmLTEzOGUtNDg1Mi05MjgwLWE2MGI4NTc0YTM2MQ=="
+$UUID = [System.Guid]::NewGuid() # генерируем UUID для журналирования входящих вызовов и разбора инцидентов
+
+$url = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+$headers = @{
+    "Authorization" = "Basic $Cred_Base64"
+    "RqUID" = "$UUID"
+    "Content-Type" = "application/x-www-form-urlencoded"
+}
+$body = @{
+    scope = "GIGACHAT_API_PERS"
+}
+$GIGA_TOKEN = $(Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body).access_token
+
+### 5. Параметры:
+
+[string]$content = "Посчитай сумму чисел: 22+33"
+[string]$role = "user" # роль автора сообщения (user/assistant/system)
+[float]$temperature = 0.7 # температура выборки в диапазоне от 0 до 2. Чем выше значение, тем более случайным будет ответ модели.
+[float]$top_p = 0.1 # используется как альтернатива temperature и изменяется в диапазоне от 0 до 1. Задает вероятностную массу токенов, которые должна учитывать модель. Так, если передать значение 0.1, модель будет учитывать только токены, чья вероятностная масса входит в верхние 10%.
+[int64]$n = 1 # количество вариантов ответов (1..4), которые нужно сгенерировать для каждого входного сообщения
+[int64]$max_tokens = 512 # максимальное количество токенов, которые будут использованы для создания ответов
+[boolean]$stream = $false # передавать сообщения по частям в потоке
+
+### 6. Составление запросов:
+
+$url = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+$headers = @{
+    "Authorization" = "Bearer $GIGA_TOKEN"
+    "Content-Type" = "application/json"
+}
+
+$(Invoke-RestMethod -Uri "https://gigachat.devices.sberbank.ru/api/v1/models" -Headers $headers).data # список доступных моделей
+
+$body = @{
+    model = "GigaChat:latest"
+    messages = @(
+        @{
+            role = $role
+            content = $content
+        }
+    )
+    temperature = $temperature
+	n = $n
+	max_tokens = $max_tokens
+	stream = $stream
+} | ConvertTo-Json
+$Request = Invoke-RestMethod -Method POST -Uri $url -Headers $headers -Body $body
+$Request.choices.message.content
+
+## Curl
+
+### Установка сертификатов в Ubuntu:
+
+wget https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt
+wget https://gu-st.ru/content/lending/russian_trusted_sub_ca_pem.crt
+mkdir /usr/local/share/ca-certificates/russian_trusted
+cp russian_trusted_root_ca_pem.crt russian_trusted_sub_ca_pem.crt /usr/local/share/ca-certificates/russian_trusted
+update-ca-certificates -v
+wget -qS --spider --max-redirect=0 https://www.sberbank.ru
+
+### Получение токена:
+
+Cred_Base64="N2U2ZDJmOWYtODI1ZS00OWI3LTk4ZjQtNjJmYmI3NTA2NDI3OmIyYzgwZmZmLTEzOGUtNDg1Mi05MjgwLWE2MGI4NTc0YTM2MQ=="
+UUID=$(uuidgen)
+GIGA_TOKEN=$(curl -s --location --request POST "https://ngw.devices.sberbank.ru:9443/api/v2/oauth" \
+--header "Authorization: Basic $Cred_Base64" \
+--header "RqUID: $UUID" \
+--header "Content-Type: application/x-www-form-urlencoded" \
+--data-urlencode 'scope=GIGACHAT_API_PERS' | jq -r .access_token)
+
+curl -s --location "https://gigachat.devices.sberbank.ru/api/v1/models" --header "Authorization: Bearer $GIGA_TOKEN" | jq . # для проверки
+
+### Составление запроса:
+
+request=$(curl -s https://gigachat.devices.sberbank.ru/api/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $GIGA_TOKEN" \
+  -d '{
+  "model": "GigaChat:latest",
+  "messages": [
+        {
+            "role": "user",
+            "content": "Когда уже ИИ захватит этот мир?"
+        }
+    ],
+  "temperature": 0.7
+}')
+echo $request | jq -r .choices[].message.content
+
+# YandexGPT
+
+## Получить OAuth-Token:
+
+https://cloud.yandex.ru/ru/docs/iam/operations/iam-token/create # время жизни IAM-токена не больше 12 часов
+yandexPassportOauthToken="y0_AgAAAAAGaLFLAATuwQAAAAD3xtRLQE4hvlazQ5euKO43XXXXXXXXXXX" # для bash
+$yandexPassportOauthToken = "y0_AgAAAAAGaLFLAATuwQAAAAD3xtRLQE4hvlazQ5euKO43XXXXXXXXXXX" # для PowerShell
+
+## Обменять OAuth-Token на IAM-Token:
+
+IAM_TOKEN=$(curl -s -d "{\"yandexPassportOauthToken\":\"$yandexPassportOauthToken\"}" "https://iam.api.cloud.yandex.net/iam/v1/tokens" | jq -r .iamToken)
+$IAM_TOKEN = $(Invoke-RestMethod -Method POST -Uri "https://iam.api.cloud.yandex.net/iam/v1/tokens" -Body $(@{yandexPassportOauthToken = "$yandexPassportOauthToken"} | ConvertTo-Json -Compress)).iamToken
+
+## Получить FOLDER_ID:
+
+CLOUD_ID=$(curl -s -H "Authorization: Bearer $IAM_TOKEN" https://resource-manager.api.cloud.yandex.net/resource-manager/v1/clouds | jq -r .clouds[].id) # получить cloud id
+curl -s --request GET -H "Authorization: Bearer $IAM_TOKEN" https://resource-manager.api.cloud.yandex.net/resource-manager/v1/folders -d "{\"cloudId\": \"$CLOUD_ID\"}" # получить список директорий в облаке
+curl -s --request POST -H "Authorization: Bearer $IAM_TOKEN" https://resource-manager.api.cloud.yandex.net/resource-manager/v1/folders -d "{\"cloudId\": \"$CLOUD_ID\", \"name\": \"test\"}" # создать директорию в облаке
+FOLDER_ID=$(curl -s --request GET -H "Authorization: Bearer $IAM_TOKEN" https://resource-manager.api.cloud.yandex.net/resource-manager/v1/folders -d '{"cloudId": "b1gf9n6heihqj0pt5piu"}' | jq -r '.folders[] | select(.name == "test") | .id') # забрать id директории
+
+
+$CLOUD_ID = $(Invoke-RestMethod -Method Get -Uri "https://resource-manager.api.cloud.yandex.net/resource-manager/v1/clouds" -Headers @{"Authorization"="Bearer $IAM_TOKEN"; "Content-Type"="application/json"}).clouds.id
+$FOLDER_ID = $(Invoke-RestMethod -Method Get -Uri "https://resource-manager.api.cloud.yandex.net/resource-manager/v1/folders" -Headers @{"Authorization"="Bearer $IAM_TOKEN"; "Content-Type"="application/json"} -Body (@{"cloudId"= $CLOUD_ID} | ConvertTo-Json)).folders | Where-Object name -eq test | Select-Object -ExpandProperty id
+
+### Составление запроса:
+
+model="gpt://$FOLDER_ID/yandexgpt/latest" # https://cloud.yandex.ru/ru/docs/yandexgpt/concepts/models
+body=$(cat <<EOF
+{
+  "modelUri": "$model",
+  "completionOptions": {
+    "stream": false,
+    "temperature": 0.6,
+    "maxTokens": 2000
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "Посчитай сумму 22+33"
+    }
+  ]
+}
+EOF)
+curl --request POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $IAM_TOKEN" \
+  -H "x-folder-id: $FOLDER_ID" \
+  -d "$body" \
+  "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
+
+
+$model = "gpt://$FOLDER_ID/yandexgpt/latest"
+$body = @"
+{
+  "modelUri": "$model",
+  "completionOptions": {
+    "stream": false,
+    "temperature": 0.6,
+    "maxTokens": 2000
+  },
+  "messages": [
+    {
+      "role": "user",
+      "text": "Посчитай сумму 22+33"
+    }
+  ]
+}
+"@
+Invoke-RestMethod -Method POST -Uri "https://llm.api.cloud.yandex.net/foundationModels/v1/completion" -Headers @{"Content-Type"="application/json"; "Authorization"="Bearer $IAM_TOKEN"; "x-folder-id"="$FOLDER_ID"} -Body $body
