@@ -5,8 +5,7 @@
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/lifailon/PS-Commands)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Lifailon/PS-Commands)
 
-Статья на Habr: [PowerShell и его возможности в уходящем году])https://habr.com/ru/articles/782592/)
-[RSS лента публикаций](Invoke-RestMethod https://habr.com/ru/rss/users/Lifailon/publications/articles/?fl=ru)
+Статья на Habr: [PowerShell и его возможности в уходящем году](https://habr.com/ru/articles/782592/)
 
 - [Help](#help)
 - [Object](#object)
@@ -2565,6 +2564,8 @@ CopyQueue Length - длина репликационной очереди коп
 
 # REST API
 
+`$url = "https://habr.com/ru/rss/users/Lifailon/publications/articles/?fl=ru"` RSS лента публикаций на Habr \
+`Invoke-RestMethod $url` \
 `$iwr = Invoke-WebRequest -Uri $url` \
 `$iwr | Get-Member` \
 `$iwr.Content` \
