@@ -5,7 +5,7 @@
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/lifailon/PS-Commands)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Lifailon/PS-Commands)
 
-Статья на Habr: [PowerShell и его возможности в уходящем году](https://habr.com/ru/articles/782592/)
+📢 Статья на Habr: [PowerShell и его возможности в уходящем году](https://habr.com/ru/articles/782592/)
 
 - [Help](#help)
 - [Object](#object)
