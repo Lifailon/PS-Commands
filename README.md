@@ -1,5 +1,13 @@
 ![Image alt](https://github.com/Lifailon/PS-Commands/blob/rsa/Logo/PowerShell-Commands.png)
 
+![GitHub top language](https://img.shields.io/github/languages/top/lifailon/PS-Commands)
+![GitHub last commit (by committer)](https://img.shields.io/github/last-commit/lifailon/PS-Commands)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/lifailon/PS-Commands)
+![GitHub Repo stars](https://img.shields.io/github/stars/Lifailon/PS-Commands)
+
+Статья на Habr: [PowerShell и его возможности в уходящем году])https://habr.com/ru/articles/782592/)
+[RSS лента публикаций](Invoke-RestMethod https://habr.com/ru/rss/users/Lifailon/publications/articles/?fl=ru)
+
 - [Help](#help)
 - [Object](#object)
 - [Regex](#regex)
