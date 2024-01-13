@@ -21,6 +21,7 @@
 - [DISM](#dism)
 - [Scheduled](#scheduled)
 - [Network](#network)
+- [RDP](#rdp)
 - [Shutdown](#shutdown)
 - [LocalAccounts](#localaccounts)
 - [SMB](#smb)
@@ -1200,15 +1201,48 @@ $mac_coll
 `Get-ARP -search 192.168.3.100` \
 `Get-ARP -search 192.168.3.100 -proxy dc-01`
 
-### rdp
-`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber"` \
+# RDP
+
+`Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber"` отобразить номер текущего RDP порта \
 `Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber" -Value "3390"` изменить RDP-порт \
-`New-NetFirewallRule -Profile Any -DisplayName "RDP 3390" -Direction Inbound -Protocol TCP -LocalPort 3390` \
+`New-NetFirewallRule -Profile Any -DisplayName "RDP 3390" -Direction Inbound -Protocol TCP -LocalPort 3390` открыть RDP-порт \
 `Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections"` \
 `Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections" -Value 0` включить rdp \
 `reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f` \
-`(gcim -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(0)` \
-`Get-Service TermService | Restart-Service -Force` перезапустить rdp-службу
+`(gcim -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(0)` включить RDP
+`Get-Service TermService | Restart-Service -Force # перезапустить rdp-службу
+
+### IPBan
+
+`auditpol /get /category:*` отобразить все политики аудита \
+`auditpol /get /category:Вход/выход` отобразить локальные политики аудита для Входа и Выхода из системы \
+`auditpol /set /subcategory:"Вход в систему" /success:enable /failure:enable` включить локальные политики - Аудит входа в систему \
+`auditpol /set /subcategory:"Выход из системы" /success:enable /failure:enable`
+
+`$url = $($(Invoke-RestMethod https://api.github.com/repos/DigitalRuby/IPBan/releases/latest).assets | Where-Object name -match ".+win.+x64.+").browser_download_url` получить ссылку для загрузки последней версии \
+`$version = $(Invoke-RestMethod https://api.github.com/repos/DigitalRuby/IPBan/releases/latest).tag_name` получить номер последней версии \
+`$path = "$home\Documents\ipban-$version"` путь для установки \
+`Invoke-RestMethod $url -OutFile "$home\Downloads\IPBan-$version.zip"` скачать дистрибутив \
+`Expand-Archive "$home\Downloads\ipban-$version.zip" -DestinationPath $path` разархивировать в путь для установки \
+`Remove-Item "$home\Downloads\ipban-$version.zip"` удалить дистрибутив \
+`sc create IPBan type=own start=delayed-auto binPath="$path\DigitalRuby.IPBan.exe" DisplayName=IPBan` создать службу \
+`Get-Service IPBan` статус службы \
+`$conf = $(Get-Content "$path\ipban.config")` читаем конфигурацию \
+`$conf = $conf -replace '<add key="Whitelist" value=""/>','<add key="Whitelist" value="192.168.3.0/24"/>'` добавить в белый лист домашнюю сеть для исключения \
+`$conf = $conf -replace '<add key="ProcessInternalIPAddresses" value="false"/>','<add key="ProcessInternalIPAddresses" value="true"/>'` включить обработку локальных (внутренних) ip-адресов \
+`$conf = $conf -replace '<add key="FailedLoginAttemptsBeforeBanUserNameWhitelist" value="20"/>','<add key="FailedLoginAttemptsBeforeBanUserNameWhitelist" value="5"/>'` указать количество попыток подключения до блокировки \
+`$conf = $conf -replace '<add key="ExpireTime" value="01:00:00:00"/>','<add key="ExpireTime" value="00:01:00:00"/>'` задать время блокировки 1 час \
+`$conf > "$path\ipban.config"` обновить конфигурацию \
+`Get-Service IPBan | Start-Service` запустить службу
+```
+Get-NetFirewallRule | Where-Object DisplayName -Match "IPBan" | ForEach-Object {
+    $Name = $_.DisplayName
+    Get-NetFirewallAddressFilter -AssociatedNetFirewallRule $_ | Select-Object @{Name="Name"; Expression={$Name}},LocalIP,RemoteIP
+} # отобразить область применения правил Брандмауэра для IPBan
+```
+`Get-Content -Wait "$path\logfile.txt"` читать лог \
+`Get-Service IPBan | Stop-Service` остановить службу \
+`sc delete IPBan` удалить службу
 
 # shutdown
 
@@ -2799,6 +2833,8 @@ try {
     $ChromeOptions = New-Object OpenQA.Selenium.Chrome.ChromeOptions # создаем объект с настройками запуска браузера
     $ChromeOptions.BinaryLocation = $Chromium # передаем путь до исполняемого файла, который отвечает за запуск браузера
     $ChromeOptions.AddArgument("start-maximized") # добавляем аргумент, который позволяет запустить браузер на весь экран
+    #$ChromeOptions.AddArgument("start-minimized") # запускаем браузер в окне
+    #$ChromeOptions.AddArgument("window-size=400,800") # запускаем браузер с заданными размерам окна в пикселях
     $ChromeOptions.AcceptInsecureCertificates = $True # игнорировать предупреждение на сайтах с не валидным сертификатом
     #$ChromeOptions.AddArgument("headless") # скрывать окно браузера при запуске
     $ChromeDriverService = [OpenQA.Selenium.Chrome.ChromeDriverService]::CreateDefaultService($ChromeDriver) # создаем объект настроек службы драйвера
@@ -2808,7 +2844,9 @@ try {
     #$ChromeDriverService.EnableVerboseLogging = $True # кроме INFO и ошибок, записывать DEBUG сообщения
     $Selenium = New-Object OpenQA.Selenium.Chrome.ChromeDriver($ChromeDriverService, $ChromeOptions) # инициализируем запуск с указанными настройками
 
-    $Selenium.Navigate().GoToUrl("https://google.com")
+    $Selenium.Navigate().GoToUrl("https://google.com") # переходим по указанной ссылке в браузере
+    #$Selenium.Manage().Window.Minimize() # свернуть окно браузера после запуска и перехода по нужному url (что бы считать страницу корректно)
+    # Ищем поле для ввода текста:
     $Search = $Selenium.FindElements([OpenQA.Selenium.By]::Id('APjFqb'))
     $Search = $Selenium.FindElements([OpenQA.Selenium.By]::XPath('//*[@id="APjFqb"]'))
     $Search = $Selenium.FindElements([OpenQA.Selenium.By]::Name('q'))
@@ -2816,8 +2854,8 @@ try {
     $Search = $Selenium.FindElements([OpenQA.Selenium.By]::ClassName('gLFyf'))
     $Search = $Selenium.FindElements([OpenQA.Selenium.By]::CssSelector('[jsname="yZiJbe"]'))
     $Search = $Selenium.FindElements([OpenQA.Selenium.By]::TagName('textarea')) | Where-Object ComputedAccessibleRole -eq combobox
-    $Search.SendKeys("calculator online")
-    $Search.SendKeys([OpenQA.Selenium.Keys]::Enter)
+    $Search.SendKeys("calculator online") # передаем текст выбранному элементу
+    $Search.SendKeys([OpenQA.Selenium.Keys]::Enter) # нажимаем Enter для вызова функции поиска
 
     Start-Sleep 1
     $div = $Selenium.FindElements([OpenQA.Selenium.By]::TagName("div"))
