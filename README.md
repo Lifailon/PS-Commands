@@ -5,7 +5,7 @@
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/lifailon/PS-Commands)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Lifailon/PS-Commands)
 
-📢 Статья на Habr: [PowerShell и его возможности в уходящем году](https://habr.com/ru/articles/782592/)
+📢 Статья на Habr: [PowerShell и его возможности](https://habr.com/ru/articles/782592/)
 
 - [Help](#help)
 - [Object](#object)
@@ -91,6 +91,12 @@
 - [Ansible](#ansible)
 - [GigaChat](#GigaChat)
 - [YandexGPT](#YandexGPT)
+- [SuperAGI](#superagi)
+- [Replicate](#replicate)
+- [TMDB](#tmdb)
+- [ivi](#ivi)
+- [Kinopoisk](#kinopoisk)
+- [VideoCDN](#videocdn)
 
 # Help
 
@@ -1205,12 +1211,12 @@ $mac_coll
 
 `Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber"` отобразить номер текущего RDP порта \
 `Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber" -Value "3390"` изменить RDP-порт \
-`New-NetFirewallRule -Profile Any -DisplayName "RDP 3390" -Direction Inbound -Protocol TCP -LocalPort 3390` открыть RDP-порт \
-`Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections"` \
-`Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections" -Value 0` включить rdp \
+`$(Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections").fDenyTSConnections` если 0, то включен \
+`Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections" -Value 0` включить RDP \
 `reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f` \
-`(gcim -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(0)` включить RDP
-`Get-Service TermService | Restart-Service -Force # перезапустить rdp-службу
+`(gcim -Class Win32_TerminalServiceSetting -Namespace root\CIMV2\TerminalServices).SetAllowTSConnections(0)` включить RDP (для Windows Server) \
+`Get-Service TermService | Restart-Service -Force` перезапустить rdp-службу \
+`New-NetFirewallRule -Profile Any -DisplayName "RDP 3390" -Direction Inbound -Protocol TCP -LocalPort 3390` открыть RDP-порт
 
 ### IPBan
 
@@ -1379,7 +1385,7 @@ icm $_ {Get-LocalGroupMember "Administrators"}
 `Get-IscsiServerTarget | fl TargetName, LunMappings` \
 `Connect-IscsiTarget -NodeAddress "iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target" -IsPersistent $true` подключиться инициатором к таргету \
 `Get-IscsiTarget | fl` \
-`Disconnect-IscsiTarget -NodeAddress ″iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target″ -Confirm:$false` отключиться
+`Disconnect-IscsiTarget -NodeAddress "iqn.1995-05.com.microsoft:srv2-iscsi-target-2-target" -Confirm:$false` отключиться
 
 # ActiveDirectory
 
@@ -1457,7 +1463,7 @@ CN (Common Name) - общее имя
 `Get-ADObject -Filter {Deleted -eq $True -and ObjectClass -eq 'group' -and Name -like '*Allow*'} –IncludeDeletedObjects | Restore-ADObject –Verbose` восстановить группу или компьютер
 
 ### thumbnailPhoto
-`$photo = [byte[]](Get-Content C:\Install\adm.jpg -Encoding byte)` преобразовать файл картинки в массив байтов (jpeg/bmp файл, размером фото до 100 Кб и разрешением 96×96) \
+`$photo = [byte[]](Get-Content C:\Install\adm.jpg -Encoding byte)` преобразовать файл картинки в массив байтов (jpeg/bmp файл, размером фото до 100 Кб и разрешением 96?96) \
 `Set-ADUser support4 -Replace @{thumbnailPhoto=$photo}` задать значение атрибута thumbnailPhoto
 
 ### ADDomainController
@@ -6546,4 +6552,233 @@ $body = @"
 }
 "@
 Invoke-RestMethod -Method POST -Uri "https://llm.api.cloud.yandex.net/foundationModels/v1/completion" -Headers @{"Content-Type"="application/json"; "Authorization"="Bearer $IAM_TOKEN"; "x-folder-id"="$FOLDER_ID"} -Body $body
+```
+# SuperAGI
+
+https://github.com/TransformerOptimus/SuperAGI \
+https://models.superagi.com/playground/generate \
+https://documenter.getpostman.com/view/30119783/2s9YR3cFJG
+```Bash
+SUPERAGI_API_KEY="31f72164129XXXXX"
+prompt="посчитай сумму 22+33, дай только ответ без лишнего текста"
+request=$(curl -s -X POST 'https://api.superagi.com/v1/generate/65437cbf227a4018516ad1ce' \
+-H 'Content-Type: application/json' \
+-H "Authorization: Bearer $SUPERAGI_API_KEY" \
+-d '{
+  "prompt": ["$prompt"],
+  "max_tokens": 500,
+  "temperature": 0.9,
+  "top_p": 0.15,
+  "repetition_penalty": 0,
+  "best_of": 1.05,
+  "top_k": 50,
+  "stream": false
+}')
+echo $request | sed "s/data: //" | jq -r .choices[].text
+```
+```PowerShell
+$SUPERAGI_API_KEY = "31f72164129XXXXX"
+$prompt = "посчитай сумму 22+33, дай только ответ без лишнего текста"
+$request = Invoke-RestMethod -Method Post -Uri 'https://api.superagi.com/v1/generate/65437cbf227a4018516ad1ce' -Headers @{
+    'Content-Type' = 'application/json'
+    'Authorization' = "Bearer $SUPERAGI_API_KEY"
+} -Body (@{
+    prompt = @($prompt)
+    max_tokens = 500
+    temperature = 0.9
+    top_p = 0.15
+    repetition_penalty = 0
+    best_of = 1.05
+    top_k = 50
+    stream = $false
+} | ConvertTo-Json)
+$($request -replace "^data: " | ConvertFrom-Json).choices.text
+```
+# Replicate
+
+https://replicate.com/stability-ai/stable-diffusion/examples?input=http
+```Bash
+REPLICATE_API_TOKEN="r8_STyeUNXiGonkLfxE1FSKaqll26lXXXXXXXXXX"
+prompt="Жираф в полоску зебры"
+request=$(curl -s -X POST \
+  -H "Authorization: Token $REPLICATE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d $'{
+    "version": "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
+    "input": {
+      "prompt": "$prompt"
+    }
+  }' \
+  https://api.replicate.com/v1/predictions)
+request_url=$(echo $request | jq -r .urls.get)
+response_status=$(curl -s -H "Authorization: Token $REPLICATE_API_TOKEN" $request_url | jq -r .status)
+while [[ $response_status != succeeded ]]; do
+    response_status=$(curl -s -H "Authorization: Token $REPLICATE_API_TOKEN" $request_url | jq -r .status)
+done
+curl -s -H "Authorization: Token $REPLICATE_API_TOKEN" $request_url | jq -r .output[]
+```
+```PowerShell
+$REPLICATE_API_TOKEN = "r8_STyeUNXiGonkLfxE1FSKaqll26lXXXXXXXXXX"
+$prompt = "Жираф в полоску зебры"
+$body = @{
+   version = "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4"
+   input = @{
+       prompt = $prompt
+   }
+} | ConvertTo-Json
+$headers = @{
+   "Authorization" = "Token $REPLICATE_API_TOKEN"
+   "Content-Type" = "application/json"
+}
+$request = Invoke-RestMethod -Uri "https://api.replicate.com/v1/predictions" -Method POST -Body $body -Headers $headers
+$response = Invoke-RestMethod $($request.urls.get) -Headers @{"Authorization" = "Token $REPLICATE_API_TOKEN"}
+while ($response.status -ne "succeeded") {
+    $response = Invoke-RestMethod $($request.urls.get) -Headers @{"Authorization" = "Token $REPLICATE_API_TOKEN"}
+}
+$response.output
+```
+# TMDB
+
+https://developer.themoviedb.org/reference/intro/getting-started
+```PowerShell
+$TOKEN = "548e444e7812575caa0a7eXXXXXXXXXX"
+$Endpoint = "search/tv" # поиск сериала (tv) и фильма (movie) по названию
+$Query = "зимородок"
+$url = $("https://api.themoviedb.org/3/$Endpoint"+"?api_key=$TOKEN&query=$Query")
+$(Invoke-RestMethod -Uri $url -Method Get).results
+$id = $(Invoke-RestMethod -Uri $url -Method Get).results.id # забрать id сериала (210865) https://www.themoviedb.org/tv/210865
+
+$Endpoint = "tv/$id" # получение информации о сериале по его ID
+$url = $("https://api.themoviedb.org/3/$Endpoint"+"?api_key=$TOKEN")
+$(Invoke-RestMethod -Uri $url -Method Get) # список сезонов (.seasons), количество эпизодов (.seasons.episode_count)
+
+(Invoke-RestMethod -Uri "https://api.themoviedb.org/3/tv/$id/season/2?api_key=$Token" -Method Get).episodes # вывести 2 сезон
+Invoke-RestMethod -Uri "https://api.themoviedb.org/3/tv/$id/season/2/episode/8?api_key=$Token" -Method Get # вывести 8 эпизод
+```
+# ivi
+
+https://ask.ivi.ru/knowledge-bases/10/articles/51697-dokumentatsiya-dlya-api-ivi
+
+`Invoke-RestMethod https://api.ivi.ru/mobileapi/categories` список категорий и жанров (genres/meta_genres) \
+`Invoke-RestMethod https://api.ivi.ru/mobileapi/collections` подборки
+
+`(Invoke-RestMethod "https://api.ivi.ru/mobileapi/search/v7/?query=zimorodok").result.seasons.number` кол-во сезонов \
+`(Invoke-RestMethod "https://api.ivi.ru/mobileapi/search/v7/?query=zimorodok").result.seasons[1].episode_count` кол-во серий во втором сезоне \
+`(Invoke-RestMethod "https://api.ivi.ru/mobileapi/search/v7/?query=zimorodok").result.seasons[1].ivi_release_info.date_interval_min` дата выхода следующей серии \
+`(Invoke-RestMethod "https://api.ivi.ru/mobileapi/search/v7/?query=zimorodok").result.kp_rating` рейтинг в Кинопоиск (8.04)
+
+`$id = (Invoke-RestMethod "https://api.ivi.ru/mobileapi/search/v7/?query=zimorodok").result.kp_id` получить id в Кинопоиск (5106881) \
+`id=$(curl -s https://api.ivi.ru/mobileapi/search/v7/?query=zimorodok | jq .result[].kp_id)` получить id в Кинопоиск
+
+# Kinopoisk
+```Bash
+id=5106881
+get=$(curl -s https://www.kinopoisk.ru/film/$id/episodes/)
+printf "%s\n" "${get[@]}" | grep -A 1 "Сезон 2" | grep "эпизодов" | sed -r "s/^.+\: //" # количество эпиздовод во втором сезоне (8)
+```
+### kinopoisk.dev
+
+https://t.me/kinopoiskdev_bot - получить токен \
+https://kinopoisk.dev/documentation - документация по API в формате OpenAPI
+
+`GET /v1.4/movie/{id}` поиск по id
+```PowerShell
+$id = 5106881
+$API_KEY = "ZYMNJJA-0J8MNPN-PB4N7R7-XXXXXXX"
+
+$Header = @{
+    "accept" = "application/json"
+    "X-API-KEY" = "$API_KEY"
+}
+$irm = Invoke-RestMethod "https://api.kinopoisk.dev/v1.4/movie/$id" -Method GET -Headers $Header
+$irm.rating.kp # рейтинг в Кинопоиск (8,079)
+$irm.seasonsInfo # количество сезонов и эпизодов в них
+```
+```Bash
+id=5106881
+API_KEY="ZYMNJJA-0J8MNPN-PB4N7R7-XXXXXXX"
+get=$(curl -s -X GET \
+  "https://api.kinopoisk.dev/v1.4/movie/$id" \
+  -H "accept: application/json" \
+  -H "X-API-KEY: $API_KEY")
+echo $get | jq .rating.kp # рейтинг в Кинопоиск (8,079)
+echo $get | jq .seasonsInfo[1].episodesCount # количество эпизодов во втором [1] сезоне (6)
+```
+`GET /v1.4/movie/search`
+```Bash
+query="zimorodok"
+page=1 # кол-во страниц для выборки
+limit=1 # кол-во элементов на странице
+curl -s -X GET \
+  "https://api.kinopoisk.dev/v1.4/movie/search?page=$page&limit=$limit&query=$query" \
+  -H "accept: application/json" \
+  -H "X-API-KEY: $API_KEY" | jq .
+
+limit=5
+request=$(curl -s -X GET \
+  "https://api.kinopoisk.dev/v1.4/movie/search?page=$page&limit=$limit&query=%D0%B7%D0%B8%D0%BC%D0%BE%D1%80%D0%BE%D0%B4%D0%BE%D0%BA" \
+  -H "accept: application/json" \
+  -H "X-API-KEY: $API_KEY" | jq .)
+echo $request | jq '.docs[] | select(.year == 2022)' # отфильтровать вывод по году выхода
+```
+```PowerShell
+$API_KEY = "ZYMNJJA-0J8MNPN-PB4N7R7-XXXXXXX"
+$page = 1
+$limit = 5
+$query = "%D0%B7%D0%B8%D0%BC%D0%BE%D1%80%D0%BE%D0%B4%D0%BE%D0%BA"
+$request = Invoke-RestMethod -Uri "https://api.kinopoisk.dev/v1.4/movie/search?page=$page&limit=$limit&query=$query" -Headers @{"accept"="application/json"; "X-API-KEY"="$API_KEY"}
+$request.docs | Where-Object year -eq 2022
+```
+### UrlCode
+```PowerShell
+function Get-PercentEncode ($str) {
+   $bytes = [System.Text.Encoding]::UTF8.GetBytes($str)
+   ($bytes | ForEach-Object { "{0:X2}" -f $_ }) -join '%' -replace "^","%"
+}
+Get-PercentEncode "зимородок"
+```
+```PowerShell
+function Get-UrlEncode($str) {
+   [System.Web.HttpUtility]::UrlEncode($str)
+}
+UrlEncode "зимородок"
+```
+```Bash
+percent-encode() {
+	str=$1
+    echo -n "$1" | iconv -t utf8 | od -An -tx1 | tr ' ' % | tr -d '\n'
+}
+percent-encode "зимородок"
+```
+```PowerShell
+function Get-UrlDecode($encoded) {
+    [System.Uri]::UnescapeDataString($encoded)
+}
+Get-UrlDecode "%D0%B7%D0%B8%D0%BC%D0%BE%D1%80%D0%BE%D0%B4%D0%BE%D0%BA"
+```
+```Bash
+percent-decode() {
+    encoded=$1
+    local url_encoded="${1//+/ }"
+    printf '%b' "${url_encoded//%/\\x}"
+}
+percent-decode "%D0%B7%D0%B8%D0%BC%D0%BE%D1%80%D0%BE%D0%B4%D0%BE%D0%BA"
+```
+# VideoCDN
+
+https://github.com/notssh/videocdn-api \
+https://github.com/API-Movies/videocdn \
+https://api-movies.github.io/videocdn/index.json
+```PowerShell
+$kp_id = 5106881
+$token = "YfTWH2p3Mai7ziqDoGjS3yXXXXXXXXXX"
+$ep = "tv-series"
+$(Invoke-RestMethod $("https://videocdn.tv/api/$ep"+"?api_token=$token&field=kinopoisk_id&query=$kp_id")).data.episodes | Where-Object season_num -eq 2 | Select-Object @{Name="Episode"; Expression={$_.num}}, @{Name="Voice"; Expression={$_.media.translation.title}} # отфильтровать серии по второму сезону и отобразить все озвучки к сериям
+```
+```Bash
+kp_id=5106881
+token="YfTWH2p3Mai7ziqDoGjS3yXXXXXXXXXX"
+ep="tv-series"
+curl -s "https://videocdn.tv/api/$ep?api_token=$token&field=kinopoisk_id&query=$kp_id" | jq ".data[].episodes | length" # количество серий
+curl -s "https://videocdn.tv/api/$ep?api_token=$token&field=kinopoisk_id&query=$kp_id" | jq ".data[].episodes[] | select(.season_num == 2) | {episode: .ru_title, voice: .media[].translation.title}" # отфильтровать параметры вывода
 ```
