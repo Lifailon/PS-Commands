@@ -1,14 +1,18 @@
 function Send-ToTelegram {
 param (
-[Parameter(Mandatory = $True)]$Text,
-$token    = "687...:AAF...",
-$chat     = "125468108"
+    [Parameter(Mandatory = $True)]$Text,
+    $Token    = "687...:AAF...",
+    $Chat     = "125468108",
+    $Keyboard
 )
-$endpoint = "sendMessage"
-$url      = "https://api.telegram.org/bot$token/$endpoint"
-$Body = @{
-chat_id = $Chat
-text    = $Text
-}
-Invoke-RestMethod -Uri $url -Body $Body
+    $endpoint = "sendMessage"
+    $url      = "https://api.telegram.org/bot$Token/$endpoint"
+    $Body = @{
+        chat_id = $Chat
+        text    = $Text
+    }
+    if ($keyboard -ne $null) {
+        $Body += @{reply_markup = $keyboard}
+    }
+    Invoke-RestMethod -Uri $url -Body $Body
 }
