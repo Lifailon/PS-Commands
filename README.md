@@ -6625,7 +6625,7 @@ $response.results.image
 ### MoviesDatabase
 
 https://rapidapi.com/SAdrian/api/moviesdatabase
-
+```PowerShell
 $key = "<TOKEN_API>"
 $imdb_id = "tt0455275"
 $headers=@{}
@@ -6633,7 +6633,7 @@ $headers.Add("X-RapidAPI-Key", "$key")
 $headers.Add("X-RapidAPI-Host", "moviesdatabase.p.rapidapi.com")
 $response = Invoke-RestMethod "https://moviesdatabase.p.rapidapi.com/titles/$imdb_id" -Method GET -Headers $headers
 $response.results
-
+```
 # TMDB
 
 https://developer.themoviedb.org/reference/intro/getting-started
