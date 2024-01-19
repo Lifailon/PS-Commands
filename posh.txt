@@ -46,7 +46,6 @@ GitHub Repo stars: https://img.shields.io/github/stars/Lifailon/PS-Commands
 # TrueNAS
 # Veeam
 # REST API
-# Telegram
 # Pode
 # Selenium
 # IE
@@ -93,10 +92,14 @@ GitHub Repo stars: https://img.shields.io/github/stars/Lifailon/PS-Commands
 # YandexGPT
 # SuperAGI
 # Replicate
+# Google-API
+# RapidAPI
 # TMDB
 # ivi
 # Kinopoisk
 # VideoCDN
+# Telegram
+# Discord
 
 # Help
 
@@ -250,7 +253,9 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 @{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}} # вычесть из текущего времени - время запуска, и удалить milisec
 
 ### Select-String
-ipconfig /all | Select-String dns # поиск текста
+$(ipconfig | Select-String IPv4) -replace ".+: " | Where-Object {$_ -match "^172."} # узнать только IP
+$Current_IP = Get-Content $RDCMan_RDG_PATH | Select-String $RDCMan_Display_Name -Context 0,1 # получить две строки
+$Current_IP = $Current_IP.Context.DisplayPostContext[0] -replace ".+<name>|<\/name>" # забрать только вторую строку и удалить тэги
 
 ### Format-Table/Format-List
 Get-Process | ft ProcessName, StartTime -Autosize # автоматическая группировка размера столбцов
@@ -2685,88 +2690,6 @@ $vjob = $vjob.Content | ConvertFrom-Json
 
 $vjob = Invoke-RestMethod "https://veeam-11:9419/api/v1/jobs" -Method GET -Headers $Header -SkipCertificateCheck
 $vjob.data.virtualMachines.includes.inventoryObject
-
-# Telegram
-
-@BotFather (https://t.me/BotFather) /newbot
-https://api.telegram.org/bot<token>/<endpoint>
-
-function Get-FromTelegram {
-param (
-    $token = "687...:AAF...",
-    [switch]$last,
-    [switch]$date
-)
-$endpoint = "getUpdates"
-$url      = "https://api.telegram.org/bot$token/$endpoint"
-$result   = Invoke-RestMethod -Uri $url
-if ($date) {
-$Collections = New-Object System.Collections.Generic.List[System.Object]
-foreach ($r in $($result.result)) {
-    $EpochTime = [DateTime]"1/1/1970"
-    $TimeZone = Get-TimeZone
-    $UTCTime = $EpochTime.AddSeconds($r.message.date)
-    $d = $UTCTime.AddMinutes($TimeZone.BaseUtcOffset.TotalMinutes)
-	#$d
-    $Collections.Add([PSCustomObject]@{
-        Message = $r.message.text;
-        Date    = $d
-    })
-}
-$Collections
-} else {
-if ($last) {
-    $result.result.message.text[-1] # прочитать последнее сообщение
-} else {
-    $result.result.message.text
-}
-#$result.result.message.chat.id[-1] # получить индивидуальный chat_id с ботом
-}
-}
-
-Get-FromTelegram
-Get-FromTelegram -last
-Get-FromTelegram -date
-
-https://core.telegram.org/bots/api#sendmessage
-
-function Send-ToTelegram {
-param (
-[Parameter(Mandatory = $True)]$Text,
-$token    = "687...:AAF...",
-$chat     = "125468108"
-)
-$endpoint = "sendMessage"
-$url      = "https://api.telegram.org/bot$token/$endpoint"
-$Body = @{
-chat_id = $Chat
-text    = $Text
-}
-Invoke-RestMethod -Uri $url -Body $Body
-}
-
-Send-ToTelegram -Text "Send test from powershell"
-
-$LastDate = (Get-FromTelegram -date)[-1].Date
-while ($true) {
-    $LastMessage  = (Get-FromTelegram -date)[-1]
-    Start-Sleep 1
-    $LastDateTest = $LastMessage.Date
-    if (($LastMessage.Message -match "/Service") -and ($LastDate -ne $LastDateTest)) {
-        $ServiceName = $($LastMessage.Message -split " ")[-1]
-        $Result = $(Get-Service $ServiceName -ErrorAction Ignore).Status
-        if ($Result) {
-            Send-ToTelegram -Text $Result
-        } else {
-            Send-ToTelegram -Text "Service not found"
-        }
-        $LastDate = $LastDateTest
-    }
-}
-
-/Service vpnagent
-/Service WinRM
-/Service test
 
 # Pode
 
@@ -6637,6 +6560,80 @@ while ($response.status -ne "succeeded") {
 }
 $response.output
 
+# Google-API
+
+### Google-Translate
+
+$Key = "<TOKEN_API>" # получить токен: https://console.cloud.google.com/apis/credentials
+$Text = "You can see in the right corner how long each translation request takes (this does not depend on the amount of text being transferred)."
+$LanguageTarget = "RU"
+$LanguageSource = "EN"
+$url = "https://translation.googleapis.com/language/translate/v2?key=$key"
+$Header = @{
+    "Content-Type" = "application/json"
+}
+$Body = @{
+    "q" = "$Text"
+    "target" = "$LanguageTarget"
+    "source" = "$LanguageSource"
+} | ConvertTo-Json
+$WebClient = New-Object System.Net.WebClient
+foreach ($key in $Header.Keys) {
+    $WebClient.Headers.Add($key, $Header[$key])
+}
+$Response = $WebClient.UploadString($url, "POST", $Body) | ConvertFrom-Json
+$Response.data.translations.translatedText
+
+### Google-Search
+
+$Key = "<TOKEN_API>" # получить токен: https://developers.google.com/custom-search/v1/overview?hl=ru (пользовательский поиск JSON API предоставляет 100 поисковых запросов в день бесплатно)
+$cx = "35c78340f49eb474a" # создать поисковую систему https://programmablesearchengine.google.com/controlpanel/all
+$Query = "как создать бота discord"
+$Lang = "ru"
+$Num = 10
+$Start = 0
+$response = Invoke-RestMethod "https://www.googleapis.com/customsearch/v1?q=$Query&key=$Key&cx=$cx&lr=lang_$Lang&num=$Num&$start=$Start"
+$response.items | Select-Object title,snippet,displayLink,link | Format-List
+
+# RapidAPI
+
+https://rapidapi.com/ru/neoscrap-net/api/google-search72
+
+$Key = "<TOKEN_API>"
+$headers=@{}
+$headers.Add("X-RapidAPI-Key", "$Key")
+$headers.Add("X-RapidAPI-Host", "google-search72.p.rapidapi.com")
+$query = "как создать бота discord"
+$response = Invoke-RestMethod "https://google-search72.p.rapidapi.com/search?q=$query%20gitgub&gl=us&lr=lang_ru&num=20&start=0" -Method GET -Headers $headers
+$response.items | Select-Object title,snippet,displayLink,link | Format-List
+
+### IMDb
+
+https://rapidapi.com/apidojo/api/imdb8
+
+$key = "<TOKEN_API>" # 500 запросов в месяц
+$query="Break"
+$headers=@{}
+$headers.Add("X-RapidAPI-Key", "$key")
+$headers.Add("X-RapidAPI-Host", "imdb8.p.rapidapi.com")
+$response = Invoke-RestMethod "https://imdb8.p.rapidapi.com/title/find?q=$query" -Method GET -Headers $headers
+$response.results | select title,titletype,year,runningTimeInMinutes,id | Format-Table
+"https://www.imdb.com$($response.results.id[0])"
+$response.results.principals # актеры
+$response.results.image
+
+### MoviesDatabase
+
+https://rapidapi.com/SAdrian/api/moviesdatabase
+
+$key = "<TOKEN_API>"
+$imdb_id = "tt0455275"
+$headers=@{}
+$headers.Add("X-RapidAPI-Key", "$key")
+$headers.Add("X-RapidAPI-Host", "moviesdatabase.p.rapidapi.com")
+$response = Invoke-RestMethod "https://moviesdatabase.p.rapidapi.com/titles/$imdb_id" -Method GET -Headers $headers
+$response.results
+
 # TMDB
 
 https://developer.themoviedb.org/reference/intro/getting-started
@@ -6781,3 +6778,226 @@ token="YfTWH2p3Mai7ziqDoGjS3yXXXXXXXXXX"
 ep="tv-series"
 curl -s "https://videocdn.tv/api/$ep?api_token=$token&field=kinopoisk_id&query=$kp_id" | jq ".data[].episodes | length" # количество серий
 curl -s "https://videocdn.tv/api/$ep?api_token=$token&field=kinopoisk_id&query=$kp_id" | jq ".data[].episodes[] | select(.season_num == 2) | {episode: .ru_title, voice: .media[].translation.title}" # отфильтровать параметры вывода
+
+# Telegram
+
+@BotFather (https://t.me/BotFather) /newbot
+
+https://api.telegram.org/bot<token>/<endpoint>
+
+https://core.telegram.org/bots/api#getupdates
+
+function Get-FromTelegram {
+    param (
+        $Token = "687...:AAF...",
+        [switch]$Date,
+        [switch]$Last,
+        [switch]$ChatID
+    )
+    $endpoint = "getUpdates"
+    $url      = "https://api.telegram.org/bot$Token/$endpoint"
+    $result   = Invoke-RestMethod -Uri $url
+    if ($Date) {
+        $Collections = New-Object System.Collections.Generic.List[System.Object]
+        foreach ($r in $($result.result)) {
+            $EpochTime = [DateTime]"1/1/1970"
+            $TimeZone = Get-TimeZone
+            $UTCTime = $EpochTime.AddSeconds($r.message.date)
+            $d = $UTCTime.AddMinutes($TimeZone.BaseUtcOffset.TotalMinutes)
+            $Collections.Add([PSCustomObject]@{
+                Message = $r.message.text;
+                Date    = $d
+            })
+        }
+        $Collections
+    }
+    else {
+        if ($Last) {
+            $result.result.message.text[-1]
+        }
+        elseif ($ChatID) {
+            $Collections = New-Object System.Collections.Generic.List[System.Object]
+            foreach ($r in $($result.result)) {
+                $Collections.Add([PSCustomObject]@{
+                    Message = $r.message.text;
+                    UserName = $r.message.chat.username;
+                    ChatID = $r.message.chat.id;
+                    ChatType = $r.message.chat.type
+                })
+            }
+            $Collections
+        }
+        else {
+            $result.result.message.text
+        }
+    }
+}
+
+Get-FromTelegram
+Get-FromTelegram -Last
+Get-FromTelegram -Date
+Get-FromTelegram -ChatID
+
+https://core.telegram.org/bots/api#sendmessage
+
+function Send-ToTelegram {
+param (
+    [Parameter(Mandatory = $True)]$Text,
+    $Token    = "687...:AAF...",
+    $Chat     = "125468108",
+    $Keyboard
+)
+    $endpoint = "sendMessage"
+    $url      = "https://api.telegram.org/bot$Token/$endpoint"
+    $Body = @{
+        chat_id = $Chat
+        text    = $Text
+    }
+    if ($keyboard -ne $null) {
+        $Body += @{reply_markup = $keyboard}
+    }
+    Invoke-RestMethod -Uri $url -Body $Body
+}
+
+Send-ToTelegram -Text "Send test from powershell"
+
+$LastDate = (Get-FromTelegram -date)[-1].Date
+while ($true) {
+    $LastMessage  = (Get-FromTelegram -date)[-1]
+    Start-Sleep 1
+    $LastDateTest = $LastMessage.Date
+    if (($LastMessage.Message -match "/Service") -and ($LastDate -ne $LastDateTest)) {
+        $ServiceName = $($LastMessage.Message -split " ")[-1]
+        $Result = $(Get-Service $ServiceName -ErrorAction Ignore).Status
+        if ($Result) {
+            Send-ToTelegram -Text $Result
+        } else {
+            Send-ToTelegram -Text "Service not found"
+        }
+        $LastDate = $LastDateTest
+    }
+}
+
+/Service vpnagent
+/Service WinRM
+/Service test
+
+### Button
+
+$keyboard = '{
+    "inline_keyboard":[[
+        {"text":"Uptime","callback_data":"/Uptime"},
+        {"text":"Test","callback_data":"/Test"}
+    ]]
+}'
+Send-ToTelegram -Text "Test buttons" -Keyboard $keyboard
+$request = (Invoke-RestMethod -Uri "https://api.telegram.org/bot$Token/getUpdates").result.callback_query
+$request.data # прочитать callback_data нажатой кнопки
+$request.message.date
+
+# Discord
+
+https://discord.com/developers/applications
+
+Создаем Applications (General Information). В Bot привязываем к Application и копируем токен авторизации. В OAuth2 - URL Generator выбираем bot и права Administrator и копируем созданный URL для добавления на канал. Переходим по url и добавляем бота на сервер. Получаем ID канала на сервере (текстовые каналы, правой кнопкой мыши копируем ссылку и забираем последний id в url).
+
+### Send to Discord
+
+DISCORD_TOKEN="MTE5NzE1NjM0NTM3NjQxMTcyOQ.XXXXXX.EzBF6RA9Kx_MSuhLW5elH1U-XXXXXXXXXXXXXX"
+DISCORD_CHANNEL_ID="119403124XXXXXXXXXX"
+TEXT="test from bash"
+URL="https://discordapp.com/api/channels/$DISCORD_CHANNEL_ID/messages"
+curl -s -X POST $URL \
+  -H "Authorization: Bot $DISCORD_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"content\": \"$TEXT\"}"
+
+#PowerShell
+$DISCORD_TOKEN = "MTE5NzE1NjM0NTM3NjQxMTcyOQ.XXXXXX.EzBF6RA9Kx_MSuhLW5elH1U-XXXXXXXXXXXXXX"
+$DISCORD_CHANNEL_ID = "119403124XXXXXXXXXX"
+$TEXT = "test from PowerShell"
+$URL = "https://discordapp.com/api/channels/$DISCORD_CHANNEL_ID/messages"
+$Body = @{
+    content = $TEXT
+} | ConvertTo-Json
+curl -s $URL -X POST -H "Authorization: Bot $DISCORD_TOKEN" -H "Content-Type: application/json" -d $Body
+
+### Read from Discord
+
+curl -s -X GET $URL \
+  -H "Authorization: Bot $DISCORD_TOKEN" \
+  -H "Content-Type: application/json" | jq -r .[0].content
+
+#PowerShell
+$messages = (curl -s -X GET $URL -H "Authorization: Bot $DISCORD_TOKEN" -H "Content-Type: application/json" | ConvertFrom-Json)
+$messages | Select-Object content,timestamp,{$_.author.username}
+
+### HttpClient
+
+$DISCORD_TOKEN = "MTE5NzE1NjM0NTM3NjQxMTcyOQ.XXXXXX.EzBF6RA9Kx_MSuhLW5elH1U-XXXXXXXXXXXXXX"
+$DISCORD_CHANNEL_ID = "119403124XXXXXXXXXX"
+$URL = "https://discordapp.com/api/channels/$DISCORD_CHANNEL_ID/messages"
+$HttpClient = New-Object System.Net.Http.HttpClient
+$HttpClient.DefaultRequestHeaders.Authorization = "Bot $DISCORD_TOKEN"
+$response = $HttpClient.GetAsync($URL).Result
+$messages = $response.Content.ReadAsStringAsync().Result
+($messages | ConvertFrom-Json).content
+
+### Button
+
+curl -X POST $URL \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bot $DISCORD_TOKEN" \
+  -d '
+  {
+    "content": "Test text for button",
+    "components": [
+      {
+        "type": 1,
+        "components": [
+          {
+            "type": 2,
+            "label": "Button",
+            "style": 1,
+            "custom_id": "button_click"
+          }
+        ]
+      }
+    ]
+  }'
+
+### Discord.Net.Webhook
+
+Add-Type -Path $(ls "$home\Documents\Discord.NET\*.dll").FullName
+# https://discordapp.com/api/webhooks/<webhook_id>/<webhook_token> (Настроить канал - Интеграция)
+$webhookId = 1197577280000000000
+$webhookToken = "rs8AA-XXXXXXXXXXX_Vk5RUI4A6HuSGhpCCTepq25duwCwLXasfv6u23a7XXXXXXXXXX"
+$messageContent = "Test dotNET"
+$client = New-Object Discord.Webhook.DiscordWebhookClient($webhookId, $webhookToken)
+$client.SendMessageAsync($messageContent).Wait()
+
+### Discord.Net.WebSocket
+
+$DiscordAssemblies = $(ls "$home\Documents\Discord.NET\*.dll").FullName
+foreach ($assembly in $DiscordAssemblies) {
+    Add-Type -Path $assembly
+}
+$DISCORD_TOKEN = "MTE5NzE1NjM0NTM3NjQxMTcyOQ.XXXXXX.EzBF6RA9Kx_MSuhLW5elH1U-XXXXXXXXXXXXXX"
+$Client = New-Object Discord.WebSocket.DiscordSocketClient
+$Client.Add_MessageReceived({
+    param($message)
+    if ($message.Author.Id -ne $Client.CurrentUser.Id) {
+        Write-Host ("Received message from " + $message.Author.Username + ": " + $message.Content)
+        if ($message.Content.Contains("ping")) {
+            $message.Channel.SendMessageAsync("pong").GetAwaiter().GetResult()
+        }
+    }
+})
+$Client.LoginAsync([Discord.TokenType]::Bot, $DISCORD_TOKEN).GetAwaiter().GetResult()
+#$Client.StartAsync().Wait()
+$Client.StartAsync().GetAwaiter().GetResult()
+$Client.ConnectionState
+
+[console]::ReadKey($true)
+$Client.LogoutAsync().GetAwaiter().GetResult()
+$Client.Dispose()
