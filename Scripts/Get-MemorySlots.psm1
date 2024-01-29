@@ -1,7 +1,11 @@
 function Get-MemorySlots {
-    $Memory = Get-CimInstance Win32_PhysicalMemory | Select-Object Manufacturer,PartNumber,
-    ConfiguredClockSpeed,@{Label="Memory"; Expression={[string]($_.Capacity/1Mb)}},
-    Tag,DeviceLocator,BankLabel
+    $Memory = Get-CimInstance Win32_PhysicalMemory |
+    Select-Object Manufacturer,
+    PartNumber,
+    ConfiguredClockSpeed,
+    @{Label="Memory"; Expression={[string]($_.Capacity/1Mb)}},
+    Tag,DeviceLocator,
+    BankLabel
     $CollectionMemory = New-Object System.Collections.Generic.List[System.Object]
     $Memory | ForEach-Object {
         $CollectionMemory.Add([PSCustomObject]@{

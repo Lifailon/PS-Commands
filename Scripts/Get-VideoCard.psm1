@@ -8,7 +8,7 @@ function Get-VideoCard {
         $CollectionVC.Add([PSCustomObject]@{
             Model    = $_.VideoCard
             Display  = $_.Display
-            VideoRAM = [string]$_.vRAM+" Gb"
+            VideoRAM = [string]$([int]$($_.vRAM))+" Gb"
         })
     }
     $CollectionVC
