@@ -1,8 +1,14 @@
 function Get-Software {
-    Get-CimInstance Win32_Product | Select-Object Name,
+    Get-CimInstance Win32_Product  | Sort-Object -Descending  InstallDate | Select-Object Name,
     Version,
     Vendor,
-    InstallDate,
+    @{
+        name="InstallDate";expression={
+            [datetime]::ParseExact($_.InstallDate, "yyyyMMdd", $null).ToString("dd.MM.yyyy")
+        }
+    },
     InstallLocation,
-    InstallSource
+    InstallSource,
+    PackageName,
+    LocalPackage
 }
