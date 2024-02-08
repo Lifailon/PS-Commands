@@ -8,7 +8,9 @@
 📢 Статья на Habr: [PowerShell и его возможности](https://habr.com/ru/articles/782592/)
 
 - [Help](#help)
+- [oh-my-posh](#oh-my-posh)
 - [Object](#object)
+- [npp](#npp)
 - [Regex](#regex)
 - [DataType](#datatype)
 - [Bit](#bit)
@@ -35,7 +37,6 @@
 - [DHCP](#dhcpserver)
 - [DFS](#dfs)
 - [StorageReplica](#storagereplica)
-- [Package-Manager](#package-manager)
 - [PS2EXE](#ps2exe)
 - [NSSM](#nssm)
 - [Jobs](#jobs)
@@ -85,8 +86,10 @@
 - [Proxy](#proxy)
 - [OpenSSH](#openssh)
 - [WinRM](#winrm)
-- [DSC](#dsc)
+- [PackageManagement](#packagemanagement)
+- [NuGet](#nuget)
 - [Git](#git)
+- [DSC](#dsc)
 - [Ansible](#ansible)
 - [GigaChat](#GigaChat)
 - [YandexGPT](#YandexGPT)
@@ -125,9 +128,35 @@
 `$Metadata = New-Object System.Management.Automation.CommandMetaData (Get-Command Get-Service)` получить информацию о командлете \
 `[System.Management.Automation.ProxyCommand]::Create($Metadata)` исходный код функции
 
+# oh-my-posh
+
+[Install](https://ohmyposh.dev/docs/installation/windows) \
+`winget install JanDeDobbeleer.OhMyPosh -s winget` \
+`choco install oh-my-posh -y` \
+`scoop install https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/oh-my-posh.json` \
+`Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))`
+
+[Themes](https://ohmyposh.dev/docs/themes) \
+`Get-PoshThemes` \
+`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression` \
+`oh-my-posh init pwsh --config "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/cert.omp.json" | Invoke-Expression`
+
+`New-Item -Path $PROFILE -Type File -Force` \
+`notepad $PROFILE` \
+`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression`
+
+### themes-performance
+```PowerShell
+Install-Module themes-performance -Repository NuGet
+Import-Module themes-performance
+Set-PoshTheme -Theme System-Sensors
+Set-PoshTheme -Theme System-Performance
+Set-PoshTheme -Theme Pwsh-Process-Performance
+```
 # Object
 
 ### Variable
+
 `$var = Read-Host "Enter"` ручной ввод \
 `$pass = Read-Host "Enter Password" -AsSecureString` скрывать набор \
 `$global:path = "\\path"` задать глобальную переменную, например в функции \
@@ -141,6 +170,7 @@
 `$LASTEXITCODE` содержит код вывода последней запущенной программы, например ping. Если код возврата положительный (True), то $LastExitCode = 0
 
 ### ENV
+
 `Get-ChildItem Env:` отобразить все переменные окружения \
 `$env:PSModulePath` директории импорта модулей \
 `$env:userprofile` \
@@ -152,6 +182,7 @@
 `[Environment]::GetFolderPath('ApplicationData')`
 
 ### History
+
 `Get-History` история команд текущей сессии \
 `(Get-History)[-1].Duration.TotalSeconds` время выполнения последней команды \
 `(Get-PSReadLineOption).HistorySavePath` путь к сохраненному файлу с 4096 последних команд (из модуля PSReadLine) \
@@ -162,21 +193,25 @@
 `F2` переключиться с InlineView на ListView
 
 ### Clipboard
+
 `Set-Clipboard $srv` скопировать в буфер обмена \
 `Get-Clipboard` вставить
 
 ### Write
+
 `Write-Host -ForegroundColor Black -BackgroundColor Green "Test" -NoNewline` \
 `Write-Error Test` \
 `Foreach ($n in 1..100) {Write-Progress -Activity "Test Progress" -PercentComplete $n}`
 
 ### Array
+
 `$srv = @("server-01", "server-02")`  создать массив \
 `$srv += @("server-03")` добавить в массив новый элемент \
 `$srv.Count` отобразить кол-во элементов в массиве \
 `Out-String` построчный вывод
 
 ### Index
+
 `$srv[0]` вывести первое значение элемента массива \
 `$srv[0] = Name` замена элемента в массиве \
 `$srv[0].Length` узнать кол-во символов первого значения в массиве \
@@ -235,11 +270,13 @@ $Class.Server = $env:computername
 $Class.Start(1)
 ```
 ### Pipeline
+
 `$obj | Add-Member -MemberType NoteProperty -Name "Type" -Value "user" -Force` добавление объкта вывода NoteProperty \
 `$obj | Add-Member -MemberType NoteProperty -Name "User" -Value "admin" -Force` изменеие содержимого для сущности объекта User \
 `ping $srv | Out-Null` перенаправить результат вывода в Out-Null
 
 ### Select-Object
+
 `Get-Process | Select-Object -Property *` отобразить все доступные объекты вывода \
 `Get-Process | select -Unique "Name"` удалить повторяющиеся значения в массиве \
 `Get-Process | select -ExpandProperty ProcessName` преобразовать из объекта-коллекции в массив (вывести содержимое без наименовая столбца) \
@@ -253,19 +290,23 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 @{Label="RunTime"; Expression={((Get-Date) - $_.StartTime) -replace "\.\d+$"}} # вычесть из текущего времени - время запуска, и удалить milisec
 ```
 ### Select-String
+
 `$(ipconfig | Select-String IPv4) -replace ".+: " | Where-Object {$_ -match "^172."}` узнать только IP \
 `$Current_IP = Get-Content $RDCMan_RDG_PATH | Select-String $RDCMan_Display_Name -Context 0,1` получить две строки \
 `$Current_IP = $Current_IP.Context.DisplayPostContext[0] -replace ".+<name>|<\/name>"` забрать только вторую строку и удалить тэги
 
 ### Format-Table/Format-List
+
 `Get-Process | ft ProcessName, StartTime -Autosize` автоматическая группировка размера столбцов
 
 ### Measure-Object
+
 `Get-Process | Measure | select Count` кол-во объектов \
 `Get-Process | Measure -Line -Word -Character` кол-во строк, слов и Char объектов \
 `Get-Process | Measure-Object PM -sum | Select-Object Count,@{Name="MEM_MB"; Expression={[int]($_.Sum/1mb)}}` кол-во процессов и общий объем занятой памяти в МБайт
 
 ### Compare-Object
+
 `Compare-Object -ReferenceObject (Get-Content -Path .\file1.txt) -DifferenceObject (Get-Content -Path .\file2.txt)` сравнение двух файлов \
 `$group1 = Get-ADGroupMember -Identity "Domain Admins"` \
 `$group2 = Get-ADGroupMember -Identity "Enterprise Admins"` \
@@ -275,6 +316,7 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 `=>` есть изменения в $group2
 
 ### Where-Object (?)
+
 `Get-Process | Where-Object {$_.ProcessName -match "zabbix"}` фильтрация/поиск процессов по имени свойства объекта \
 `Get-Process | where CPU -gt 10 | Sort-Object -Descending CPU` вывести объекты, где значения CPU больше 10 \
 `Get-Process | where WS -gt 200MB` отобразить процессы где WS выше 200МБ \
@@ -286,22 +328,24 @@ ps | Sort-Object -Descending CPU | select -first 10 ProcessName, # сортир�
 `(netstat -an) -match 443`
 
 ### Sort-Object
+
 `Get-Process | Sort-Object -Descending CPU | ft` обратная (-Descending) сортировка по CPU \
 `$path[-1..-10]` обратная сборка массива без сортировки
 
 ### Last/First
+
 `Get-Process | Sort-Object -Descending CPU | select -First 10` вывести первых 10 объектов \
 `Get-Process | Sort-Object -Descending CPU | select -Last 10` вывести последних 10 объектов
 
-### oh-my-posh
-
-`winget install JanDeDobbeleer.OhMyPosh -s winget` \
-`Get-PoshThemes` \
-`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression` blue-owl,montys,jblab_2021,easy-term,cinnamon,jtracey93,cert \
-`New-Item -Path $PROFILE -Type File -Force` \
-`notepad $PROFILE` \
-`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression`
-
+### Group-Object
+```PowerShell
+$Groups = Get-CimInstance -Class Win32_PnPSignedDriver |
+Select-Object DriverProviderName, FriendlyName, Description, DriverVersion, DriverDate |
+Group-Object DriverProviderName, FriendlyName, Description, DriverVersion, DriverDate
+$(foreach ($Group in $Groups) {
+    $Group.Group[0]
+}) | Format-Table
+```
 # NPP
 
 `pwsh -NoExit -ExecutionPolicy Unrestricted -WindowStyle Maximized -File "$(FULL_CURRENT_PATH)"`
@@ -376,6 +420,7 @@ $		# Конец строки
 `-NotMatch` проверка на отсутствие вхождения \
 
 ### Matches
+
 `$ip = "192.168.10.1"` \
 `$ip -match "(\.\d{1,3})\.\d{1,2}"` True \
 `$Matches` отобразить все подходящие переменные последнего поиска, которые входят и не входят в группы ()
@@ -387,6 +432,7 @@ $		# Конец строки
 `$string.Substring($string.IndexOf(".txt")-4, 4)` 2-й вариант (IndexOf)`
 
 ### Форматирование (.NET method format)
+
 `[string]::Format("{1} {0}","Index0","Index1")` \
 `"{1} {0}" -f "Index0","Index1"` \
 `"{0:###-##-##}" -f 1234567` записать число в другом формате (#) \
@@ -401,6 +447,7 @@ foreach ($p in $gp) {
 }
 ```
 ### Условный оператор
+
 `$rh = Read-Host` \
 `if ($rh -eq 1) {ipconfig} elseif ($rh -eq 2) {getmac} else {hostname}` \
 Если условие if () является истенным ($True), выполнить действие в {} \
@@ -410,6 +457,7 @@ foreach ($p in $gp) {
 `if ((tnc $srv -Port 80).TcpTestSucceeded) {"Opened port"} else {"Closed port"}`
 
 ### Операторы
+
 `-eq` равно (equal) \
 `-ceq` учитывать регистр \
 `-ne` не равно (not equal) \
@@ -424,12 +472,14 @@ foreach ($p in $gp) {
 `if ((($1 -eq 1) -and ($2 -eq 2)) -or ($1 -ne 3)) {"$true"} else {"$false"}` два условия: (если $1 = 1 и $2 = 2) или $1 не равно 3
 
 ### Pipeline Operators
+
 `Write-Output "First" && Write-Output "Second"` две успешные команды выполняются \
 `Write-Error "Bad" && Write-Output "Second"` первая команда завершается ошибкой, из-за чего вторая команда не выполняется \
 `Write-Error "Bad" || Write-Output "Second"` первая команда завершается ошибкой, поэтому выполняется вторая команда \
 `Write-Output "First" || Write-Output "Second"` первая команда выполнена успешно, поэтому вторая команда не выполняется
 
 ### Invocation Operator
+
 `$addr = "8.8.8.8"` \
 `$ping = "ping"` \
 `& $ping $addr` запускает текст как команду
@@ -438,6 +488,7 @@ foreach ($p in $gp) {
 `(Get-Job)[-1] | Receive-Job -Keep`
 
 ### Специальные символы
+
 `\d` число от 0 до 9 (20-07-2022 эквивалент: "\d\d-\d\d-\d\d\d\d") \
 `\D` обозначает любой символ, кроме цифры. Удаления всех символов, кроме цифр: [int]$("123 test" -replace "\D") \
 `\w` буква от "a" до "z" и от "A" до "Z" или число от 0 до 9 \
@@ -451,6 +502,7 @@ foreach ($p in $gp) {
 `[]` поиск совпадения любой буквы, например, [A-z0-9] от A до z и цифры от 0 до 9 ("192.168.1.1" -match "192.1[6-7][0-9]")
 
 ### Якори
+
 `^` или `\A` определяет начало строки. $url -replace '^','https:'` добавить в начало; \
 `$` или `\Z` обозначают конец строки. $ip -replace "\d{1,3}$","0" \
 `(?=text)` поиск слова слева. Пишем слева на право от искомого (ищет только целые словосочетания) "Server:\s(.{1,30})\s(?=$username)" \
@@ -463,6 +515,7 @@ foreach ($p in $gp) {
 `$test -replace "^.{1}"` удалить любое кол-во символов в начале строки \
 
 ### Группы захвата
+
 `$date = '12.31.2021'` \
 `$date -replace '^(\d{2}).(\d{2})','$2.$1'` поменять местами \
 `$1` содержимое первой группы в скобках \
@@ -486,6 +539,7 @@ foreach ($p in $gp) {
 `[String]` неизменяемая строка символов Юникода фиксированной длины (BaseType:System.Object)
 
 ### Math
+
 `[math] | Get-Member -Static` \
 `[math]::Pow(2,4)` 2 в 4 степени \
 `[math]::Truncate(1.8)` грубое округление, удаляет дробную часть \
@@ -495,15 +549,18 @@ foreach ($p in $gp) {
 `[math]::Max(33,22)` возвращает наибольшее значение двух значений
 
 ### Round
+
 `[double]::Round(87.5, 0)` 88 (нечетное), в .NET по умолчанию используется округление в средней точке ToEven, где *.5 значения округляются до ближайшего четного целого числа. \
 `[double]::Round(88.5, 0)` 88 (четное) \
 `[double]::Round(88.5, 0, 1)` 89 (округлять в большую сторону) \
 `[double]::Round(1234.56789, 2)` округлить до 2 символов после запятой
 
 ### ToString
+
 `(4164539/1MB).ToString("0.00")` разделить на дважды на 1024/1024 и округлить до 3,97
 
 ### Char
+
 `[Char]` cимвол Юникода (16-разрядный) \
 `$char = $srv.ToCharArray()` разбить строку [string] на массив [System.Array] из букв \
 
@@ -1864,77 +1921,6 @@ HostName,IPAddress,ClientId,DnsRegistration,DnsRR,ScopeId,ServerIP | Out-GridVie
 `(Get-SRGroup).Replicas | Select-Object numofbytesremaining` проверить длину очереди копирования \
 `Get-SRPartnership | Remove-SRPartnership` удалить реплизацию на основном сервере \
 `Get-SRGroup | Remove-SRGroup` удалить реплизацию на обоих серверах
-
-# Package-Manager
-
-`Import-Module PackageManagement` импортировать модуль \
-`Get-Module PackageManagement` информация о модуле \
-`Get-Command -Module PackageManagement` отобразить все командлеты модуля \
-`Get-Package` отобразить все установленные пакеты PowerShellGallery \
-`Get-Package -ProviderName msi,Programs` список установленных программ
-`[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
-`Find-PackageProvider` поиск провайдеров \
-`Install-PackageProvider PSGallery -force` установить источник \
-`Install-PackageProvider NuGet -force` \
-`Install-PackageProvider Chocolatey -force` \
-`Get-PackageSource` источники установки пакетов \
-`Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
-`Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
-`Install-Package -Name VeeamLogParser -ProviderName PSGallery -scope CurrentUser` \
-`Get-Command *Veeam*` \
-`Import-Module -Name VeeamLogParser` загрузить модуль \
-`Get-Module VeeamLogParser | select -ExpandProperty ExportedCommands` отобразить список функций
-
-### winget
-
-Source: https://github.com/microsoft/winget-cli
-
-`winget list` список установленных пакетов \
-`winget search VLC` найти пакет \
-`winget show VideoLAN.VLC` информация о пакете \
-`winget show VideoLAN.VLC --versions` список доступных версий в репозитории \
-`winget install VideoLAN.VLC` установить пакет \
-`winget uninstall VideoLAN.VLC` удалить пакет \
-`winget download jqlang.jq` загрузкить пакет (https://github.com/jqlang/jq/releases/download/jq-1.7/jq-windows-amd64.exe) \
-`winget install jqlang.jq` добавляет в переменную среду и псевдоним командной строки jq \
-`winget uninstall jqlang.jq`
-
-### jqlang-install
-```PowerShell
-[uri]$url = $($(irm https://api.github.com/repos/jqlang/jq/releases/latest).assets.browser_download_url -match "windows-amd64").ToString() # получить версию latest на GitHub
-irm $url -OutFile "C:\Windows\System32\jq.exe" # загрузить jq.exe
-```
-### NuGet
-```PowerShell
-Invoke-RestMethod https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile "$env:TEMP\nuget.exe"
-Invoke-Expression "$env:TEMP/nuget.exe search Selenium.WebDriver"
-Set-Location $env:TEMP
-Invoke-Expression "$env:TEMP/nuget.exe install Selenium.WebDriver"
-Get-Item *Selenium*
-```
-### Chocolatey
-```PowerShell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-```
-`choco -v` \
-`choco -help` \
-`choco list` \
-`choco install adobereader`
-
-### Scoop
-
-`Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` \
-`irm get.scoop.sh | iex` установка \
-`scoop help` \
-`scoop search jq` \
-`scoop info jq` \
-`(scoop info jq).version` \
-`scoop cat jq` \
-`scoop download jq` C:\Users\lifailon\scoop\cache \
-`scoop install jq` C:\Users\lifailon\scoop\apps\jq\1.7 \
-`scoop list` \
-`(scoop list).version` \
-`scoop uninstall jq`
 
 # PS2EXE
 
@@ -4439,69 +4425,72 @@ MODIFY FILE (NAME = temp2, FILENAME = 'F:\tempdb_mssql_2.ndf' , SIZE = 1048576KB
 
 # InfluxDB
 
-https://community.influxdata.com/t/influxdb-1-7-11-download-links/18898` InfluxDB1 \
-`wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.1-windows-amd64.zip -UseBasicParsing -OutFile influxdb2-2.7.1-windows-amd64.zip` скачать InfluxDB2 \
-`Expand-Archive .\influxdb2-2.7.1-windows-amd64.zip -DestinationPath 'C:\Program Files\InfluxData\influxdb\'` разархивировать \
-`cd "C:\Program Files\InfluxData\influxdb\influxdb2_windows_amd64"` \
-`.\influxd.exe` \
-`.\influxd -h` \
-`http://localhost:8086/` базовая настройка \
-API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIosiCFkhi4EoWfHxwIlAA==`
+[Download InfluxDB 1.x Open Source](https://www.influxdata.com/downloads)
+[InfluxDB-Studio](https://github.com/CymaticLabs/InfluxDBStudio)
 
-### CLI Client
-`wget https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.7.3-windows-amd64.zip?_gl=1*76m6hu*_ga*MTg0OTc4MzkzNC4xNjg4MTM5NzQ4*_ga_CNWQ54SDD8*MTY4ODE2MjA0My41LjEuMTY4ODE2MzI5Ni4yMi4wLjA. -UseBasicParsing -OutFile influxdb2-client-2.7.3-windows-amd64.zip` \
-`Expand-Archive .\influxdb2-client-2.7.3-windows-amd64.zip -DestinationPath 'C:\Program Files\InfluxData\influx'` \
-`cd "C:\Program Files\InfluxData\influx"`
-
-`.\influx org list` отобразить список пользователей организаций \
-`.\influx auth list` отобразить список пользователей и токенов \
-`.\influx v1 shell` консоль \
-`.\influx v1 dbrp list` список БД
+### Install Windows
+```PowerShell
+Invoke-RestMethod "https://dl.influxdata.com/influxdb/releases/influxdb-1.8.10_windows_amd64.zip" -OutFile "$home\Downloads\influxdb-1.8.10_windows_amd64.zip"
+Expand-Archive "$home\Downloads\influxdb-1.8.10_windows_amd64.zip" -DestinationPath "$home\Documents\"
+Remove-Item "$home\Downloads\influxdb-1.8.10_windows_amd64.zip"
+& "$home\Downloads\influxdb-1.8.10-1\influxd.exe"
 ```
-.\influx config create --config-name main `
---host-url "http://localhost:8086" `
---org "test" `
---token "wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIosiCFkhi4EoWfHxwIlAA==" `
---active` создать и активировать конфигурацию, что бы не передавать свой хост InfluxDB, токен API и организацию с каждой командой
+### Install Ubuntu
+```Bash
+wget https://dl.influxdata.com/influxdb/releases/influxdb_1.8.10_amd64.deb
+sudo dpkg -i influxdb_1.8.10_amd64.deb
+systemctl start influxdb
+systemctl status influxdb
+
+ps aux | grep influxdb | grep -Ev "grep"
+netstat -natpl | grep 80[8-9][3-9]
 ```
-`.\influx config list` список конфигураций \
-`.\influx config list --json | ConvertFrom-Json` отобразить конфигурацию с выводом токена \
-`.\influx server-config | ConvertFrom-Json` текущая конфигурация сервера
+### API
+```Bash
+nano /etc/influxdb/influxdb.conf
 
-### bucket
-`.\influx bucket create --name test-bucket -c main` создать корзину \
-`.\influx write --bucket test-bucket --url https://influx-testdata.s3.amazonaws.com/air-sensor-data-annotated.csv` записать данные из CSV в созданную корзину (Flux language) \
-`.\influx query 'from(bucket:\"test-bucket\") |> range(start:-30m) |> mean()'` получить записанные данные
-
-### user
-`.\influx user create -n root -o test` создать пользователя (-o <org-name>) \
-`.\influx user password -n admin -p "password"` изменить/задать пароль \
-`.\influx user list` список пользователей \
-`influx user delete -i <user-id>`
-
-### deb
-
-`wget https://repos.influxdata.com/debian/packages/influxdb2-2.7.1-amd64.deb` \
-`dpkg -i influxdb2-2.7.1-amd64.deb` \
-`systemctl start influxd.service` \
-`systemctl status influxd.service` \
-`netstat -natpl | grep 80[8-9][3-9]` \
-`ps aux | grep influxdb | grep -Ev "grep"`
-
-`nano /etc/influxdb/config.toml` v2 \
-`http-bind-address = "192.168.3.101:8086"`
-
-`nano /etc/influxdb/influxdb.conf` v1
-```
 [http]
-  enabled = true` включить API
-  bind-address = "192.168.3.104:8086"
-  auth-enabled = true` включить авторизацию
+  enabled = true
+  bind-address = ":8086"
+  auth-enabled = false
+
+systemctl restart influxdb
 ```
+### Chronograf
+```
+wget https://dl.influxdata.com/chronograf/releases/chronograf-1.10.2_windows_amd64.zip -UseBasicParsing -OutFile chronograf-1.10.2_windows_amd64.zip
+Expand-Archive .\chronograf-1.10.2_windows_amd64.zip -DestinationPath 'C:\Program Files\InfluxData\chronograf\'
+
+wget https://dl.influxdata.com/chronograf/releases/chronograf_1.10.2_amd64.deb
+sudo dpkg -i chronograf_1.10.2_amd64.deb
+systemctl status influxdb
+http://192.168.3.102:8888
+```
+### Grafana
+
+[Download](https://grafana.com/grafana/download)
+
+`invoke-RestMethod https://dl.grafana.com/enterprise/release/grafana-enterprise-10.3.1.windows-amd64.msi -OutFile "$home\Download\grafana.msi"`
+```Bash
+apt-get install -y adduser libfontconfig1 musl
+wget https://dl.grafana.com/enterprise/release/grafana-enterprise_10.3.1_amd64.deb
+dpkg -i grafana-enterprise_10.3.1_amd64.deb
+systemctl start grafana-server
+systemctl status grafana-server
+```
+### CLI Client
+
 `apt install influxdb-client` \
 `influx` \
-`influx --host 192.168.3.104 --username admin --password password`
-
+`influx --host 192.168.3.102 --username admin --password password`
+```PowerShell
+$influx_client_exec = "$home\Documents\influxdb-1.8.10-1\influx.exe"
+& $influx_client_exec -host 192.168.3.102 -port 8086
+help
+show databases
+use PowerShell
+SELECT * FROM "HardwareMonitor" WHERE time > now() - 5m
+```
 ### USERS
 
 `SHOW USERS` отобразить пользователей и их права доступа \
@@ -4522,6 +4511,15 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 `SHOW measurements` отобразить все таблицы \
 `INSERT performance,host=console,counter=CPU value=0.88` записать данные в таблицу performance
 
+### MEASUREMENT
+
+`SHOW TAG KEYS FROM "HardwareMonitor"` отобразить все тэги в таблице \
+`SHOW TAG VALUES FROM "HardwareMonitor" WITH KEY = "HardwareName"` отобразить все значения указанного тэга \
+`SHOW FIELD KEYS FROM "HardwareMonitor"` отобразить все Field Tags и их тип данных \
+`SHOW SERIES FROM "HardwareMonitor"` отобразить список всех уникальных серий в указанной таблице. Серия - это набор точек данных, которые имеют одинаковые значения для всех тегов, за исключением времени. \
+`DROP SERIES FROM "HardwareMonitor"` очистить все данные в таблице \
+`DROP MEASUREMENT "HardwareMonitor"` удалить таблицу
+
 ### SELECT/WHERE
 
 `SELECT * FROM performance` отобразить все данные в таблице \
@@ -4536,17 +4534,22 @@ API Token: `wqsqOIR3d-PYmiJQYir4sX_NjtKKyh8ZWbfX1ZlfEEpAH3Z2ylcHx3XZzUA36XO3HIos
 
 ### REGEX
 
-`SELECT * FROM "performance" WHERE host =~ /.*-Pro/` приблизительно равно любое значение и на конце -Pro \
 `SELECT * FROM "win_pdisk" WHERE instance =~/.*C:/ and time > now() - 5m` и \
 `SELECT * FROM "win_pdisk" WHERE instance =~/.*E:/ or instance =~ /.*F:/` или \
 `SELECT * FROM "win_pdisk" WHERE instance !~ /.*Total/` не равно (исключить) \
+`SELECT * FROM "HardwareMonitor" WHERE time > now() - 5m and HardwareName =~ /Intel/` приблизительно равно \
+`SELECT * FROM "HardwareMonitor" WHERE time > now() - 5m and HardwareName =~ /Intel.+i7/` эквивалент 12th_Gen_Intel_Core_i7-1260P \
+`SELECT * FROM "HardwareMonitor" WHERE time > now() - 5m and HardwareName =~ /^Intel/` начинается на Intel \
+`SELECT * FROM "HardwareMonitor" WHERE time > now() - 5m and HardwareName =~ /00$/` заканчивается на 00
 
 ### GROUP BY tag_key
 
-`SELECT * FROM "win_pdisk" WHERE instance !~ /.*Total/ and instance !~/.*C:/ GROUP BY instance` группировать результаты по тегу
+`SELECT * FROM "HardwareMonitor" WHERE time > now() - 5m and SensorName = 'Temperature' GROUP BY HardwareName` создать уникальные группы по тэгу HardwareName \
+`SELECT * FROM "HardwareMonitor" WHERE time > now() - 5m and SensorName = 'Temperature' GROUP BY Host,HardwareName` больше групп по двум тэгаам
 
 ### Functions(field_key)
-https://docs.influxdata.com/influxdb/v1.8/query_language/functions/ \
+
+[Functions](https://docs.influxdata.com/influxdb/v1.8/query_language/functions)
 
 `SELECT instance,LAST(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод по последнему/текущему значению \
 `SELECT instance,FIRST(Avg._Disk_Read_Queue_Length) FROM "win_pdisk" GROUP BY instance` отфильтровать вывод по первому значению за весь или указанный отрезок времени \
@@ -4556,14 +4559,32 @@ https://docs.influxdata.com/influxdb/v1.8/query_language/functions/ \
 `SELECT COUNT(Bytes_Received_persec) FROM "win_net" WHERE Bytes_Received_persec >= 0 GROUP BY instance` кол-во данных, где значение выше или равно 0 \
 `SELECT MEAN(Bytes_Received_persec) FROM "win_net" WHERE Bytes_Received_persec < 1000 GROUP BY instance` среднее значение данных с показателем от 0 до 1000 (509)
 
+`SELECT *,MAX(Value) FROM "HardwareMonitor" WHERE time > now() -1h GROUP BY SensorName,Host` создать группы для выявления максимального значения значения стобца Value каждого тэга SensorName и хоста за последний час \
+`SELECT *,MAX(Value) FROM "HardwareMonitor" WHERE time > now() -1h and SensorName = 'CPU_Package' GROUP BY Host` масимальное значение CPU_Package за последний час для каждого хоста \
+`SELECT MEAN(Value) FROM "HardwareMonitor" WHERE time > now() -1h and SensorName = 'CPU_Package' GROUP BY Host` среднее значение CPU_Package за последний час
+
 ### POLICY
 
 `CREATE DATABASE powershell WITH DURATION 48h REPLICATION 1 NAME "del2d"` создать БД с политикой хранения 2 дня \
 `CREATE RETENTION POLICY del2h ON powershell DURATION 2h REPLICATION 1` создать новую политику хранения для БД \
 `CREATE RETENTION POLICY del6h ON powershell DURATION 6h REPLICATION 1 SHARD DURATION 2h` указать период хранения 6 часов + 2 часа до очистки (по умолчанию 1ч или больше) \
 `ALTER RETENTION POLICY del6h ON powershell DEFAULT` изменить (ALTER) политику хранения для БД на del6h (DEFAULT) \
-`DROP RETENTION POLICY del2d ON powershell` удаление политики хранения приводит к безвозвратному удалению всех измерений (таблиц) и данных, хранящихся в политике хранения
-
+`DROP RETENTION POLICY del2d ON powershell` удаление политики хранения приводит к безвозвратному удалению всех измерений (таблиц) и данных, хранящихся в политике хранения \
+`SHOW RETENTION POLICIES ON PowerShell` отобразить действующие политики базы данных PowerShell
+```PowerShell
+$data = Invoke-RestMethod http://192.168.3.102:8086/query?q="SHOW RETENTION POLICIES ON PowerShell"
+$col = $data.results.series.columns
+$val = $data.results.series.values
+$mass    = @()
+$mass   += [string]$col
+foreach ($v in $val) {
+	$mass += [string]$v
+}
+$mass = $mass -replace '^','"'
+$mass = $mass -replace '$','"'
+$mass = $mass -replace '\s','","'
+$mass | ConvertFrom-Csv
+```
 ### API POST
 
 Вместо таблиц в InfluxDB имеются измерения. Вместо столбцов в ней есть теги и поля.
@@ -5717,9 +5738,167 @@ New-WSManInstance -ResourceURI "winrm/config/Listener" -SelectorSet $selector_se
 `MaxFieldLength увеличить до 0000ffff (65535)` \
 `MaxRequestBytes увеличить до 0000ffff (65535)`
 
+# PackageManagement
+
+`Import-Module PackageManagement` импортировать модуль \
+`Get-Module PackageManagement` информация о модуле \
+`Get-Command -Module PackageManagement` отобразить все командлеты модуля \
+`Get-Package` отобразить все установленные пакеты PowerShellGallery \
+`Get-Package -ProviderName msi,Programs` список установленных программ
+`[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12` включить использование протокол TLS 1.2 (если не отключены протоколы TLS 1.0 и 1.1) \
+`Find-PackageProvider` поиск провайдеров \
+`Install-PackageProvider PSGallery -force` установить источник \
+`Install-PackageProvider NuGet -force` \
+`Install-PackageProvider Chocolatey -force` \
+`Get-PackageSource` источники установки пакетов \
+`Set-PackageSource -Name PSGallery -Trusted` по умолчанию \
+`Find-Package -Name *Veeam* -Source PSGallery` поиск пакетов с указанием источника \
+`Install-Package -Name VeeamLogParser -ProviderName PSGallery -scope CurrentUser` \
+`Get-Command *Veeam*` \
+`Import-Module -Name VeeamLogParser` загрузить модуль \
+`Get-Module VeeamLogParser | select -ExpandProperty ExportedCommands` отобразить список функций
+
+### winget
+
+[Source](https://github.com/microsoft/winget-cli)
+[Web](https://winget.run)
+
+`winget list` список установленных пакетов \
+`winget search VLC` найти пакет \
+`winget show VideoLAN.VLC` информация о пакете \
+`winget show VideoLAN.VLC --versions` список доступных версий в репозитории \
+`winget install VideoLAN.VLC` установить пакет \
+`winget uninstall VideoLAN.VLC` удалить пакет \
+`winget download jqlang.jq` загрузкить пакет (https://github.com/jqlang/jq/releases/download/jq-1.7/jq-windows-amd64.exe) \
+`winget install jqlang.jq` добавляет в переменную среду и псевдоним командной строки jq \
+`winget uninstall jqlang.jq`
+
+### jqlang-install
+```PowerShell
+[uri]$url = $($(irm https://api.github.com/repos/jqlang/jq/releases/latest).assets.browser_download_url -match "windows-amd64").ToString() # получить версию latest на GitHub
+irm $url -OutFile "C:\Windows\System32\jq.exe" # загрузить jq.exe
+```
+### Scoop
+
+`Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` \
+`irm get.scoop.sh | iex` установка \
+`scoop help` \
+`scoop search jq` \
+`scoop info jq` \
+`(scoop info jq).version` \
+`scoop cat jq` \
+`scoop download jq` C:\Users\lifailon\scoop\cache \
+`scoop install jq` C:\Users\lifailon\scoop\apps\jq\1.7 \
+`scoop list` \
+`(scoop list).version` \
+`scoop uninstall jq`
+
+### Chocolatey
+```PowerShell
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+```
+`choco -v` \
+`choco -help` \
+`choco list` \
+`choco install adobereader`
+
+# NuGet
+
+`Invoke-RestMethod https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile "$home\Documents\nuget.exe"` \
+`Invoke-Expression "$home\Documents\nuget.exe search Selenium.WebDriver"` \
+`Invoke-Expression "$home\Documents\nuget.exe install Selenium.WebDriver"` \
+`Get-Item $home\Documents\*Selenium*`
+
+`& "$home\Documents\nuget.exe" list console-translate` \
+`$nuget_api_key = "<API-KEY>"` \
+`$source = "https://api.nuget.org/v3/index.json"` \
+`$Name = "Console-Translate"` \
+`$path = "$home\Documents\$Name"` \
+`New-Item -Type Directory $path` \
+`Copy-Item "$home\Documents\Git\$Name\$Name\0.2\*" "$path\"` \
+`Copy-Item "$home\Documents\Git\$Name\LICENSE" "$path\"` \
+`Copy-Item "$home\Documents\Git\$Name\README.md" "$path\"`
+```PowerShell
+'<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Console-Translate</id>
+    <version>0.2.2</version>
+    <authors>Lifailon</authors>
+    <owners>Lifailon</owners>
+    <description>Cross-platform client for translating text in the console, uses API Google (edded public free token), MyMemory and DeepLX (no token required)</description>
+    <tags>PowerShell, Module, Translate, api</tags>
+    <projectUrl>https://github.com/Lifailon/Console-Translate</projectUrl>
+    <contentFiles>
+      <files include="Console-Translate.psm1" buildAction="Content" />
+      <files include="Console-Translate.psd1" buildAction="Content" />
+      <files include="lang-iso-639-1.csv" buildAction="Content" />
+      <files include="README.md" buildAction="Content" />
+      <files include="LICENSE" buildAction="Content" />
+    </contentFiles>
+  </metadata>
+</package>' > "$path\$Name.nuspec"
+```
+`Set-Location $path` \
+`& "$home\Documents\nuget.exe" pack "$path\$Name.nuspec"` \
+`& "$home\Documents\nuget.exe" push "$path\$Name.0.2.2.nupkg" -ApiKey $nuget_api_key -Source $source` \
+`& "$home\Documents\nuget.exe" push "$path\$Name.0.2.2.nupkg" -ApiKey $nuget_api_key -Source $source -SkipDuplicate`
+
+`Install-Package Console-Translate -Source nuget.org` \
+`Get-Package Console-Translate | select *`
+
+`Register-PSRepository -Name "NuGet" -SourceLocation "https://www.nuget.org/api/v2" -InstallationPolicy Trusted` \
+`Get-PSRepository` \
+`Find-Module -Name Console-Translate` \
+`Install-Module Console-Translate -Repository NuGet`
+
+`& "$home\Documents\nuget.exe" delete Console-Translate 0.2.0 -Source https://api.nuget.org/v3/index.json -ApiKey $nuget_api_key -NoPrompt`
+
+# Git
+
+`git --version` \
+`git config --global user.name "Lifailon"` добавить имя для коммитов \
+`git config --global user.email "lifailon@yandex.ru"` \
+`git config --global --edit` \
+`ssh-keygen -t rsa -b 4096` \
+`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
+`Get-Service | where name -match "ssh-agent" | Start-Service` \
+`Get-Service | where name -match "ssh-agent" | select Name,Status,StartType` \
+`ssh-agent` \
+`ssh-add C:\Users\Lifailon\.ssh\id_rsa` \
+`cat ~\.ssh\id_rsa.pub | Set-Clipboard` copy to https://github.com/settings/keys \
+`cd $home\Documents\Git` \
+`git clone git@github.com:Lifailon/PowerShell-Commands` \
+`cd PowerShell-Commands` \
+`git grep powershell` поиск текста в файлах \
+`git pull` синхронизировать изменения из хранилища \
+`git status` отобразить статус изменений по файлам \
+`git diff` отобразить изменения построчно \
+`git add .` добавить (проиндексировать) изменения во всех файлах \
+`git commit -m "added file and changed file"` сохранить изменения с комментарием \
+`git push` синхронизировать локальные изменения с репозиторием \
+`git branch dev` создать новую ветку \
+`git switch dev` переключиться на другую ветку \
+`git push --set-upstream origin dev` добавить ветку \
+`git branch -d dev` удалить ветку \
+`git diff rsa` сравнить файлы текущей ветки с файлами в указанной ветки rsa \
+`git merge dev` слияние текущей ветки (rsa/master) с указанной (dev) \
+`git log --oneline --all` лог коммитов \
+`git log --graph` коммиты и следование веток \
+`git show d01f09dead3a6a8d75dda848162831c58ca0ee13` отобразить подробный лог по номеру коммита \
+`git checkout filename` откатить изменения, если не было команды add \
+`git checkout d01f09dead3a6a8d75dda848162831c58ca0ee13` переключить локальные файлы рабочей копии на указанный коммит (изменить HEAD на указанный коммит) \
+`git reset HEAD filename` откатить изменения последнего индекса, если был add но не было commit, тем самым вернуться до последней зафиксированный версии (коммита) и потом выполнить checkout \
+`git reset --mixed HEAD filename` изменения, содержащиеся в отменяемом коммите, не должны исчезнуть, они будут сохранены в виде локальных изменений в рабочей копии \
+`git restore filename` отменить все локальные изменения в рабочей копии \
+`git restore --source d01f09dead3a6a8d75dda848162831c58ca0ee13 filename` восстановить файл на указанную версию по хэшу индентификатора коммита \
+`git revert HEAD --no-edit` отменить последний коммит, без указания комментария (события записываются в git log) \
+`git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13` удалить все коммиты до указанного (и откатиться до него)
+
 # DSC
 
 `Import-Module PSDesiredStateConfiguration` \
+`Get-Command -Module PSDesiredStateConfiguration` \
 `(Get-Module PSDesiredStateConfiguration).ExportedCommands` \
 `Get-DscLocalConfigurationManager`
 
@@ -5779,47 +5958,34 @@ Configuration DSConfigurationProxy
 `Get-Service -ComputerName $srv | ? name -match w32time # Start-Service` \
 `icm $srv {Get-Process | ? ProcessName -match calc} | ft # Stop-Process -Force` \
 `icm $srv {ls C:\ | ? name -match Temp} | ft` rm`
-
-# Git
-
-`git --version` \
-`git config --global user.name "Lifailon"` добавить имя для коммитов \
-`git config --global user.email "lifailon@yandex.ru"` \
-`git config --global --edit` \
-`ssh-keygen -t rsa -b 4096` \
-`Get-Service | where name -match "ssh-agent" | Set-Service -StartupType Automatic` \
-`Get-Service | where name -match "ssh-agent" | Start-Service` \
-`Get-Service | where name -match "ssh-agent" | select Name,Status,StartType` \
-`ssh-agent` \
-`ssh-add C:\Users\Lifailon\.ssh\id_rsa` \
-`cat ~\.ssh\id_rsa.pub | Set-Clipboard` copy to https://github.com/settings/keys \
-`cd $home\Documents\Git` \
-`git clone git@github.com:Lifailon/PowerShell-Commands` \
-`cd PowerShell-Commands` \
-`git grep powershell` поиск текста в файлах \
-`git pull` синхронизировать изменения из хранилища \
-`git status` отобразить статус изменений по файлам \
-`git diff` отобразить изменения построчно \
-`git add .` добавить (проиндексировать) изменения во всех файлах \
-`git commit -m "added file and changed file"` сохранить изменения с комментарием \
-`git push` синхронизировать локальные изменения с репозиторием \
-`git branch dev` создать новую ветку \
-`git switch dev` переключиться на другую ветку \
-`git push --set-upstream origin dev` добавить ветку \
-`git branch -d dev` удалить ветку \
-`git diff rsa` сравнить файлы текущей ветки с файлами в указанной ветки rsa \
-`git merge dev` слияние текущей ветки (rsa/master) с указанной (dev) \
-`git log --oneline --all` лог коммитов \
-`git log --graph` коммиты и следование веток \
-`git show d01f09dead3a6a8d75dda848162831c58ca0ee13` отобразить подробный лог по номеру коммита \
-`git checkout filename` откатить изменения, если не было команды add \
-`git checkout d01f09dead3a6a8d75dda848162831c58ca0ee13` переключить локальные файлы рабочей копии на указанный коммит (изменить HEAD на указанный коммит) \
-`git reset HEAD filename` откатить изменения последнего индекса, если был add но не было commit, тем самым вернуться до последней зафиксированный версии (коммита) и потом выполнить checkout \
-`git reset --mixed HEAD filename` изменения, содержащиеся в отменяемом коммите, не должны исчезнуть, они будут сохранены в виде локальных изменений в рабочей копии \
-`git restore filename` отменить все локальные изменения в рабочей копии \
-`git restore --source d01f09dead3a6a8d75dda848162831c58ca0ee13 filename` восстановить файл на указанную версию по хэшу индентификатора коммита \
-`git revert HEAD --no-edit` отменить последний коммит, без указания комментария (события записываются в git log) \
-`git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13` удалить все коммиты до указанного (и откатиться до него)
+```PowerShell
+Configuration InstallPowerShellCore {
+    Import-DscResource -ModuleName PSDesiredStateConfiguration
+    Node localhost {
+        Script InstallPowerShellCore {
+            GetScript = {
+                return @{
+                    GetScript = $GetScript
+                }
+            }
+            SetScript = {
+				[string]$url = $(Invoke-RestMethod https://api.github.com/repos/PowerShell/PowerShell/releases/latest).assets.browser_download_url -match "win-x64.zip"
+                $downloadPath = "$home\Downloads\PowerShell.zip"
+                $installPath = "$env:ProgramFiles\PowerShell\7"
+                Invoke-WebRequest -Uri $url -OutFile $downloadPath
+                Expand-Archive -Path $downloadPath -DestinationPath $installPath -Force
+            }
+            TestScript = {
+                return Test-Path "$env:ProgramFiles\PowerShell\7\pwsh.exe"
+            }
+        }
+    }
+}
+```
+`$Path = (InstallPowerShellCore).DirectoryName` \
+`Test-DscConfiguration -Path $Path` \
+`Start-DscConfiguration -Path $path -Wait -Verbose` \
+`Get-Job`
 
 # Ansible
 
