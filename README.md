@@ -8,7 +8,6 @@
 📢 Статья на Habr: [PowerShell и его возможности](https://habr.com/ru/articles/782592/)
 
 - [Help](#help)
-- [oh-my-posh](#oh-my-posh)
 - [Object](#object)
 - [npp](#npp)
 - [Regex](#regex)
@@ -103,6 +102,7 @@
 - [VideoCDN](#videocdn)
 - [Telegram](#telegram)
 - [Discord](#discord)
+- [oh-my-posh](#oh-my-posh)
 - [Pester](#pester)
 
 # Help
@@ -128,44 +128,6 @@
 `Get-ExecutionPolicy` \
 `$Metadata = New-Object System.Management.Automation.CommandMetaData (Get-Command Get-Service)` получить информацию о командлете \
 `[System.Management.Automation.ProxyCommand]::Create($Metadata)` исходный код функции
-
-# oh-my-posh
-
-[Install](https://ohmyposh.dev/docs/installation/windows) \
-`winget install JanDeDobbeleer.OhMyPosh -s winget` \
-`choco install oh-my-posh -y` \
-`scoop install https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/oh-my-posh.json` \
-`Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))`
-
-[Themes](https://ohmyposh.dev/docs/themes) \
-`Get-PoshThemes` \
-`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression` \
-`oh-my-posh init pwsh --config "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/cert.omp.json" | Invoke-Expression`
-
-`New-Item -Path $PROFILE -Type File -Force` \
-`notepad $PROFILE` \
-`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression`
-
-### themes-performance
-```PowerShell
-Install-Module themes-performance -Repository NuGet
-Import-Module themes-performance
-Set-PoshTheme -Theme System-Sensors # -Save
-Set-PoshTheme -Theme System-Performance # -Save
-Set-PoshTheme -Theme Pwsh-Process-Performance # -Save
-```
-### Terminal-Icons
-
-`Install-Module -Name Terminal-Icons -Repository PSGallery` \
-`scoop bucket add extras` \
-`scoop install terminal-icons`
-
-`notepad $PROFILE` \
-`Import-Module -Name Terminal-Icons`
-
-Использует шрифты, которые необходимо установить и настроить в параметрах профиля PowerShell: [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) \
-Список шрифтов: https://www.nerdfonts.com/font-downloads \
-Скачать и установить шрифт похожий на Cascadia Code - [CaskaydiaCove](https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/CascadiaCode.zip)
 
 # Object
 
@@ -7182,6 +7144,46 @@ $Client.ConnectionState
 $Client.LogoutAsync().GetAwaiter().GetResult()
 $Client.Dispose()
 ```
+# oh-my-posh
+
+[Install](https://ohmyposh.dev/docs/installation/windows)
+
+`winget install JanDeDobbeleer.OhMyPosh -s winget` \
+`choco install oh-my-posh -y` \
+`scoop install https://github.com/JanDeDobbeleer/oh-my-posh/releases/latest/download/oh-my-posh.json` \
+`Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))`
+
+[Themes](https://ohmyposh.dev/docs/themes)
+
+`Get-PoshThemes` \
+`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression` \
+`oh-my-posh init pwsh --config "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/cert.omp.json" | Invoke-Expression`
+
+`New-Item -Path $PROFILE -Type File -Force` \
+`notepad $PROFILE` \
+`oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke-Expression`
+
+### themes-performance
+```PowerShell
+Install-Module themes-performance -Repository NuGet
+Import-Module themes-performance
+Set-PoshTheme -Theme System-Sensors # -Save
+Set-PoshTheme -Theme System-Performance # -Save
+Set-PoshTheme -Theme Pwsh-Process-Performance # -Save
+```
+### Terminal-Icons
+
+`Install-Module -Name Terminal-Icons -Repository PSGallery` \
+`scoop bucket add extras` \
+`scoop install terminal-icons`
+
+`notepad $PROFILE` \
+`Import-Module -Name Terminal-Icons`
+
+Использует шрифты, которые необходимо установить и настроить в параметрах профиля PowerShell: [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) \
+Список шрифтов: https://www.nerdfonts.com/font-downloads \
+Скачать и установить шрифт похожий на Cascadia Code - [CaskaydiaCove](https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/CascadiaCode.zip)
+
 # Pester
 
 Source: [Pester](https://github.com/pester/Pester)
