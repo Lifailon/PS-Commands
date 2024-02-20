@@ -103,6 +103,7 @@ GitHub Repo stars: https://img.shields.io/github/stars/Lifailon/PS-Commands
 # VideoCDN
 # Telegram
 # Discord
+# Pester
 
 # Help
 
@@ -149,9 +150,22 @@ oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/di4am0nd.omp.json" | Invoke
 
 Install-Module themes-performance -Repository NuGet
 Import-Module themes-performance
-Set-PoshTheme -Theme System-Sensors
-Set-PoshTheme -Theme System-Performance
-Set-PoshTheme -Theme Pwsh-Process-Performance
+Set-PoshTheme -Theme System-Sensors # -Save
+Set-PoshTheme -Theme System-Performance # -Save
+Set-PoshTheme -Theme Pwsh-Process-Performance # -Save
+
+### Terminal-Icons
+
+Install-Module -Name Terminal-Icons -Repository PSGallery
+scoop bucket add extras
+scoop install terminal-icons
+
+notepad $PROFILE
+Import-Module -Name Terminal-Icons
+
+Использует шрифты, которые необходимо установить и настроить в параметрах профиля PowerShell: [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts)
+Список шрифтов: https://www.nerdfonts.com/font-downloads
+Скачать и установить шрифт похожий на Cascadia Code - [CaskaydiaCove](https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/CascadiaCode.zip)
 
 # Object
 
@@ -7167,3 +7181,56 @@ $Client.ConnectionState
 [console]::ReadKey($true)
 $Client.LogoutAsync().GetAwaiter().GetResult()
 $Client.Dispose()
+
+# Pester
+
+Source: https://github.com/pester/Pester
+
+Install-Module -Name Pester -Repository PSGallery -Force -AllowClobber
+Import-Module Pester
+$(Get-Module Pester -ListAvailable).Version
+
+.Tests.ps1
+
+function Add-Numbers {
+    param (
+        [int]$a,
+        [int]$b
+    )
+    $a + $b
+}
+Describe "Add-Numbers" {
+    Context "При сложении двух чисел" {
+        It "Должна вернуться правильная сумма" {
+            $result = Add-Numbers -a 3 -b 4
+            $result | Should -Be 7
+        }
+    }
+    Context "При сложении двух чисел" {
+        It "Должна вернуться ошибка (5+0 -ne 4)" {
+            $result = Add-Numbers -a 5 -b 0
+            $result | Should -Be 4
+        }
+    }
+}
+
+function Get-RunningProcess {
+    return Get-Process | Select-Object -ExpandProperty Name
+}
+Describe "Get-RunningProcess" {
+    Context "При наличии запущенных процессов" {
+        It "Должен возвращать список имен процессов" {
+            $result = Get-RunningProcess
+            $result | Should -Contain "svchost"
+            $result | Should -Contain "explorer"
+        }
+    }
+    Context "Когда нет запущенных процессов" {
+        It "Должен возвращать пустой список" {
+            # Замокать функцию Get-Process, чтобы она всегда возвращала пустой список процессов
+            Mock Get-Process { return @() }
+            $result = Get-RunningProcess
+            $result | Should -BeEmpty
+        }
+    }
+}
