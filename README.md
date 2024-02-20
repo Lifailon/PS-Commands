@@ -360,11 +360,11 @@ $(foreach ($Group in $Groups) {
     $Group.Group[0]
 }) | Format-Table
 ```
-# NPP
+# npp
 
 `pwsh -NoExit -ExecutionPolicy Unrestricted -WindowStyle Maximized -File "$(FULL_CURRENT_PATH)"`
 
-%AppData%\Notepad++` themes/shortcuts.xml
+`%AppData%\Notepad++` themes/shortcuts.xml
 ```
 <?xml version="1.0" encoding="UTF-8" ?>
 <NotepadPlus>
@@ -7184,7 +7184,7 @@ $Client.Dispose()
 ```
 # Pester
 
-[Pester](https://github.com/pester/Pester)
+Source: [Pester](https://github.com/pester/Pester)
 
 `Install-Module -Name Pester -Repository PSGallery -Force -AllowClobber` \
 `Import-Module Pester` \
