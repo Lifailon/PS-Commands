@@ -5,7 +5,7 @@
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/lifailon/PS-Commands)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Lifailon/PS-Commands)
 
-📢 Статья на Habr: [PowerShell и его возможности](https://habr.com/ru/articles/782592/)
+📢 Habr: [PowerShell и его возможности](https://habr.com/ru/articles/782592/)
 
 - [Help](#help)
 - [Object](#object)
@@ -104,6 +104,8 @@
 - [Discord](#discord)
 - [oh-my-posh](#oh-my-posh)
 - [Pester](#pester)
+- [FFmpeg](#ffmpeg)
+- [Pandoc](#pandoc)
 
 # Help
 
@@ -7237,3 +7239,35 @@ Describe "Get-RunningProcess" {
     }
 }
 ```
+# FFmpeg
+```PowerShell
+$release_latest = Invoke-RestMethod "https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest"
+$url = $($release_latest.assets | Where-Object name -match "ffmpeg-master-latest-win64-gpl.zip").browser_download_url
+Invoke-RestMethod $url -OutFile $home\Downloads\ffmpeg-master-latest-win64-gpl.zip
+Expand-Archive -Path "$home\Downloads\ffmpeg-master-latest-win64-gpl.zip" -DestinationPath "$home\Downloads\"
+Copy-Item -Path "$home\Downloads\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe" -Destination "C:\Windows\System32\ffmpeg.exe"
+Remove-Item "$home\Downloads\ffmpeg-*" -Force -Recurse
+```
+`ffmpeg -i input.mp4 output.gif` конвертировать mp4 в gif \
+`ffmpeg -i input.mp4 -filter_complex "scale=1440:-1:flags=lanczos" output.gif` изменить разрешение на выходе \
+`ffmpeg -i input.mp4 -filter_complex "scale=1440:-1:flags=lanczos" -r 10 output.gif` изменить количество кадров в секунду на выходе \
+`ffmpeg -i input.mp4 -filter_complex "fps=5,scale=960:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=32[p];[s1][p]paletteuse=dither=bayer" output.gif` сжатие за счет цветовой политры \
+`ffmpeg -i input.mp4 -ss 00:00:10 -frames:v 1 -q:v 1 output.jpg` вытащить скриншот из видео на 10 секунде \
+`ffmpeg -i input.mp4 -ss 00:00:05 -to 00:00:10 -c copy output.mp4` вытащить кусок видео \
+`ffmpeg -i "%d.jpeg" -framerate 2 -c:v libx264 -r 30 -pix_fmt yuv420p output.mp4` создать видео из фото (1.jpeg, 2.jpeg и т.д.) с framerate (частотой кадров) в создаваемом видео 2 кадра в секунду \
+`ffmpeg -i "rtsp://admin:password@192.168.3.201:554" -rtsp_transport tcp -c:v copy -c:a aac -strict experimental output.mp4` запись без перекодирования (copy) RTSP-потока с камеры видеонаблюдения (+ аудио в кодеке AAC) в файл \
+`ffmpeg -i "rtsp://admin:password@192.168.3.201:554" -rtsp_transport tcp -c:v copy -c:a aac -strict experimental -movflags +faststart+frag_keyframe+empty_moov output.mp4` переместить метаданные в начало файла, что позволяет начать воспроизведение файла в видеоплеере до его полной загрузки \
+`ffmpeg -i "rtsp://admin:password@192.168.3.201:554" -rtsp_transport tcp -frames:v 1 -c:v mjpeg output.jpg` сделать скриншот
+
+# Pandoc
+```PowerShell
+$release_latest = Invoke-RestMethod "https://api.github.com/repos/jgm/pandoc/releases/latest"
+$url = $($release_latest.assets | Where-Object name -match "windows-x86_64.zip").browser_download_url
+Invoke-RestMethod $url -OutFile $home\Downloads\pandoc.zip
+Expand-Archive -Path "$home\Downloads\pandoc.zip" -DestinationPath "$home\Downloads\"
+$path = $(Get-ChildItem "$home\Downloads\pandoc-*\*.exe").FullName
+Copy-Item -Path $path -Destination "C:\Windows\System32\pandoc.exe"
+Remove-Item "$home\Downloads\pandoc*" -Force -Recurse
+```
+`pandoc -s README.md -o index.html` конвертировать из Markdown в HTML \
+`pandoc -s index.html -o README.md` конвертировать из HTML в Markdown
