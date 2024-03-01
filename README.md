@@ -106,6 +106,7 @@
 - [Pester](#pester)
 - [FFmpeg](#ffmpeg)
 - [Pandoc](#pandoc)
+- [ImageMagick](#imagemagick)
 
 # Help
 
@@ -7269,5 +7270,27 @@ $path = $(Get-ChildItem "$home\Downloads\pandoc-*\*.exe").FullName
 Copy-Item -Path $path -Destination "C:\Windows\System32\pandoc.exe"
 Remove-Item "$home\Downloads\pandoc*" -Force -Recurse
 ```
-`pandoc -s README.md -o index.html` конвертировать из Markdown в HTML \
-`pandoc -s index.html -o README.md` конвертировать из HTML в Markdown
+`pandoc -s README.md -o index.html` конвертация из Markdown в HTML \
+`pandoc README.md -o index.html --css=styles.css` применить стили из css \
+`pandoc -s index.html -o README.md` конвертация из HTML в Markdown \
+`pandoc -s README.md -o README.docx` конвертация в Word \
+`pandoc -s README.md -o README.epub` конвертация в открытый формат электронных версий книг \
+`pandoc -s README.md -o README.pdf` конвертация в PDF (требуется rsvg-convert)
+```PowerShell
+Import-Module ImportExcel
+Import-Excel -Path srv.xlsx | Export-Csv -Path $csvFilePath -NoTypeInformation -Encoding UTF8 # конвертация Excel в csv
+pandoc -s -f csv -t markdown input.csv -o output.md # конвертация таблицу csv в markdown
+```
+# ImageMagick
+
+Source: [ImageMagick](https://sourceforge.net/projects/imagemagick)
+
+`magick identify -verbose PowerShell-Commands.png` извлечь метаданные изображения \
+`magick PowerShell-Commands.png output.jpg` конвертация формата изображения \
+`magick PowerShell-Commands.png -resize 800x600 output.jpg` изменить размер (увеличить или уменьшить) \
+`magick PowerShell-Commands.png -crop 400x300+100+50 output.jpg` обрезать \
+`magick PowerShell-Commands.png -rotate 90 output.jpg` повернуть изображение \
+`magick PowerShell-Commands.png -fill white -pointsize 24 -gravity center -annotate +0+0 "PowerShell" output.jpg` наложить текст на изображение \
+`magick PowerShell-Commands.png -brightness-contrast +20x+10 output.jpg` изменить яркость и контрастность \
+`magick convert -delay 100 1.png 2.png 3.png output.gif` создать gif из изображений \
+`magick convert image1.jpg image2.jpg -append output.jpg` вертикально объединенить изображения
