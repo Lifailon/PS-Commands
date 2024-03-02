@@ -83,6 +83,7 @@
 - [WireGuard](#wireguard)
 - [VpnClient](#vpnclient)
 - [Proxy](#proxy)
+- [netsh](#netsh)
 - [OpenSSH](#openssh)
 - [WinRM](#winrm)
 - [PackageManagement](#packagemanagement)
@@ -3093,8 +3094,8 @@ set { Marshal.ThrowExceptionForHR(Vol().SetMute(value, System.Guid.Empty)); }
 
 ### NetSessionEnum
 
-Function: https://learn.microsoft.com/ru-ru/windows/win32/api/lmshare/nf-lmshare-netsessionenum?redirectedfrom=MSDN \
-Source: https://fuzzysecurity.com/tutorials/24.html
+[Function](https://learn.microsoft.com/ru-ru/windows/win32/api/lmshare/nf-lmshare-netsessionenum?redirectedfrom=MSDN) \
+[Source](https://fuzzysecurity.com/tutorials/24.html)
 ```PowerShell
 function Invoke-NetSessionEnum {
 param (
@@ -3168,8 +3169,8 @@ echo "`nCalling NetApiBufferFree, no memleaks here!"
 
 ### CopyFile
 
-Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winbase/nf-winbase-copyfile \
-Source: https://devblogs.microsoft.com/scripting/use-powershell-to-interact-with-the-windows-api-part-1/
+[Function](https://learn.microsoft.com/ru-ru/windows/win32/api/winbase/nf-winbase-copyfile) \
+[Source](https://devblogs.microsoft.com/scripting/use-powershell-to-interact-with-the-windows-api-part-1/)
 ```PowerShell
 $MethodDefinition = @"
 [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
@@ -3180,7 +3181,7 @@ $Kernel32::CopyFile("$($Env:SystemRoot)\System32\calc.exe", "$($Env:USERPROFILE)
 ```
 ### ShowWindowAsync
 
-Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync
+[Function](https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-showwindowasync)
 ```PowerShell
 $Signature = @"
 [DllImport("user32.dll")]public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
@@ -3193,7 +3194,7 @@ $ShowWindowAsync::ShowWindowAsync((Get-Process -Id $Pid).MainWindowHandle, 4)
 ```
 ### GetAsyncKeyState
 
-Function: https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-getasynckeystate
+[Function](https://learn.microsoft.com/ru-ru/windows/win32/api/winuser/nf-winuser-getasynckeystate)
 
 `Add-Type -AssemblyName System.Windows.Forms` \
 `[int][System.Windows.Forms.Keys]::F1` определить номер [Int] клавиши по ее названию \
@@ -3220,7 +3221,7 @@ Start-Sleep -Seconds 0.5
 ```
 # Console API
 
-Source: https://powershell.one/tricks/input-devices/detect-key-press
+[Source](https://powershell.one/tricks/input-devices/detect-key-press)
 
 `[Console] | Get-Member -Static` \
 `[Console]::BackgroundColor = "Blue"` \
@@ -3267,7 +3268,7 @@ sleep 1
 ```
 # Drawing
 
-API: https://learn.microsoft.com/en-us/dotnet/api/system.drawing?view=net-7.0&redirectedfrom=MSDN
+[API](https://learn.microsoft.com/en-us/dotnet/api/system.drawing?view=net-7.0&redirectedfrom=MSDN)
 ```PowerShell
 Add-Type -AssemblyName System.Drawing
 $Width = 800
@@ -3323,7 +3324,7 @@ $date = Get-Date -f hh:mm:ss
 # Sockets
 
 ### UDP Socket
-Source: https://cloudbrothers.info/en/test-udp-connection-powershell/
+[Source](https://cloudbrothers.info/en/test-udp-connection-powershell/)
 ```PowerShell
 function Start-UDPServer {
 param(
@@ -4607,7 +4608,7 @@ $data.results.series.columns` столбцы/ключи
 $data.results.series.values ` данные построчно
 ```
 ### Endpoints
-https://docs.influxdata.com/influxdb/v1.7/tools/api/
+[API doc](https://docs.influxdata.com/influxdb/v1.7/tools/api/)
 ```PowerShell
 $stats = irm http://192.168.3.104:8086/debug/vars` статистика сервера
 $stats."database:powershell".values` кол-во таблиц к БД
@@ -4682,7 +4683,7 @@ Get-Service $Service_Name | Set-Service -StartupType Automatic
 ```
 # Telegraf
 
-Plugins: https://docs.influxdata.com/telegraf/v1.27/plugins/#input-plugins
+[Plugins](https://docs.influxdata.com/telegraf/v1.27/plugins/#input-plugins)
 
 `iwr https://dl.influxdata.com/telegraf/releases/telegraf-1.27.1_windows_amd64.zip -UseBasicParsing -OutFile telegraf-1.27.1_windows_amd64.zip` \
 `Expand-Archive .\telegraf-1.27.1_windows_amd64.zip -DestinationPath "C:\Telegraf"` \
@@ -4718,7 +4719,7 @@ Plugins: https://docs.influxdata.com/telegraf/v1.27/plugins/#input-plugins
 
 # Elasticsearch
 
-`Install-Module -Name Elastic.Console -AllowPrerelease` https://github.com/elastic/powershell/blob/master/Elastic.Console/README.md \
+`Install-Module -Name Elastic.Console -AllowPrerelease` [github source](https://github.com/elastic/powershell/blob/master/Elastic.Console/README.md) \
 `Get-Command -Module Elastic.Console` \
 `Get-ElasticsearchVersion` \
 `Set-ElasticsearchVersion 7.3.0` \
@@ -4726,10 +4727,10 @@ Plugins: https://docs.influxdata.com/telegraf/v1.27/plugins/#input-plugins
 
 # CData
 
-https://www.powershellgallery.com/profiles/CData \
-https://www.cdata.com/kb/tech/elasticsearch-ado-powershell.rst
+[PowerShell Gallery CData](https://www.powershellgallery.com/profiles/CData) \
+[Automate Elasticsearch Integration Tasks from PowerShell](https://www.cdata.com/kb/tech/elasticsearch-ado-powershell.rst)
 
-`Install-Module ElasticsearchCmdlets` https://www.powershellgallery.com/packages/ElasticsearchCmdlets/23.0.8565.1 \
+`Install-Module ElasticsearchCmdlets` [пакет драйвера в psgallery](https://www.powershellgallery.com/packages/ElasticsearchCmdlets/23.0.8565.1) \
 `Import-Module ElasticsearchCmdlets` \
 `Get-Command -Module ElasticsearchCmdlets`
 ```PowerShell
@@ -4740,7 +4741,7 @@ $orders = Invoke-Elasticsearch -Connection $elasticsearch -Query 'SELECT * FROM 
 ```
 ### ADO.NET Assembly
 
-`Install-Package CData.Elasticsearch` https://www.nuget.org/packages/CData.Elasticsearch \
+`Install-Package CData.Elasticsearch` [пакет драйвера в nuget](https://www.nuget.org/packages/CData.Elasticsearch) \
 `[Reflection.Assembly]::LoadFile("C:\Program Files\PackageManagement\NuGet\Packages\CData.Elasticsearch.23.0.8565\lib\net40\System.Data.CData.Elasticsearch.dll")`
 ```PowerShell
 $connect = New-Object System.Data.CData.Elasticsearch.ElasticsearchConnection("Server=127.0.0.1;Port=9200;User=admin;Password=123456;")
@@ -4782,7 +4783,7 @@ $cmd.ExecuteNonQuery()
 `Get-Command -Module Wdac` \
 `Get-OdbcDriver | ft` список установленных драйверов
 
-https://www.elastic.co/guide/en/elasticsearch/reference/current/sql-client-apps-ps1.html
+[Elasticsearch ODBC драйвер для доступа к данным Elasticsearch из Microsoft PowerShell](https://www.elastic.co/guide/en/elasticsearch/reference/current/sql-client-apps-ps1.html)
 ```PowerShell
 $connectstring = "DSN=Local Elasticsearch;"
 $sql = "SELECT * FROM library"
@@ -4797,7 +4798,7 @@ $dt
 ```
 # PostgreSQL
 
-Скачать и установить драйвер: https://www.postgresql.org/ftp/odbc/versions/msi/
+[Скачать и установить драйвер](https://www.postgresql.org/ftp/odbc/versions/msi/)
 ```PowerShell
 $dbServer = "192.168.3.101"
 $port = "5432"
@@ -4989,7 +4990,9 @@ Security: \
 
 ### Lextm.SharpSnmpLib
 
-https://api.nuget.org/v3-flatcontainer/lextm.sharpsnmplib/12.5.2/lextm.sharpsnmplib.12.5.2.nupkg \
+[Синтаксис](https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1) \
+[Download lib](https://api.nuget.org/v3-flatcontainer/lextm.sharpsnmplib/12.5.2/lextm.sharpsnmplib.12.5.2.nupkg)
+
 `Add-Type -LiteralPath "$home\Desktop\lextm.sharpsnmplib-12.5.2\net471\SharpSnmpLib.dll"`
 ```PowerShell
 $port = 161
@@ -5175,7 +5178,7 @@ DebugLevel=4
 ```
 ### API Token
 
-https://www.zabbix.com/documentation/current/en/manual/api/reference
+[Documentation](https://www.zabbix.com/documentation/current/en/manual/api/reference)
 
 `$ip = "192.168.3.102"` \
 `$url = "http://$ip/zabbix/api_jsonrpc.php"`
@@ -5221,7 +5224,7 @@ $data = @{
 
 Получить список всех хостов (имя и id)
 
-https://www.zabbix.com/documentation/current/en/manual/api/reference/host
+[Endpoint host](https://www.zabbix.com/documentation/current/en/manual/api/reference/host)
 
 host.create - creating new hosts \
 host.delete - deleting hosts \
@@ -5612,6 +5615,32 @@ PersistentKeepalive = 25
 `Invoke-RestMethod http://ifconfig.me/ip` \
 `Invoke-RestMethod https://kinozal.tv/rss.xml`
 
+# netsh
+
+### Proxy
+
+`netsh interface portproxy add v4tov4 listenport=8080 listenaddress=0.0.0.0 connectport=80 connectaddress=192.168.3.108` \
+`netsh interface portproxy show all` \
+`netsh interface portproxy delete v4tov4 listenport=8080 listenaddress=0.0.0.0`
+
+### Wlan
+
+`netsh wlan show profile` список сохраненны профилей Wi-Fi и паролей \
+`netsh wlan show interfaces` хар-ки текущей сети (MAC, speed) \
+`netsh wlan show profile SSID-Name-Network key=clear` очистить пароль \
+`netsh wlan show networks` список видемых сетей \
+`netsh wlan disconnect` отключиться от Wi-Fi \
+`netsh wlan connect name="SSID-Name-Network"` подключиться \
+`netsh wlan show drivers` драйвер Wi-Fi \
+`netsh wlan set hostednetwork mode=allow ssid="WiFi-Test" key="password"` создание точки доступа Wi-Fi (SoftAP)
+
+### Firewall
+
+`netsh advfirewall set allprofiles state off` отключить fw \
+`netsh advfirewall reset` сбросить настройки \
+`netsh advfirewall firewall add rule name="Open Remote Desktop" protocol=TCP dir=in localport=3389 action=allow` открыть порт 3389 \
+`netsh advfirewall firewall add rule name="All ICMP V4" dir=in action=allow protocol=icmpv4` открыть icmp
+
 # OpenSSH
 
 `Get-WindowsCapability -Online | ? Name -like 'OpenSSH.Client*'` \
@@ -5845,7 +5874,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 `Get-Service | where name -match "ssh-agent" | select Name,Status,StartType` \
 `ssh-agent` \
 `ssh-add C:\Users\Lifailon\.ssh\id_rsa` \
-`cat ~\.ssh\id_rsa.pub | Set-Clipboard` copy to https://github.com/settings/keys \
+`cat ~\.ssh\id_rsa.pub | Set-Clipboard` copy to [settings keys](https://github.com/settings/keys) \
 `cd $home\Documents\Git` \
 `git clone git@github.com:Lifailon/PowerShell-Commands` \
 `cd PowerShell-Commands` \
@@ -5882,7 +5911,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 `Get-DscLocalConfigurationManager`
 
 `Get-DscResource` \
-`Get-DscResource -Name File -Syntax` https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1
+`Get-DscResource -Name File -Syntax` [синтаксис](https://learn.microsoft.com/ru-ru/powershell/dsc/reference/resources/windows/fileresource?view=dsc-1.1)
 
 `Ensure = Present` настройка должна быть включена (каталог должен присутствовать, процесс должен быть запущен, если нет – создать, запустить) \
 `Ensure = Absent` настройка должна быть выключена (каталога быть не должно, процесс не должен быть запущен, если нет – удалить, остановить)
@@ -6052,7 +6081,7 @@ ansible_shell_type=powershell
 `ansible us -a "ls /root" -b` \
 `ansible us -a "cat /root/test.sh" -b`
 
-`ansible-doc -l | grep win_` список всех модулей Windows (https://docs.ansible.com/ansible/latest/collections/ansible/windows/) \
+`ansible-doc -l | grep win_` [список всех модулей Windows](https://docs.ansible.com/ansible/latest/collections/ansible/windows/) \
 `ansible ws -m win_ping` windows модуль \
 `ansible ws -m win_ping -u WinRM-Writer` указать логин \
 `ansible ws -m setup` собрать подробную информацию о системе \
@@ -6429,9 +6458,9 @@ ansible_shell_type=powershell
 
 ### win_chocolatey
 
-https://chocolatey.org/install \
-https://community.chocolatey.org/api/v2/package/chocolatey \
-https://docs.chocolatey.org/en-us/guides/organizations/organizational-deployment-guide
+[Install](https://chocolatey.org/install) \
+[API](https://community.chocolatey.org/api/v2/package/chocolatey) \
+[Deployment](https://docs.chocolatey.org/en-us/guides/organizations/organizational-deployment-guide)
 ```
 - name: Ensure Chocolatey installed from internal repo
   win_chocolatey:
@@ -6442,6 +6471,8 @@ https://docs.chocolatey.org/en-us/guides/organizations/organizational-deployment
 ```
 # GigaChat
 
+[Developers chat](https://developers.sber.ru/gigachat/login)
+
 ### 1. Установка сертификатов:
 
 `Invoke-WebRequest "https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt" -OutFile "$home\Downloads\russian_trusted_root_ca.cer"` скачать сертификат минцифры \
@@ -6449,7 +6480,7 @@ https://docs.chocolatey.org/en-us/guides/organizations/organizational-deployment
 `Import-Certificate -FilePath "$home\Downloads\russian_trusted_root_ca.cer" -CertStoreLocation "Cert:\CurrentUser\Root"` установить сертификат минцифры \
 `Import-Certificate -FilePath "$home\Downloads\russian_trusted_sub_ca.cer" -CertStoreLocation "Cert:\CurrentUser\CA"`
 
-### 2. Авторизация по Sber ID и генерация новых авторизационных данных для получения токена: https://developers.sber.ru/studio (время жизни 30 минут)
+### 2. Авторизация по Sber ID и генерация новых авторизационных данных для получения токена: [Developers](https://developers.sber.ru/studio) (время жизни 30 минут)
 
 ### 3. Формирование авторизационных данных в формате Base64 из Client ID и Client Secret:
 ```PowerShell
@@ -6555,7 +6586,7 @@ echo $request | jq -r .choices[].message.content
 
 ## Получить OAuth-Token:
 
-https://cloud.yandex.ru/ru/docs/iam/operations/iam-token/create время жизни IAM-токена не больше 12 часов \
+[Create AIM Token](https://cloud.yandex.ru/ru/docs/iam/operations/iam-token/create) время жизни IAM-токена не больше 12 часов \
 `yandexPassportOauthToken="y0_AgAAAAAGaLFLAATuwQAAAAD3xtRLQE4hvlazQ5euKO43XXXXXXXXXXX"` для bash \
 `$yandexPassportOauthToken = "y0_AgAAAAAGaLFLAATuwQAAAAD3xtRLQE4hvlazQ5euKO43XXXXXXXXXXX"` для PowerShell
 
@@ -6623,9 +6654,9 @@ Invoke-RestMethod -Method POST -Uri "https://llm.api.cloud.yandex.net/foundation
 ```
 # SuperAGI
 
-https://github.com/TransformerOptimus/SuperAGI \
-https://models.superagi.com/playground/generate \
-https://documenter.getpostman.com/view/30119783/2s9YR3cFJG
+[Source](https://github.com/TransformerOptimus/SuperAGI) \
+[Playground generate](https://models.superagi.com/playground/generate) \
+[API Doc (exaples)](https://documenter.getpostman.com/view/30119783/2s9YR3cFJG)
 ```Bash
 SUPERAGI_API_KEY="31f72164129XXXXX"
 prompt="посчитай сумму 22+33, дай только ответ без лишнего текста"
@@ -6664,7 +6695,7 @@ $($request -replace "^data: " | ConvertFrom-Json).choices.text
 ```
 # Replicate
 
-https://replicate.com/stability-ai/stable-diffusion/examples?input=http
+[API curl examples](https://replicate.com/stability-ai/stable-diffusion/examples?input=http)
 ```Bash
 REPLICATE_API_TOKEN="r8_STyeUNXiGonkLfxE1FSKaqll26lXXXXXXXXXX"
 prompt="Жираф в полоску зебры"
@@ -6742,7 +6773,7 @@ $response.items | Select-Object title,snippet,displayLink,link | Format-List
 ```
 # RapidAPI
 
-https://rapidapi.com/ru/neoscrap-net/api/google-search72
+[Google-Search72](https://rapidapi.com/ru/neoscrap-net/api/google-search72)
 ```PowerShell
 $Key = "<TOKEN_API>"
 $headers=@{}
@@ -6754,7 +6785,7 @@ $response.items | Select-Object title,snippet,displayLink,link | Format-List
 ```
 ### IMDb
 
-https://rapidapi.com/apidojo/api/imdb8
+[IMDb8](https://rapidapi.com/apidojo/api/imdb8)
 ```PowerShell
 $key = "<TOKEN_API>" # 500 запросов в месяц
 $query="Break"
@@ -6769,7 +6800,7 @@ $response.results.image
 ```
 ### MoviesDatabase
 
-https://rapidapi.com/SAdrian/api/moviesdatabase
+[MoviesDatabase](https://rapidapi.com/SAdrian/api/moviesdatabase)
 ```PowerShell
 $key = "<TOKEN_API>"
 $imdb_id = "tt0455275"
@@ -6781,7 +6812,7 @@ $response.results
 ```
 # TMDB
 
-https://developer.themoviedb.org/reference/intro/getting-started
+[Developer TMDB](https://developer.themoviedb.org/reference/intro/getting-started)
 ```PowerShell
 $TOKEN = "548e444e7812575caa0a7eXXXXXXXXXX"
 $Endpoint = "search/tv" # поиск сериала (tv) и фильма (movie) по названию
@@ -6799,7 +6830,7 @@ Invoke-RestMethod -Uri "https://api.themoviedb.org/3/tv/$id/season/2/episode/8?a
 ```
 # ivi
 
-https://ask.ivi.ru/knowledge-bases/10/articles/51697-dokumentatsiya-dlya-api-ivi
+[ivi api doc](https://ask.ivi.ru/knowledge-bases/10/articles/51697-dokumentatsiya-dlya-api-ivi)
 
 `Invoke-RestMethod https://api.ivi.ru/mobileapi/categories` список категорий и жанров (genres/meta_genres) \
 `Invoke-RestMethod https://api.ivi.ru/mobileapi/collections` подборки
@@ -6820,8 +6851,8 @@ printf "%s\n" "${get[@]}" | grep -A 1 "Сезон 2" | grep "эпизодов" |
 ```
 ### kinopoisk.dev
 
-https://t.me/kinopoiskdev_bot - получить токен \
-https://kinopoisk.dev/documentation - документация по API в формате OpenAPI
+[Получить токен](https://t.me/kinopoiskdev_bot) \
+[Документация по API в формате OpenAPI](https://kinopoisk.dev/documentation)
 
 `GET /v1.4/movie/{id}` поиск по id
 ```PowerShell
@@ -6908,9 +6939,9 @@ percent-decode "%D0%B7%D0%B8%D0%BC%D0%BE%D1%80%D0%BE%D0%B4%D0%BE%D0%BA"
 ```
 # VideoCDN
 
-https://github.com/notssh/videocdn-api \
-https://github.com/API-Movies/videocdn \
-https://api-movies.github.io/videocdn/index.json
+[API](https://github.com/notssh/videocdn-api) \
+[Source](https://github.com/API-Movies/videocdn) \
+[API JSON](https://api-movies.github.io/videocdn/index.json)
 ```PowerShell
 $kp_id = 5106881
 $token = "YfTWH2p3Mai7ziqDoGjS3yXXXXXXXXXX"
@@ -6928,9 +6959,9 @@ curl -s "https://videocdn.tv/api/$ep?api_token=$token&field=kinopoisk_id&query=$
 
 @BotFather (https://t.me/BotFather) /newbot
 
-https://api.telegram.org/bot<token>/<endpoint>
+Format: `https://api.telegram.org/bot<token>/<endpoint>`
 
-https://core.telegram.org/bots/api#getupdates
+[getupdates](https://core.telegram.org/bots/api#getupdates)
 ```PowerShell
 function Get-FromTelegram {
     param (
@@ -6983,7 +7014,7 @@ function Get-FromTelegram {
 `Get-FromTelegram -Date` \
 `Get-FromTelegram -ChatID`
 
-https://core.telegram.org/bots/api#sendmessage
+[sendmessage](https://core.telegram.org/bots/api#sendmessage)
 ```PowerShell
 function Send-ToTelegram {
 param (
@@ -7042,7 +7073,7 @@ $request.message.date
 ```
 # Discord
 
-https://discord.com/developers/applications
+[Developers](https://discord.com/developers/applications)
 
 Создаем Applications (General Information). В Bot привязываем к Application и копируем токен авторизации. В OAuth2 - URL Generator выбираем bot и права Administrator и копируем созданный URL для добавления на канал. Переходим по url и добавляем бота на сервер. Получаем ID канала на сервере (текстовые каналы, правой кнопкой мыши копируем ссылку и забираем последний id в url).
 
@@ -7184,12 +7215,12 @@ Set-PoshTheme -Theme Pwsh-Process-Performance # -Save
 `Import-Module -Name Terminal-Icons`
 
 Использует шрифты, которые необходимо установить и настроить в параметрах профиля PowerShell: [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) \
-Список шрифтов: https://www.nerdfonts.com/font-downloads \
+[Список шрифтов](https://www.nerdfonts.com/font-downloads) \
 Скачать и установить шрифт похожий на Cascadia Code - [CaskaydiaCove](https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/CascadiaCode.zip)
 
 # Pester
 
-Source: [Pester](https://github.com/pester/Pester)
+[Source](https://github.com/pester/Pester)
 
 `Install-Module -Name Pester -Repository PSGallery -Force -AllowClobber` \
 `Import-Module Pester` \
