@@ -5,6 +5,12 @@ GitHub last commit: https://img.shields.io/github/last-commit/lifailon/PS-Comman
 GitHub code size: https://img.shields.io/github/languages/code-size/lifailon/PS-Commands
 GitHub Repo stars: https://img.shields.io/github/stars/Lifailon/PS-Commands
 
+Большая база заметок PowerShell на русском языке.
+
+Веб-версия (https://lifailon.github.io/)
+
+WinForms - тестовый стенд с примерами (https://github.com/Lifailon/PS-Commands/blob/rsa/WinForms/WinForms-Test-Stend.ps1)
+
 Habr: PowerShell и его возможности (https://habr.com/ru/articles/782592/)
 
 # Help
