@@ -7540,7 +7540,7 @@ Source: [ImageMagick](https://sourceforge.net/projects/imagemagick)
 `magick convert -delay 100 1.png 2.png 3.png output.gif` создать gif из изображений \
 `magick convert image1.jpg image2.jpg -append output.jpg` вертикально объединенить изображения
 
-# Hogo
+# Hugo
 
 [Source](https://github.com/gohugoio/hugo)
 
