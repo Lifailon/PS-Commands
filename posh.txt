@@ -67,6 +67,7 @@ Habr: PowerShell и его возможности (https://habr.com/ru/articles/
 # JSON
 # YAML
 # HTML
+# HtmlAgilityPack
 # SQLite
 # MySQL
 # MSSQL
@@ -95,6 +96,7 @@ Habr: PowerShell и его возможности (https://habr.com/ru/articles/
 # PackageManagement
 # NuGet
 # Git
+# GitHub
 # DSC
 # Ansible
 # Win_Modules
@@ -117,6 +119,7 @@ Habr: PowerShell и его возможности (https://habr.com/ru/articles/
 # Pandoc
 # FFmpeg
 # ImageMagick
+# Hugo
 
 # Help
 
@@ -3859,6 +3862,57 @@ New-Chart Column "Top CPU Overall" -input $topCPU
 ps | Select ProcessName, Id, CPU, WorkingSet, *MemorySize | New-Table "All Processes"
 } > ~\Desktop\Get-Process-HtmlReport.html
 
+# HtmlAgilityPack
+
+Source (https://www.nuget.org/packages/HtmlAgilityPack)
+
+# Загрузка библиотеки C#, которая позволяет парсить HTML-документы, выбирать элементы DOM и извлекать из них данные
+Add-Type -Path "C:\Users\Lifailon\Downloads\HtmlAgilityPack\Net40\HtmlAgilityPack.dll"
+$title = "новобранец"
+$url = "http://fasts-torrent.net"
+$ep = "engine/ajax/search_torrent.php?title=$title"
+$html = Invoke-RestMethod "$url/$ep"
+# Создание нового объекта HtmlDocument из HtmlAgilityPack, который будет использоваться для загрузки и обработки HTML-кода
+$HtmlDocument = New-Object HtmlAgilityPack.HtmlDocument
+# Загрузка HTML в созданный объект HtmlDocument
+$HtmlDocument.LoadHtml($html)
+$torrents = @()
+# Использование XPath для выбора всех элементов <tr> (строк таблицы) в документе
+$HtmlDocument.DocumentNode.SelectNodes("//tr") | ForEach-Object {
+    # Для каждой строки таблицы выбираем классы, соответствующие названию раздачи, размеру и ссылке для скачивания.
+    $titleNode = $_.SelectSingleNode(".//td[@class='torrent-title']")
+    $sizeNode = $_.SelectSingleNode(".//td[@class='torrent-sp']")
+    $downloadLinkNode = $_.SelectSingleNode(".//td[@class='torrent-d-btn']/a")
+    # Проверяем, что все классы найдены
+    if ($titleNode -ne $null -and $sizeNode -ne $null -and $downloadLinkNode -ne $null) {
+        # Извлечение текста из классов
+        $title = $titleNode.InnerText.Trim()
+        $size = $sizeNode.InnerText.Trim()
+        $downloadLink = $downloadLinkNode.Attributes["href"].Value
+        $torrent = New-Object PSObject -Property @{
+            Title = $title
+            Size = $size
+            DownloadLink = "$($url)$($downloadLink)"
+        }
+        $torrents += $torrent
+    }
+}
+
+$torrents
+
+Title                                                                    Size     DownloadLink
+-----                                                                    ----     ------------
+Новобранец (6 сезон: 1-3 серии из 13) (2024) WEBRip | RuDub              1,55 ГБ  http://fasts-torrent.net/download/449613/torrent/-6-1-3-13-2024-webrip-rudub/
+Новобранец (5 сезон: 1-22 серии из 22) (2023) WEBRip 1080p | RuDub       54,15 ГБ http://fasts-torrent.net/download/433749/torrent/-5-1-22-22-2023-webrip-1080p-rudub/
+Новобранец (5 сезон: 1-22 серии из 22) (2023) WEBRip 720p | RuDub        30,14 ГБ http://fasts-torrent.net/download/433750/torrent/-5-1-22-22-2023-webrip-720p-rudub/
+Новобранец (5 сезон: 1-22 серии из 22) (2023) WEBRip | RuDub             11,55 ГБ http://fasts-torrent.net/download/433751/torrent/-5-1-22-22-2023-webrip-rudub/
+Новобранец (4 сезон: 1-22 серии из 22) (2021) WEB-DL 720p | RG.Paravozik 21.33 Gb http://fasts-torrent.net/download/418618/torrent/-4-1-22-22-2021-web-dl-720p-rgparavozik/
+Полицейский с половиной: Новобранец (2017) WEB-DLRip 720p| Чистый звук   3.41 Gb  http://fasts-torrent.net/download/254846/torrent/-2017-web-dlrip-720p-/
+Полицейский с половиной: Новобранец (2017) WEB-DLRip | Чистый звук       1.37 Gb  http://fasts-torrent.net/download/254845/torrent/-2017-web-dlrip-/
+Новобранец (2 сезон: 1-20 серии из 20) (2019) WEBRip | BaibaKo           11.28 Gb http://fasts-torrent.net/download/364669/torrent/-2-1-20-20-2019-webrip-baibako/
+Новобранец (2 сезон: 1-20 серии из 20) (2019) WEBRip 1080p | Octopus     45.97 Gb http://fasts-torrent.net/download/364161/torrent/-2-1-20-20-2019-webrip-1080p-octopus/
+Новобранец (2 сезон: 1-20 серии из 20) (2019) WEB-DLRip | LostFilm       11.95 Gb http://fasts-torrent.net/download/364668/torrent/-2-1-20-20-2019-web-dlrip-lostfilm/
+
 # SQLite
 
 $path = "$home\Documents\Get-Service.db"
@@ -5946,32 +6000,63 @@ ssh-agent
 ssh-add C:\Users\Lifailon\.ssh\id_rsa
 cat ~\.ssh\id_rsa.pub | Set-Clipboard # copy to https://github.com/settings/keys
 cd $home\Documents\Git
-git clone git@github.com:Lifailon/PowerShell-Commands
-cd PowerShell-Commands
-git grep powershell # поиск текста в файлах
-git pull # синхронизировать изменения из хранилища
+git clone git@github.com:Lifailon/lifailon.github.io
+cd lifailon.github.io
+git grep "ping ya.ru" # поиск текста в файлах
+git fetch # загрузить изменения из удаленного хранилища для обновления всех веток локального репозитория, не затрагивая текущую рабочую ветку (загружает все коммиты, ветки и т.д. которые не присутствуют в локальном репозитории)
+git pull # загрузить изменения из удаленного хранилища для обновления локального репозитория (выполняет git fetch для синхронизации удаленного репозитория с локальным и git merge для обновления текущей рабочей ветки)
 git status # отобразить статус изменений по файлам
-git diff # отобразить изменения построчно
-git add . # добавить (проиндексировать) изменения во всех файлах
-git commit -m "added file and changed file" # сохранить изменения с комментарием
-git push # синхронизировать локальные изменения с репозиторием
-git branch dev # создать новую ветку
-git switch dev # переключиться на другую ветку
-git push --set-upstream origin dev # добавить ветку
-git branch -d dev # удалить ветку
-git diff rsa # сравнить файлы текущей ветки с файлами в указанной ветки rsa
-git merge dev # слияние текущей ветки (rsa/master) с указанной (dev)
+git diff # отобразить историю изменений построчно
+git diff pandoc # сравнивает изменения в текущей рабочей директории с последним коммитом в указанной ветке
+git add . # добавить (проиндексировать) изменения во всех файлах текущего каталога
+git commit -m "update powershell commands" # сохранить изменения с комментарием
+git push # синхронизировать локальные изменения с репозиторием на сервере
+git branch hugo # создать новую ветку
+git branch -m hugo-public # переименовать текущую ветку
+git branch -d hugo-public # удалить ветку
+git switch hugo # переключиться на другую ветку
+git push origin hugo # отправить изменения в указанную ветку
+git push --set-upstream origin hugo # отслеживать изменения в ветке (позволяет делать push без указания ветки)
+git merge hugo # слияние текущей ветки (pandoc) с указанной (hugo)
 git log --oneline --all # лог коммитов
 git log --graph # коммиты и следование веток
+git log --author="Lifailon" # показывает историю коммитов указанного пользователя
+git blame index.html # показывает, кто и когда внес изменения в каждую строку указанного файла
 git show d01f09dead3a6a8d75dda848162831c58ca0ee13 # отобразить подробный лог по номеру коммита
-git checkout filename # откатить изменения, если не было команды add
-git checkout d01f09dead3a6a8d75dda848162831c58ca0ee13 # переключить локальные файлы рабочей копии на указанный коммит (изменить HEAD на указанный коммит)
-git reset HEAD filename # откатить изменения последнего индекса, если был add но не было commit, тем самым вернуться до последней зафиксированный версии (коммита) и потом выполнить checkout
-git reset --mixed HEAD filename # изменения, содержащиеся в отменяемом коммите, не должны исчезнуть, они будут сохранены в виде локальных изменений в рабочей копии
-git restore filename # отменить все локальные изменения в рабочей копии
+git restore filename # отменить все локальные изменения в рабочей копии независимо от того, были они проиндексированы или нет (если была индексация через add), возвращая его к состоянию на момент последнего коммита
 git restore --source d01f09dead3a6a8d75dda848162831c58ca0ee13 filename # восстановить файл на указанную версию по хэшу индентификатора коммита
-git revert HEAD --no-edit # отменить последний коммит, без указания комментария (события записываются в git log)
-git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13 # удалить все коммиты до указанного (и откатиться до него)
+git checkout filename # откатить изменения не проиндексированные для коммита, возвращая его к состоянию, каким оно было на момент последнего коммита (если не было индексации через add)
+git checkout d01f09dead3a6a8d75dda848162831c58ca0ee13 # переключить локальные файлы рабочей копии на указанный коммит (переключает HEAD на указанный коммит)
+git reset HEAD filename # удалить указанный файл из индекса без удаления самих изменений в файле для последующей повторной индексации (если был add но не было commit, потом выполнить checkout)
+git reset --soft HEAD^ # отменяет последний (^) коммит, сохраняя изменения из этого коммита в рабочем каталоге и индексе (подготовленной области), можно внести изменения в файлы и повторно их зафиксировать
+git reset --hard HEAD^ # полностью отменяет последний коммит, удаляя все его изменения из рабочего каталога и индекса до состояния последнего коммита
+git reset --hard d01f09dead3a6a8d75dda848162831c58ca0ee13 # откатывает HEAD к указанному коммиту и удаляет все коммиты, которые были сделаны после него (будут потеряны все незакоммиченные изменения и историю коммитов после указанного)
+git revert HEAD --no-edit # создает новый коммит, который отменяет последний коммит (HEAD) и новый коммит будет добавлен поверх него (события записываются в git log)
+git revert d01f09dead3a6a8d75dda848162831c58ca0ee13 # создает новый коммит, который отменяет изменения, внесенные в указанный коммит с хешем (не изменяет историю коммитов, а создает новый коммит с изменениями отмены)
+git stash # сохраняет текущие изменения в стэш (временное хранилище) и очищает рабочую директорию
+git stash pop # применяет последние изменения из стэша к текущей ветке
+
+# GitHub
+
+$user = "Lifailon"
+$repository = "ReverseProxyNET"
+Invoke-RestMethod https://api.github.com/users/$($user)
+Invoke-RestMethod https://api.github.com/users/$($user)/repos
+Invoke-RestMethod https://api.github.com/repos/$($user)/$($repository)/contents
+Invoke-RestMethod https://api.github.com/repos/$($user)/$($repository)/contents/source/rpnet.cs
+Invoke-RestMethod https://api.github.com/repos/$($user)/$($repository)/commits
+$sha = $(Invoke-RestMethod https://api.github.com/repos/$($user)/$($repository)/commits).sha
+Invoke-RestMethod https://api.github.com/repos/$($user)/$($repository)/commits/$($sha[-1])
+Invoke-RestMethod "https://api.github.com/repos/$($user)/$($repository)/releases/latest"
+$(Invoke-RestMethod "https://api.github.com/repos/$($user)/$($repository)/releases/latest").assets.name
+$issues = Invoke-RestMethod https://api.github.com/repos/LibreHardwareMonitor/LibreHardwareMonitor/issues
+$issue_number = $($issues | Where-Object title -match "PowerShell").number
+Invoke-RestMethod https://api.github.com/repos/LibreHardwareMonitor/LibreHardwareMonitor/issues/$($issue_number)/comments
+Invoke-RestMethod https://api.github.com/repos/LibreHardwareMonitor/LibreHardwareMonitor/pulls
+Invoke-RestMethod https://api.github.com/repos/LibreHardwareMonitor/LibreHardwareMonitor/languages
+Invoke-RestMethod https://api.github.com/repos/LibreHardwareMonitor/LibreHardwareMonitor/stargazers
+Invoke-RestMethod https://api.github.com/repos/LibreHardwareMonitor/LibreHardwareMonitor/forks
+Invoke-RestMethod https://api.github.com/repos/LibreHardwareMonitor/LibreHardwareMonitor/subscribers
 
 # DSC
 
@@ -6093,6 +6178,8 @@ inventory = /etc/ansible/hosts
 # uncomment this to disable SSH key host checking
 # Отключить проверку ключа ssh (для подключения используя пароль)
 host_key_checking = False
+
+### Hosts
 
 nano /etc/ansible/hosts
 
@@ -6822,6 +6909,7 @@ https://www.google.com/search?q=the+rookie+2018+filetype:torrent
 intitle:index.of "game of thrones" mkv daterange:2010..2015 # фильтрация по дате изменения, оператор позволяет задать диапазон дат в формате YYYYMMDD..YYYYMMDD
 intitle:index.of "game of thrones" mkv after:2015 # ограничить результаты поиска файлов, измененных до (before) или после (after) указанной даты
 intitle:index.of "game of thrones" mkv from:2010 to:2015 # фильтрация по диапазону дат
+https://www.google.com/search?q=the-rookie-2018+site:imdb.com&btnI # редирект на первый url
 
 # Google-API
 
@@ -7451,3 +7539,151 @@ magick PowerShell-Commands.png -fill white -pointsize 24 -gravity center -annota
 magick PowerShell-Commands.png -brightness-contrast +20x+10 output.jpg # изменить яркость и контрастность
 magick convert -delay 100 1.png 2.png 3.png output.gif # создать gif из изображений
 magick convert image1.jpg image2.jpg -append output.jpg # вертикально объединенить изображения
+
+# Hugo
+
+Source (https://github.com/gohugoio/hugo)
+
+winget install Hugo.Hugo.Extended
+scoop install hugo-extended
+choco install hugo-extended
+
+$user = "gohugoio"
+$repository = "hugo"
+$release_latest = Invoke-RestMethod "https://api.github.com/repos/$($user)/$($repository)/releases/latest"
+$url = $($release_latest.assets | Where-Object name -match "hugo_extended_[\d.]+_windows-amd64\.zip").browser_download_url
+Invoke-RestMethod $url -OutFile $home\Downloads\hugo.zip
+Expand-Archive -Path "$home\Downloads\hugo.zip" -DestinationPath "$home\Downloads\hugo\"
+Copy-Item -Path "$home\Downloads\hugo\hugo.exe" -Destination "C:\Windows\System32\hugo.exe"
+Remove-Item "$home\Downloads\hugo*" -Force -Recurse
+
+Список тем: https://themes.gohugo.io
+Список команд: https://gohugo.io/commands
+hugo completion powershell | Out-String | Invoke-Expression # включить поддержку автозавершения параметров
+hugo version
+
+hugo new site lifailon.github.io.hugo # создать и инициализировать новый сайт
+cd lifailon.github.io.hugo
+git init # инициализируйте пустой репозиторий Git в текущем каталоге для инициализации темы каталог themes, добавив ее в свой проект как подмодуль Git (если не используется клонирование)
+git submodule add -f https://github.com/JingWangTW/dark-theme-editor.git themes/dark-theme-editor
+echo 'theme = "dark-theme-editor"' >> hugo.toml
+#git submodule add https://github.com/rhazdon/hugo-theme-hello-friend-ng.git themes/hello-friend-ng
+#echo 'theme = "hello-friend-ng"' >> hugo.toml
+mkdir "$home\Downloads\lifailon.github.io.hugo\content\powershell\"
+cp "$home\Downloads\README.md" "$home\Downloads\lifailon.github.io.hugo\content\powershell\index.md" # скопировать markdown документ в директорию контента
+hugo server #  запустить локальный веб-сервер с проектом (http://localhost:1313)
+
+Dark-Theme-Editor (https://github.com/JingWangTW/dark-theme-editor)
+
+code hugo.toml
+```toml
+baseURL = 'https://lifailon.github.io'
+languageCode = 'en-us'
+title = 'PS-Commands'
+theme = "dark-theme-editor"
+
+[taxonomies]
+autor = "Lifailon"
+tag = "Code"
+category = "PowerShell"
+
+[params]
+[params.site]
+faviconUrl = ""
+
+[params.header]
+title = "Lifailon.GitHub.io"
+subtitle = "Большая база заметок PowerShell на русском языке."
+
+[params.header.logo]
+imgUrl = ""
+logoLink = ""
+
+[params.footer]
+copyrightStr = "GitHub"
+counter = false
+language = false
+hugoVersion = true
+theme = true
+modifiedTime = true
+dateFormat = "Jan 02 2006"
+gitHash = false
+[params.footer.socialLink]
+github = "https://github.com/Lifailon"
+
+[params.globalFrontmatter]
+author = "Lifailon"
+description = "Large base of PowerShell notes in Russian language"
+keywords = "PowerShell"
+
+[params.homePage]
+siteLongDescriptionTitle = "PowerShell Commands"
+siteLongDescription = "Структура языка, синтаксис командлетов и модулей, работа с системными и внешними утилитами, платформой .NET, различными сервисами через REST API, а так же системами AD, Exchange, Hyper-V, VMWare, базами данных и т.д."
+showRecentPostsBlock = false
+numOfRecentPosts = 5
+recentPostShowUrl = false
+
+[params.page]
+includeToc = false
+showAuthor = true
+showDate = true
+dateFormat = "Jan 02 2006"
+showTimeToRead = true
+showBreadcrumb = true
+codeBlockCopible = true
+```
+code "content\powershell\index.md"
+```Markdown
+---
+title: "PowerShell Commands"
+author: "Lifailon"
+date: "2024-03-14T03:00:00+03:00"
+categories: ["PowerShell"]
+tags: ["dotNET", "REST API", "Active Dirtctory", "EMShell", "PowerCLI", "Database"]
+---
+```
+Hugo-Theme-Hello-Friend-ng (https://github.com/rhazdon/hugo-theme-hello-friend-ng)
+```toml
+baseURL = 'https://lifailon.github.io'
+title = "Shell Commands"
+languageCode = "en-us"
+theme = "hello-friend-ng"
+contentDir = "content"
+
+[taxonomies]
+autor = "Lifailon"
+tag = "PowerShell"
+category = "Code"
+
+[params.author]
+name = "Lifailon"
+
+[params.footer]
+trademark = "2022-2024"
+bottomText = ["GitHub ▶️ <a href=\"https://github.com/Lifailon\">Lifailon</a>"]
+
+[params.logo]
+logoMark = ">"
+logoText = "$ /home/lifailon/"
+logoHomeLink = "/"
+logoCursorColor = "#67a2c9"
+logoCursorAnimate = "2s"
+logoCursorPathname = true
+logoCursorDisabled = false
+
+#[params.portrait]
+#path = "/img/image.jpg"
+#alt = "Portrait"
+#maxWidth = "1500px"
+
+[[params.social]]
+name = "github"
+url = "https://github.com/Lifailon"
+
+[menu]
+[[menu.main]]
+identifier = "ps"
+name = "PowerShell Commands"
+url = "/powershell/"
+```
+hugo # генерация сайта (создаст папку public с готовыми файлами сайта для развертывания)
