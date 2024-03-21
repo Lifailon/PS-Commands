@@ -61,6 +61,7 @@
 - [Drawing](#drawing)
 - [ObjectEvent](#objectevent)
 - [Sockets](#sockets)
+- [Base64](#base64)
 - [Excel](#excel)
 - [CSV](#csv)
 - [XML](#xml)
@@ -3488,23 +3489,6 @@ $UdpClient.Close()
 `Send-WOL -Mac "D8-BB-C1-70-A3-4E"` \
 `Send-WOL -Mac "D8-BB-C1-70-A3-4E" -IP 192.168.3.100`
 
-### Encoding
-`$ByteText = [System.Text.Encoding]::UTF8.GetBytes("password")` \
-`$Text = [System.Text.Encoding]::UTF8.GetString($ByteText)`
-
-### Base64
-`$text = "password"` \
-`$byte = [System.Text.Encoding]::Unicode.GetBytes($text)` \
-`$base64 = [System.Convert]::ToBase64String($byte)` \
-`$decode_base64 = [System.Convert]::FromBase64String($base64)` \
-`$decode_string = [System.Text.Encoding]::Unicode.GetString($decode_base64)`
-
-`$path_image = "$home\Documents\1200x800.jpg"` \
-`$BBase64 = [System.Convert]::ToBase64String((Get-Content $path_image -Encoding Byte))` \
-`Add-Type -assembly System.Drawing` \
-`$Image = [System.Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($BBase64))` \
-`$Image.Save("$home\Desktop\1200x800.jpg")`
-
 ### HTTP Listener
 ```PowerShell
 $httpListener = New-Object System.Net.HttpListener
@@ -3554,6 +3538,30 @@ $Collections
 ```
 `Get-WebCertificate https://google.com`
 
+# Base64
+
+### UTF8
+
+`$loginPassword = "login:password"` \
+`$Base64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($loginPassword))` закодировать логин и пароль в строку Base64 \
+`[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($Base64))` преобразовать в байты и обратно декодировать в исходную строку с помощью UTF-8 кодировки
+
+### Unicode
+```PowerShell
+$text = "password"
+$byte = [System.Text.Encoding]::Unicode.GetBytes($text) # преобразует строку $text в последовательность байтов, используя кодировку Unicode
+$base64 = [System.Convert]::ToBase64String($byte) # байты конвертируются в строку Base64 с помощью метода ToBase64String
+$decode_base64 = [System.Convert]::FromBase64String($base64) # декодировать строку Base64 обратно в последовательность байтов с помощью метода FromBase64String
+$decode_string = [System.Text.Encoding]::Unicode.GetString($decode_base64) # закодированные байты преобразуются обратно в строку с использованием кодировки Unicode с помощью метода GetString
+```
+### Image
+```PowerShell
+$path_image = "$home\Documents\1200x800.jpg"
+$BBase64 = [System.Convert]::ToBase64String((Get-Content $path_image -Encoding Byte))
+Add-Type -assembly System.Drawing
+$Image = [System.Drawing.Bitmap]::FromStream([IO.MemoryStream][Convert]::FromBase64String($BBase64))
+$Image.Save("$home\Desktop\1200x800.jpg")
+```
 # Excel
 ```PowerShell
 $path = "$home\Desktop\Services-to-Excel.xlsx"
