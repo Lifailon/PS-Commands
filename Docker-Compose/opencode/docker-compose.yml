@@ -1,0 +1,14 @@
+services:
+  opencode:
+    image: lifailon/opencode:latest
+    restart: always
+    container_name: opencode
+    ports:
+      - 4096:4096
+    environment:
+      - OPENCODE_SERVER_USERNAME=admin
+      - OPENCODE_SERVER_PASSWORD=admin
+    volumes:
+      - ./opencode_data/share:/home/opencode/.local/share/opencode
+      - ./opencode_data/state:/home/opencode/.local/state/opencode
+      - ./opencode_data/config:/home/opencode/.config/opencode
