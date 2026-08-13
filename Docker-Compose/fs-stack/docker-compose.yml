@@ -14,19 +14,19 @@ services:
       - 8300:80
 
   # Web File Browser, Teminal and Monaco Editor
-  cloudcmd:
+  cloud-cmd:
     image: coderaiser/cloudcmd
-    container_name: cloudcmd
+    container_name: cloud-cmd
     restart: always
     ports:
       - 8123:8000
     volumes:
-      - /home:/mnt
+      - /home:/home
     environment:
-      - CLOUDCMD_AUTH=false
+      - CLOUDCMD_AUTH=true
       - CLOUDCMD_USERNAME=admin
       - CLOUDCMD_PASSWORD=admin
-      - CLOUDCMD_THEME=light
+      - CLOUDCMD_THEME=dark
       - CLOUDCMD_EDITOR=deepword
       - CLOUDCMD_CONSOLE=true
       - CLOUDCMD_TERMINAL=true

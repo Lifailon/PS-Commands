@@ -235,29 +235,3 @@ services:
   #   environment:
   #     - DISABLE_LOGO=false
   #     - DISABLE_STORAGE_MANAGEMENT=false
-
-############################################################ Licensing system ############################################################
-
-  licenseapi:
-    image: germannewsmaker/licenseapi:development
-    container_name: licenseapi
-    restart: unless-stopped
-    environment:
-      - MONGOOSE_STRING=mongodb://licenseapi-mongo:27017/licenseapi
-      - MAIL_SERVER=smtp.gmail.com
-      - MAIL_PORT=587
-      - MAIL_USER=noreply@gmail.com
-      - MAIL_PASS=password
-      - APP_URL=http://localhost:8025
-      - DISABLE_SIGNUPS=false
-    ports:
-      - 8025:8025
-    depends_on:
-      - licenseapi-mongo
-
-  licenseapi-mongo:
-    image: mongo:latest
-    container_name: licenseapi-mongo
-    restart: unless-stopped
-    volumes:
-      - ./licenseapi_mongo_data:/data/db
