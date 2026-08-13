@@ -1790,37 +1790,6 @@ services:
       - ./nexterm_data:/app/data
 ```
 
-### LicenseAPI
-
-[LicenseAPI](https://github.com/gnmyt/LicenseAPI) - размещенная на собственном сервере система лицензирования для программного обеспечения от создателя Nexterm и MySpeed. Поддерживает графический интерфейс управления, систему разрешений, назначение метаданных лицензиям, проверка лицензий в автономном режиме и интеграцию с использованием REST API или SDK.
-
-```yaml
-services:
-  licenseapi:
-    image: germannewsmaker/licenseapi:development
-    container_name: licenseapi
-    restart: unless-stopped
-    environment:
-      - MONGOOSE_STRING=mongodb://licenseapi-mongo:27017/licenseapi
-      - MAIL_SERVER=smtp.gmail.com
-      - MAIL_PORT=587
-      - MAIL_USER=noreply@gmail.com
-      - MAIL_PASS=password
-      - APP_URL=http://localhost:8025
-      - DISABLE_SIGNUPS=false
-    ports:
-      - 8025:8025
-    depends_on:
-      - licenseapi-mongo
-
-  licenseapi-mongo:
-    image: mongo:latest
-    container_name: licenseapi-mongo
-    restart: unless-stopped
-    volumes:
-      - ./licenseapi_mongo_data:/data/db
-```
-
 ### Code Server
 
 [Code Server](https://github.com/coder/code-server) - VSCode сервер в браузере.
@@ -2018,6 +1987,66 @@ services:
     ports:
       - 9447:8080
 ```
+
+### LicenseAPI
+
+[LicenseAPI](https://github.com/gnmyt/LicenseAPI) - размещенная на собственном сервере система лицензирования для программного обеспечения от создателя Nexterm и MySpeed. Поддерживает графический интерфейс управления, систему разрешений, назначение метаданных лицензиям, проверка лицензий в автономном режиме и интеграцию с использованием REST API или SDK.
+
+```yaml
+services:
+  licenseapi:
+    image: germannewsmaker/licenseapi:development
+    container_name: licenseapi
+    restart: unless-stopped
+    environment:
+      - MONGOOSE_STRING=mongodb://licenseapi-mongo:27017/licenseapi
+      - MAIL_SERVER=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USER=noreply@gmail.com
+      - MAIL_PASS=password
+      - APP_URL=http://localhost:8025
+      - DISABLE_SIGNUPS=false
+    ports:
+      - 8025:8025
+    depends_on:
+      - licenseapi-mongo
+
+  licenseapi-mongo:
+    image: mongo:latest
+    container_name: licenseapi-mongo
+    restart: unless-stopped
+    volumes:
+      - ./licenseapi_mongo_data:/data/db
+```
+
+### ConvertX
+
+[ConvertX](https://github.com/C4illin/ConvertX) - онлайн-конвертер файлов, поддерживающий более 1000 форматов, включая документы, изображения, видео, аудио, электронные книги и 3D-модели. Использует веб-интерфейс для загрузки файлов, выбора целевого формата и загрузки результатов.
+
+```yaml
+services:
+  convertx:
+    image: ghcr.io/c4illin/convertx
+    container_name: convertx
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # non-http
+      - HTTP_ALLOWED=true
+      # randomUUID
+      - JWT_SECRET=aLongAndSecretStringUsedToSignTheJSONWebToken1234
+    volumes:
+      - ./convertx_data:/app/data
+```
+
+### Certimate
+
+[Certimate](https://github.com/certimate-go/certimate) - интерфейс и система автоматизации полного цикла управления SSL-сертификатами (выпуск, развертывание, обновление и мониторинг).
+
+Он поддерживает более 70 DNS-провайдеров и свыше 150 мест развертывания, обеспечивая гибкость в выборе сервисов.
+
+Программа не требует внешних зависимостей, что упрощает ее установку и использование
 
 ## Database Stack
 
@@ -3091,19 +3120,19 @@ services:
 
 ```yaml
 services:
-  cloudcmd:
+  cloud-cmd:
     image: coderaiser/cloudcmd
-    container_name: cloudcmd
+    container_name: cloud-cmd
     restart: always
     ports:
       - 8123:8000
     volumes:
-      - /home:/mnt
+      - /home:/home
     environment:
-      - CLOUDCMD_AUTH=false
+      - CLOUDCMD_AUTH=true
       - CLOUDCMD_USERNAME=admin
       - CLOUDCMD_PASSWORD=admin
-      - CLOUDCMD_THEME=light
+      - CLOUDCMD_THEME=dark
       - CLOUDCMD_EDITOR=deepword
       - CLOUDCMD_CONSOLE=true
       - CLOUDCMD_TERMINAL=true
@@ -9155,6 +9184,36 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./vector.toml:/etc/vector/vector.toml:ro
+```
+
+### Docker Logger
+
+[Docker Logger](https://github.com/umputun/docker-logger) - сборщик логов из других контейнеров на хосте, запущенных без `-t` опции и настроенных с драйвером логирования `json-file` или `journald`. Оно может перенаправлять как стандартный поток вывода и ошибки контейнеров в локальные и ротируемые файлы или в удаленный `syslog` сервер.
+
+```yaml
+services:
+  docker-logger:
+    image: umputun/docker-logger
+    container_name: docker-logger
+    restart: always
+    environment:
+      - LOG_FILES=true
+      - EXCLUDE=docker-logger
+      # - INCLUDE=
+      - MAX_FILES=10
+      - MAX_SIZE=50
+      - MAX_AGE=20
+      - DEBUG=true
+      - LOG_SYSLOG=false
+      - SYSLOG_HOST=127.0.0.1:514
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs:/srv/logs
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: 5
 ```
 
 ### Toolong
